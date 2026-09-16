@@ -1,0 +1,75 @@
+workflows:
+  ios-app-build:
+    name: Build iOS IPA (Unsigned / TrollStore / AltStore / Sideloadly)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      xcode: latest
+      cocoapods: default
+      vars:
+        XCODE_PROJECT: "CardGameApp.xcodeproj"
+        XCODE_SCHEME: "CardGameApp"
+        BUNDLE_ID: "com.trantuan.cardgame"
+    scripts:
+      - name: Initialize Xcode Project
+        script: |
+          echo "Initializing project in $(pwd)..."
+          if command -v xcodegen &> /dev/null; then
+            echo "Running xcodegen to ensure up-to-date project..."
+            xcodegen generate || true
+          fi
+      - name: Build Xcode Archive
+        script: |
+          set -e
+          echo "Starting xcodebuild archive..."
+          xcodebuild clean archive \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath "$PWD/build/CardGameApp.xcarchive" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Package IPA
+        script: |
+          set -e
+          echo "Packaging IPA file..."
+          mkdir -p "$PWD/build/output"
+          mkdir -p "$PWD/build/Payload"
+          cp -r "$PWD/build/CardGameApp.xcarchive/Products/Applications/"*.app "$PWD/build/Payload/"
+          cd "$PWD/build"
+          zip -qr "CardGameApp.ipa" Payload
+          mv "CardGameApp.ipa" output/
+          echo "SUCCESS: IPA created at build/output/CardGameApp.ipa"
+    artifacts:
+      - build/output/*.ipa
+      - build/*.xcarchive
+
+  ios-app-signed:
+    name: Build iOS Signed IPA (App Store / TestFlight / Ad-Hoc)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      ios_signing:
+        distribution_type: ad_hoc
+        bundle_identifier: com.trantuan.cardgame
+      vars:
+        XCODE_PROJECT: "CardGameApp.xcodeproj"
+        XCODE_SCHEME: "CardGameApp"
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Set up code signing settings on Xcode project
+        script: |
+          if command -v xcodegen &> /dev/null; then
+            xcodegen generate || true
+          fi
+          xcode-project use-profiles
+      - name: Build IPA with signing
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
