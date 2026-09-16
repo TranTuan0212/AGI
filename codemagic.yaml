@@ -39,9 +39,11 @@ workflows:
           mkdir -p "$PWD/build/Payload"
           cp -r "$PWD/build/CardGameApp.xcarchive/Products/Applications/"*.app "$PWD/build/Payload/"
           cd "$PWD/build"
-          zip -qr "CardGameApp.ipa" Payload
+          zip -qr "GiaLapSoBai.ipa" Payload
+          cp "GiaLapSoBai.ipa" "CardGameApp.ipa"
+          mv "GiaLapSoBai.ipa" output/
           mv "CardGameApp.ipa" output/
-          echo "SUCCESS: IPA created at build/output/CardGameApp.ipa"
+          echo "SUCCESS: IPA created at build/output/GiaLapSoBai.ipa"
     artifacts:
       - build/output/*.ipa
       - build/*.xcarchive

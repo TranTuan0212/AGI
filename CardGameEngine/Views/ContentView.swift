@@ -183,7 +183,7 @@ public struct ContentView: View {
                 .background(Color(.systemBackground))
                 .shadow(color: Color.black.opacity(0.06), radius: 3, x: 0, y: -2)
             }
-            .navigationTitle("Trợ Lý Bài 52 Lá")
+            .navigationTitle("GiaLapSoBai")
 
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

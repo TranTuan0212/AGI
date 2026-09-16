@@ -1,4 +1,4 @@
-# Trợ Lý & Trọng Tài So Bài Tây 52 Lá (iOS SwiftUI & Web Simulator)
+# GiaLapSoBai - Trợ Lý & Trọng Tài So Bài Tây 52 Lá (iOS SwiftUI & Web Simulator)
 ### Phỏm (Tá Lả) — Binh (Mậu Binh) — Liêng (3 Cây) — Poker (Texas Hold'em)
 
 Ứng dụng chuyên dụng hỗ trợ bàn chơi bài Tây ngoài đời thực: Đóng vai trò là **Trọng tài số hóa** giúp kiểm tra bài, chia bài tuần tự (Round-Robin) hoặc thủ công, tự động nhận diện Phỏm tối ưu, tính điểm rác, bắt Ù/Móm, sảnh bánh xe Poker, kicker 5 bậc, thắng trắng/lục phé bôn, kiểm tra lủng và công bố người thắng thua chuẩn xác 100%.
