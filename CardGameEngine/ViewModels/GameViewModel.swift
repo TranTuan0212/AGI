@@ -134,7 +134,25 @@ public class GameViewModel: ObservableObject {
                 if players[idx].cards.count < targetCount {
                     players[idx].cards.append(card)
                     actionHistory.append((card: card, target: players[idx].id))
-                    roundRobinPointer = (idx + 1) % players.count
+                    
+                    // Find next player who actually still needs cards!
+                    var nextNeedingIdx: Int? = nil
+                    for offset in 1...players.count {
+                        let checkIdx = (idx + offset) % players.count
+                        if players[checkIdx].cards.count < targetCount {
+                            nextNeedingIdx = checkIdx
+                            break
+                        }
+                    }
+                    
+                    if let next = nextNeedingIdx {
+                        roundRobinPointer = next
+                        isSelectingCommunity = false
+                    } else if commTargetCount > 0 && communityCards.count < commTargetCount {
+                        // All players full, but community cards still needed
+                        isSelectingCommunity = true
+                    }
+                    
                     dealtToPlayer = true
                     break
                 }
@@ -159,12 +177,20 @@ public class GameViewModel: ObservableObject {
                     players[selectedPlayerIndex].cards.append(card)
                     actionHistory.append((card: card, target: players[selectedPlayerIndex].id))
                     
-                    // Auto-advance to next player if current player is full
+                    // Auto-advance to next player who still needs cards if current player is full
                     if players[selectedPlayerIndex].cards.count == targetCount {
-                        if selectedPlayerIndex < players.count - 1 {
-                            selectedPlayerIndex += 1
+                        var nextNeedingIdx: Int? = nil
+                        for offset in 1..<players.count {
+                            let checkIdx = (selectedPlayerIndex + offset) % players.count
+                            if players[checkIdx].cards.count < targetCount {
+                                nextNeedingIdx = checkIdx
+                                break
+                            }
+                        }
+                        
+                        if let next = nextNeedingIdx {
+                            selectedPlayerIndex = next
                         } else if commTargetCount > 0 && communityCards.count < commTargetCount {
-                            // If last player is full and community cards still needed, switch to community
                             isSelectingCommunity = true
                         }
                     }

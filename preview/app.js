@@ -274,18 +274,36 @@ class PokerEvaluator {
   }
 }
 
+function getSuitValue(suitId, preset = 'north') {
+  if (preset === 'international') return 0;
+  if (preset === 'southA') {
+    if (suitId === 'spades') return 4;
+    if (suitId === 'diamonds') return 3;
+    if (suitId === 'hearts') return 2;
+    if (suitId === 'clubs') return 1;
+  } else {
+    if (suitId === 'hearts') return 4;
+    if (suitId === 'diamonds') return 3;
+    if (suitId === 'clubs') return 2;
+    if (suitId === 'spades') return 1;
+  }
+  return 0;
+}
+
 class LiengEvaluator {
-  static evaluate(cards) {
+  static evaluate(cards, preset = 'north') {
     if (!cards || cards.length !== 3) {
       return { score: 0, typeName: "Điểm", desc: "Không đủ 3 lá" };
     }
     const sorted = [...cards].sort((a, b) => b.rank - a.rank);
     const ranks = sorted.map(c => c.rank);
+    const topCard = sorted[0];
+    const suitScore = getSuitValue(topCard.suit, preset);
 
-    // 1. Sáp (3 same rank) -> 10,000 + rank
+    // 1. Sáp (3 same rank) -> 1,000,000 + rank * 10 + suitScore
     if (ranks[0] === ranks[1] && ranks[1] === ranks[2]) {
       const sym = RANKS.find(r => r.raw === ranks[0])?.sym || ranks[0];
-      const score = 10000 + ranks[0];
+      const score = 1000000 + ranks[0] * 10 + suitScore;
       return {
         score,
         typeName: "Sáp",
@@ -293,51 +311,62 @@ class LiengEvaluator {
       };
     }
 
-    // 2. Liêng (3 consecutive) -> 5,000 + rank
+    // 2. Liêng (3 consecutive) -> 500,000 + rank * 10 + suitScore
     let isLieng = false;
     let liengRankWeight = 0;
     let liengSymbol = "";
+    let liengTopCard = topCard;
 
     if (ranks[0] - ranks[1] === 1 && ranks[1] - ranks[2] === 1) {
       isLieng = true;
       liengRankWeight = ranks[0];
       liengSymbol = sorted.map(c => RANKS.find(r => r.raw === c.rank)?.sym).reverse().join('-');
+      liengTopCard = sorted[0];
     } else if (ranks[0] === 14 && ranks[1] === 3 && ranks[2] === 2) {
-      // A-2-3 -> 5003
+      // A-2-3 -> tops at 3
       isLieng = true;
       liengRankWeight = 3;
       liengSymbol = "A-2-3";
+      liengTopCard = sorted.find(c => c.rank === 3) || sorted[0];
     }
 
     if (isLieng) {
-      const score = 5000 + liengRankWeight;
+      const lSuitScore = getSuitValue(liengTopCard.suit, preset);
+      const score = 500000 + liengRankWeight * 10 + lSuitScore;
+      const lTopSym = RANKS.find(r => r.raw === liengTopCard.rank)?.sym || liengTopCard.rank;
+      const lTopIcon = SUITS.find(s => s.id === liengTopCard.suit)?.symbol || '';
       return {
         score,
         typeName: "Liêng",
-        desc: `⚡ LIÊNG ${liengSymbol}`
+        desc: `⚡ LIÊNG ${liengSymbol} (${lTopSym}${lTopIcon})`
       };
     }
 
-    // 3. Ba Tây (All 3 are J, Q, K) -> 1,000
+    // 3. Ba Tây (All 3 are J, Q, K) -> 100,000 + rank * 10 + suitScore
     const isDi = cards.every(c => c.rank === 11 || c.rank === 12 || c.rank === 13);
     if (isDi) {
-      const nameStr = sorted.map(c => RANKS.find(r => r.raw === c.rank)?.sym).join('-');
+      const symbols = sorted.map(c => RANKS.find(r => r.raw === c.rank)?.sym).join('-');
+      const score = 100000 + topCard.rank * 10 + suitScore;
+      const topSym = RANKS.find(r => r.raw === topCard.rank)?.sym || topCard.rank;
+      const topIcon = SUITS.find(s => s.id === topCard.suit)?.symbol || '';
       return {
-        score: 1000,
+        score,
         typeName: "Ba Tây",
-        desc: `👑 BA TÂY (${nameStr})`
+        desc: `👑 BA TÂY (${symbols}) - Lá cao: ${topSym}${topIcon}`
       };
     }
 
-    // 4. Điểm thường (Điểm mod 10) -> (Tổng % 10) * 100
+    // 4. Điểm thường (Điểm mod 10) -> (Tổng % 10) * 1000 + rank * 10 + suitScore
     const totalPts = cards.reduce((sum, c) => sum + (RANKS.find(r => r.raw === c.rank)?.lieng || 0), 0);
     const mod = totalPts % 10;
-    const score = mod * 100;
+    const score = mod * 1000 + topCard.rank * 10 + suitScore;
     const ptText = mod === 0 ? "0 Điểm (Bù/Tịt)" : `${mod} Điểm`;
+    const topSym = RANKS.find(r => r.raw === topCard.rank)?.sym || topCard.rank;
+    const topIcon = SUITS.find(s => s.id === topCard.suit)?.symbol || '';
     return {
       score,
       typeName: "Điểm Thường",
-      desc: `⭐ ${ptText}`
+      desc: `⭐ ${ptText} (${topSym}${topIcon})`
     };
   }
 
@@ -1248,7 +1277,24 @@ class AppController {
         if (this.players[pIdx].cards.length < targetCards) {
           this.players[pIdx].cards.push(card);
           this.actionHistory.push({ cardId: card.id, target: pIdx });
-          this.roundRobinPointer = (pIdx + 1) % this.players.length;
+          
+          // Find next player who actually still needs cards!
+          let nextNeedingIdx = null;
+          for (let offset = 1; offset <= this.players.length; offset++) {
+            const checkIdx = (pIdx + offset) % this.players.length;
+            if (this.players[checkIdx].cards.length < targetCards) {
+              nextNeedingIdx = checkIdx;
+              break;
+            }
+          }
+          
+          if (nextNeedingIdx !== null) {
+            this.roundRobinPointer = nextNeedingIdx;
+            this.isSelectingCommunity = false;
+          } else if (commTarget > 0 && this.communityCards.length < commTarget) {
+            this.isSelectingCommunity = true;
+          }
+
           found = true;
           break;
         }
@@ -1270,9 +1316,19 @@ class AppController {
         if (curr && curr.cards.length < targetCards) {
           curr.cards.push(card);
           this.actionHistory.push({ cardId: card.id, target: this.selectedPlayerIndex });
+          
+          // Auto-advance to next player who still needs cards if current player is full
           if (curr.cards.length === targetCards) {
-            if (this.selectedPlayerIndex < this.players.length - 1) {
-              this.selectedPlayerIndex++;
+            let nextNeedingIdx = null;
+            for (let offset = 1; offset < this.players.length; offset++) {
+              const checkIdx = (this.selectedPlayerIndex + offset) % this.players.length;
+              if (this.players[checkIdx].cards.length < targetCards) {
+                nextNeedingIdx = checkIdx;
+                break;
+              }
+            }
+            if (nextNeedingIdx !== null) {
+              this.selectedPlayerIndex = nextNeedingIdx;
             } else if (commTarget > 0 && this.communityCards.length < commTarget) {
               this.isSelectingCommunity = true;
             }
@@ -1706,7 +1762,7 @@ class AppController {
 
   calcLieng() {
     const evaluated = this.players.map((p, idx) => {
-      const score = LiengEvaluator.evaluate(p.cards);
+      const score = LiengEvaluator.evaluate(p.cards, this.suitPreset);
       p.resultTitle = score.desc;
       p.resultDetail = `Loại: ${score.typeName}`;
       return { idx, score };

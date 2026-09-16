@@ -95,26 +95,41 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE ===\n');
   assert(best.type !== 6, 'Omaha 4 lá cơ trên tay + 1 lá cơ trên bàn KHÔNG được Thùng (Flush)');
 }
 
-// 4. Test Liêng (Sáp > Liêng > Ba Tây > Điểm mod 10 theo DataGroupingUI)
+// 4. Test Liêng (Sáp > Liêng > Ba Tây > Điểm mod 10 & So sánh lá to nhất + Chất bài)
 {
   const sap = [{ rank: 7, suit: 'hearts' }, { rank: 7, suit: 'spades' }, { rank: 7, suit: 'diamonds' }];
   const lieng = [{ rank: 12, suit: 'hearts' }, { rank: 13, suit: 'diamonds' }, { rank: 14, suit: 'clubs' }]; // Q-K-A
   const di = [{ rank: 11, suit: 'hearts' }, { rank: 12, suit: 'spades' }, { rank: 11, suit: 'diamonds' }]; // J-Q-J
-  const diem9 = [{ rank: 5, suit: 'hearts' }, { rank: 4, suit: 'spades' }, { rank: 10, suit: 'diamonds' }]; // 9 điểm
+  const diem9_K = [{ rank: 13, suit: 'diamonds' }, { rank: 5, suit: 'clubs' }, { rank: 4, suit: 'hearts' }]; // K(0) + 5 + 4 = 9 điểm, lá to K♦
+  const diem9_9Co = [{ rank: 9, suit: 'hearts' }, { rank: 5, suit: 'clubs' }, { rank: 5, suit: 'spades' }]; // 9 điểm, lá to 9♥
+  const diem9_9Ro = [{ rank: 9, suit: 'diamonds' }, { rank: 6, suit: 'clubs' }, { rank: 4, suit: 'hearts' }]; // 9 điểm, lá to 9♦
 
-  const sSap = LiengEvaluator.evaluate(sap);
-  const sLieng = LiengEvaluator.evaluate(lieng);
-  const sDi = LiengEvaluator.evaluate(di);
-  const sDiem9 = LiengEvaluator.evaluate(diem9);
+  const sSap = LiengEvaluator.evaluate(sap, 'north');
+  const sLieng = LiengEvaluator.evaluate(lieng, 'north');
+  const sDi = LiengEvaluator.evaluate(di, 'north');
+  const sDiem9_K = LiengEvaluator.evaluate(diem9_K, 'north');
+  const sDiem9_9Co = LiengEvaluator.evaluate(diem9_9Co, 'north');
+  const sDiem9_9Ro = LiengEvaluator.evaluate(diem9_9Ro, 'north');
 
-  assert(sSap.score === 10007 && sSap.typeName === 'Sáp', 'Nhận diện Sáp 7 (10.007 điểm)');
-  assert(sLieng.score === 5014 && sLieng.typeName === 'Liêng', 'Nhận diện Liêng Q-K-A (5.014 điểm)');
-  assert(sDi.score === 1000 && sDi.typeName === 'Ba Tây', 'Nhận diện Ba Tây J-Q-J (1.000 điểm)');
-  assert(sDiem9.score === 900 && sDiem9.typeName === 'Điểm Thường', 'Nhận diện Điểm (9 điểm = 900 điểm)');
+  assert(sSap.typeName === 'Sáp' && sSap.score >= 1000000, 'Nhận diện Sáp (> 1.000.000 điểm)');
+  assert(sLieng.typeName === 'Liêng' && sLieng.score >= 500000, 'Nhận diện Liêng Q-K-A (> 500.000 điểm)');
+  assert(sDi.typeName === 'Ba Tây' && sDi.score >= 100000, 'Nhận diện Ba Tây J-Q-J (> 100.000 điểm)');
+  assert(sDiem9_K.typeName === 'Điểm Thường' && sDiem9_K.score >= 9000, 'Nhận diện Điểm Thường 9 điểm (9.000+ điểm)');
 
   assert(LiengEvaluator.compare(sSap, sLieng) > 0, 'Sáp thắng Liêng');
   assert(LiengEvaluator.compare(sLieng, sDi) > 0, 'Liêng thắng Ba Tây');
-  assert(LiengEvaluator.compare(sDi, sDiem9) > 0, 'Ba Tây thắng 9 điểm');
+  assert(LiengEvaluator.compare(sDi, sDiem9_K) > 0, 'Ba Tây thắng 9 điểm');
+
+  // Test So sánh lá cao nhất: K♦ thắng 9♥
+  assert(LiengEvaluator.compare(sDiem9_K, sDiem9_9Co) > 0, 'Cùng 9 điểm: Lá cao K♦ thắng lá cao 9♥');
+
+  // Test So sánh chất bài khi cùng lá cao nhất là 9: 9 Cơ thắng 9 Rô (Miền Bắc: Cơ > Rô)
+  assert(LiengEvaluator.compare(sDiem9_9Co, sDiem9_9Ro) > 0, 'Cùng 9 điểm và cùng lá to nhất là 9: 9♥ (Cơ) thắng 9♦ (Rô)');
+
+  // Test luật Miền Nam Bích lớn: Rô > Cơ -> 9♦ thắng 9♥
+  const s9Co_SouthA = LiengEvaluator.evaluate(diem9_9Co, 'southA');
+  const s9Ro_SouthA = LiengEvaluator.evaluate(diem9_9Ro, 'southA');
+  assert(LiengEvaluator.compare(s9Ro_SouthA, s9Co_SouthA) > 0, 'Luật Miền Nam Bích lớn: 9♦ (Rô) thắng 9♥ (Cơ)');
 }
 
 // 5. Test Binh 13 Thắng Trắng & Precedence
@@ -416,7 +431,55 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE ===\n');
   assert(XiDachEvaluator.compare(sNon15, sQuac23) > 0, 'Xì Dách: Non thắng Quắc');
 }
 
+// 13. Test Cơ Chế Giữ Con Trỏ / Khung Sáng khi Tụ Còn Thiếu Bài (Fix Bug)
+{
+  const sandbox = {
+    window: { addEventListener: () => {} },
+    document: {
+      getElementById: () => ({ style: {}, innerHTML: '', appendChild: () => {}, classList: { add: () => {}, remove: () => {} }, querySelector: () => ({ addEventListener: () => {} }), addEventListener: () => {} }),
+      querySelectorAll: () => [],
+      createElement: () => ({ style: {}, dataset: {}, appendChild: () => {}, addEventListener: () => {}, querySelector: () => ({ addEventListener: () => {} }), setAttribute: () => {} })
+    },
+    localStorage: { getItem: () => null, setItem: () => {} },
+    console: console,
+    setTimeout: setTimeout
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(appCode, sandbox);
+  const AppCtrl = vm.runInContext('AppController', sandbox);
+  const app = new AppCtrl();
+  app.currentGameType = 'lieng3';
+  app.initPlayers(); // 3 players, 3 cards each
+
+  // Chia full 3 lá cho cả 3 tụ (9 lá)
+  for (let i = 2; i <= 10; i++) {
+    app.onCardClick({ id: i + 'h', rank: i, suit: 'hearts', sym: '' + i, suitIcon: '♥' });
+  }
+
+  assert(app.players[0].cards.length === 3 && app.players[1].cards.length === 3 && app.players[2].cards.length === 3, 'Con trỏ: Chia đủ bài cho cả 3 tụ');
+
+  // Xóa 2 lá của Tụ 1 (P0) -> P0 còn 1 lá
+  const c1 = app.players[0].cards[0].id;
+  const c2 = app.players[0].cards[1].id;
+  app.removeCard(c1);
+  app.removeCard(c2);
+
+  assert(app.players[0].cards.length === 1, 'Con trỏ: Xóa 2 lá của Tụ 1 thành công (Tụ 1 còn 1 lá)');
+  assert(app.roundRobinPointer === 0, 'Con trỏ: Tiêu điểm chuyển về Tụ 1 sau khi xóa lá');
+
+  // Nhập 1 lá mới -> Tụ 1 lên 2 lá (vẫn còn thiếu 1 lá)
+  app.onCardClick({ id: 'Ah', rank: 14, suit: 'hearts', sym: 'A', suitIcon: '♥' });
+  assert(app.players[0].cards.length === 2, 'Con trỏ: Tụ 1 nhận lá thành công (Tụ 1 lên 2 lá)');
+  assert(app.roundRobinPointer === 0, 'Con trỏ: Khung sáng VẪN Ở LẠI TỤ 1 vì Tụ 1 vẫn còn thiếu 1 lá (KHÔNG nhảy sang Tụ 2)!');
+
+  // Nhập tiếp lá thứ 3 -> Tụ 1 đủ 3 lá
+  app.onCardClick({ id: 'Kd', rank: 13, suit: 'diamonds', sym: 'K', suitIcon: '♦' });
+  assert(app.players[0].cards.length === 3, 'Con trỏ: Tụ 1 nhận đủ 3 lá');
+  assert(app.isReady() === true, 'Con trỏ: Toàn bộ các tụ đã đủ bài và sẵn sàng so bài');
+}
+
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);
+
 
 
 
