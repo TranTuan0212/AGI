@@ -41,6 +41,7 @@ public class GameViewModel: ObservableObject {
     @Published public var players: [Player] = []
     @Published public var communityCards: [Card] = []
     @Published public var selectedPlayerIndex: Int = 0
+    @Published public var isSelectingCommunity: Bool = false
     @Published public var roundRobinPointer: Int = 0
     
     // Result State
@@ -95,6 +96,7 @@ public class GameViewModel: ObservableObject {
         communityCards.removeAll()
         roundRobinPointer = 0
         selectedPlayerIndex = 0
+        isSelectingCommunity = false
         hasCalculatedResults = false
         isShowResultModal = false
         showdownSummary = ""
@@ -128,6 +130,7 @@ public class GameViewModel: ObservableObject {
         
         if inputMode == .roundRobin {
             // Find next player who still needs cards
+            var dealtToPlayer = false
             var attempts = 0
             while attempts < players.count {
                 let idx = (roundRobinPointer + attempts) % players.count
@@ -135,42 +138,49 @@ public class GameViewModel: ObservableObject {
                     players[idx].cards.append(card)
                     actionHistory.append((card: card, target: players[idx].id))
                     roundRobinPointer = (idx + 1) % players.count
-                    return
+                    dealtToPlayer = true
+                    break
                 }
                 attempts += 1
             }
             
-            // If all players have full cards, check community cards
-            if communityCards.count < commTargetCount {
+            // If all players have full cards, deal to community cards
+            if !dealtToPlayer && communityCards.count < commTargetCount {
                 communityCards.append(card)
                 actionHistory.append((card: card, target: "COMMUNITY"))
-                return
             }
             
         } else {
             // Manual selection mode
-            if selectedPlayerIndex < players.count {
+            if isSelectingCommunity {
+                if communityCards.count < commTargetCount {
+                    communityCards.append(card)
+                    actionHistory.append((card: card, target: "COMMUNITY"))
+                }
+            } else if selectedPlayerIndex < players.count {
                 if players[selectedPlayerIndex].cards.count < targetCount {
                     players[selectedPlayerIndex].cards.append(card)
                     actionHistory.append((card: card, target: players[selectedPlayerIndex].id))
                     
                     // Auto-advance to next player if current player is full
-                    if players[selectedPlayerIndex].cards.count == targetCount && selectedPlayerIndex < players.count - 1 {
-                        selectedPlayerIndex += 1
+                    if players[selectedPlayerIndex].cards.count == targetCount {
+                        if selectedPlayerIndex < players.count - 1 {
+                            selectedPlayerIndex += 1
+                        } else if commTargetCount > 0 && communityCards.count < commTargetCount {
+                            // If last player is full and community cards still needed, switch to community
+                            isSelectingCommunity = true
+                        }
                     }
-                } else if selectedPlayerIndex == players.count - 1 && communityCards.count < commTargetCount {
+                } else if commTargetCount > 0 && communityCards.count < commTargetCount {
                     communityCards.append(card)
                     actionHistory.append((card: card, target: "COMMUNITY"))
                 }
             }
         }
         
-        // Auto-calculate immediately when all cards are dealt
+        // Auto-calculate immediately when all cards are dealt (no need to press "So bài")
         if isReadyToCalculate {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
-                guard let self = self, self.isReadyToCalculate else { return }
-                self.calculateResults()
-            }
+            calculateResults()
         }
     }
     

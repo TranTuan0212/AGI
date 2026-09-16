@@ -11,11 +11,22 @@ public struct PlayerCardsView: View {
         VStack(alignment: .leading, spacing: 6) {
             // Community Cards (If applicable)
             if viewModel.gameType.communityCardsCount > 0 {
+                let isCommSelected = viewModel.inputMode == .manual && viewModel.isSelectingCommunity && !viewModel.hasCalculatedResults
                 VStack(alignment: .leading, spacing: 3) {
                     HStack {
                         Label("Bài Chung", systemImage: "rectangle.stack.fill")
                             .font(.system(size: 12, weight: .bold))
                             .foregroundColor(.orange)
+                        
+                        if isCommSelected {
+                            Text("▶ Đang chọn")
+                                .font(.system(size: 9, weight: .bold))
+                                .foregroundColor(.green)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 1)
+                                .background(Color.green.opacity(0.15))
+                                .cornerRadius(4)
+                        }
                         
                         Spacer()
                         
@@ -45,8 +56,17 @@ public struct PlayerCardsView: View {
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
-                .background(Color.orange.opacity(0.1))
+                .background(isCommSelected ? Color.green.opacity(0.1) : Color.orange.opacity(0.1))
                 .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(isCommSelected ? Color.green : Color.orange.opacity(0.3), lineWidth: isCommSelected ? 1.5 : 1)
+                )
+                .onTapGesture {
+                    if viewModel.inputMode == .manual {
+                        viewModel.isSelectingCommunity = true
+                    }
+                }
             }
             
             // Player mats
@@ -159,6 +179,7 @@ public struct PlayerCardsView: View {
                     .onTapGesture {
                         if viewModel.inputMode == .manual {
                             viewModel.selectedPlayerIndex = idx
+                            viewModel.isSelectingCommunity = false
                         }
                     }
                 }

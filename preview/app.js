@@ -959,6 +959,7 @@ class AppController {
     this.inputMode = 'roundRobin'; // 'roundRobin' or 'manual'
     this.roundRobinPointer = 0;
     this.selectedPlayerIndex = 0;
+    this.isSelectingCommunity = false;
 
     this.players = [];
     this.communityCards = [];
@@ -1125,11 +1126,6 @@ class AppController {
       const row = document.createElement('div');
       row.className = 'deck-suit-row';
 
-      const suitLabel = document.createElement('div');
-      suitLabel.className = `suit-label ${suit.isRed ? 'red' : 'black'}`;
-      suitLabel.textContent = suit.symbol;
-      row.appendChild(suitLabel);
-
       const suitCards = deck.filter(c => c.suit === suit.id);
       suitCards.forEach(card => {
         const cell = document.createElement('div');
@@ -1187,16 +1183,27 @@ class AppController {
       }
     } else {
       // Manual selection
-      const curr = this.players[this.selectedPlayerIndex];
-      if (curr && curr.cards.length < targetCards) {
-        curr.cards.push(card);
-        this.actionHistory.push({ cardId: card.id, target: this.selectedPlayerIndex });
-        if (curr.cards.length === targetCards && this.selectedPlayerIndex < this.players.length - 1) {
-          this.selectedPlayerIndex++;
+      if (this.isSelectingCommunity) {
+        if (this.communityCards.length < commTarget) {
+          this.communityCards.push(card);
+          this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
         }
-      } else if (this.communityCards.length < commTarget) {
-        this.communityCards.push(card);
-        this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
+      } else {
+        const curr = this.players[this.selectedPlayerIndex];
+        if (curr && curr.cards.length < targetCards) {
+          curr.cards.push(card);
+          this.actionHistory.push({ cardId: card.id, target: this.selectedPlayerIndex });
+          if (curr.cards.length === targetCards) {
+            if (this.selectedPlayerIndex < this.players.length - 1) {
+              this.selectedPlayerIndex++;
+            } else if (commTarget > 0 && this.communityCards.length < commTarget) {
+              this.isSelectingCommunity = true;
+            }
+          }
+        } else if (commTarget > 0 && this.communityCards.length < commTarget) {
+          this.communityCards.push(card);
+          this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
+        }
       }
     }
 
@@ -1206,11 +1213,7 @@ class AppController {
 
     // Auto calculate if all cards are dealt
     if (this.isReady()) {
-      setTimeout(() => {
-        if (this.isReady()) {
-          this.calculate();
-        }
-      }, 200);
+      this.calculate();
     }
   }
 
@@ -1271,6 +1274,7 @@ class AppController {
     this.actionHistory = [];
     this.roundRobinPointer = 0;
     this.selectedPlayerIndex = 0;
+    this.isSelectingCommunity = false;
     this.renderDeck();
     this.renderPlayers();
     this.updateUI();
@@ -1319,7 +1323,14 @@ class AppController {
 
     if (cfg.community > 0) {
       commSection.style.display = 'block';
-      txtCommCount.textContent = `${this.communityCards.length}/${cfg.community}`;
+      const isCommSelected = this.inputMode === 'manual' && this.isSelectingCommunity && !this.players.some(p => p.rankOrder != null);
+      if (isCommSelected) {
+        commSection.classList.add('active');
+      } else {
+        commSection.classList.remove('active');
+      }
+
+      txtCommCount.innerHTML = `${isCommSelected ? '<span class="comm-active-tag">▶ Đang chọn</span> ' : ''}${this.communityCards.length}/${cfg.community}`;
       commContainer.innerHTML = '';
       this.communityCards.forEach(c => {
         const mini = this.createMiniCard(c);
@@ -1332,8 +1343,16 @@ class AppController {
         ph.textContent = '+';
         commContainer.appendChild(ph);
       }
+      commSection.onclick = () => {
+        if (this.inputMode === 'manual') {
+          this.isSelectingCommunity = true;
+          this.renderPlayers();
+          this.updateUI();
+        }
+      };
     } else {
       commSection.style.display = 'none';
+      commSection.onclick = null;
     }
 
     const list = document.getElementById('playersList');
@@ -1341,7 +1360,7 @@ class AppController {
 
     this.players.forEach((p, idx) => {
       const isRR = this.inputMode === 'roundRobin' && this.roundRobinPointer === idx;
-      const isManual = this.inputMode === 'manual' && this.selectedPlayerIndex === idx;
+      const isManual = this.inputMode === 'manual' && this.selectedPlayerIndex === idx && !this.isSelectingCommunity;
       const hasResult = p.rankOrder != null;
       const isWinner = p.rankOrder === 1;
       const isActive = isRR || isManual;
@@ -1351,6 +1370,7 @@ class AppController {
       mat.addEventListener('click', () => {
         if (this.inputMode === 'manual') {
           this.selectedPlayerIndex = idx;
+          this.isSelectingCommunity = false;
           this.renderPlayers();
           this.updateUI();
         }

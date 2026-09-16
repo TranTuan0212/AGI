@@ -11,13 +11,7 @@ public struct Deck52GridView: View {
         VStack(spacing: 3) {
             ForEach(suits) { suit in
                 HStack(spacing: 3) {
-                    // Suit header
-                    Text(suit.rawValue)
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(suit.isRed ? .red : .primary)
-                        .frame(width: 20)
-                    
-                    // 13 ranks for this suit
+                    // 13 ranks for this suit (no suit header to maximize card width)
                     ForEach(ranks) { rank in
                         let card = Card(rank: rank, suit: suit)
                         let owner = viewModel.cardOwner(card)
@@ -29,7 +23,7 @@ public struct Deck52GridView: View {
                 }
             }
         }
-        .padding(6)
+        .padding(4)
         .background(Color(.secondarySystemBackground))
         .cornerRadius(10)
     }
@@ -45,14 +39,14 @@ struct CardButton: View {
             ZStack(alignment: .topTrailing) {
                 VStack(spacing: 1) {
                     Text(card.rank.displaySymbol)
-                        .font(.system(size: 14, weight: .bold))
+                        .font(.system(size: 15, weight: .bold))
                         .foregroundColor(card.suit.isRed ? .red : .black)
                     
                     Text(card.suit.rawValue)
-                        .font(.system(size: 13))
+                        .font(.system(size: 13, weight: .bold))
                         .foregroundColor(card.suit.isRed ? .red : .black)
                 }
-                .frame(maxWidth: .infinity, minHeight: 46)
+                .frame(maxWidth: .infinity, minHeight: 48)
                 .background(owner != nil ? Color.gray.opacity(0.2) : Color.white)
                 .cornerRadius(6)
                 .overlay(
