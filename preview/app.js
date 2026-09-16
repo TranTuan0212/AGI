@@ -298,9 +298,9 @@ class LiengEvaluator {
     const sorted = [...cards].sort((a, b) => b.rank - a.rank);
     const ranks = sorted.map(c => c.rank);
     const topCard = sorted[0];
-    const suitScore = getSuitValue(topCard.suit, preset);
+    const suitScore = (preset === 'international') ? 0 : getSuitValue(topCard.suit, preset);
 
-    // 1. Sáp (3 same rank) -> 1,000,000 + rank * 10 + suitScore
+    // 1. Sáp (3 same rank)
     if (ranks[0] === ranks[1] && ranks[1] === ranks[2]) {
       const sym = RANKS.find(r => r.raw === ranks[0])?.sym || ranks[0];
       const score = 1000000 + ranks[0] * 10 + suitScore;
@@ -311,7 +311,7 @@ class LiengEvaluator {
       };
     }
 
-    // 2. Liêng (3 consecutive) -> 500,000 + rank * 10 + suitScore
+    // 2. Liêng (3 consecutive)
     let isLieng = false;
     let liengRankWeight = 0;
     let liengSymbol = "";
@@ -331,43 +331,70 @@ class LiengEvaluator {
     }
 
     if (isLieng) {
-      const lSuitScore = getSuitValue(liengTopCard.suit, preset);
-      const score = 500000 + liengRankWeight * 10 + lSuitScore;
-      const lTopSym = RANKS.find(r => r.raw === liengTopCard.rank)?.sym || liengTopCard.rank;
-      const lTopIcon = SUITS.find(s => s.id === liengTopCard.suit)?.symbol || '';
-      return {
-        score,
-        typeName: "Liêng",
-        desc: `⚡ LIÊNG ${liengSymbol} (${lTopSym}${lTopIcon})`
-      };
+      if (preset === 'international') {
+        const score = 500000 + liengRankWeight * 10;
+        return {
+          score,
+          typeName: "Liêng",
+          desc: `⚡ LIÊNG ${liengSymbol}`
+        };
+      } else {
+        const lSuitScore = getSuitValue(liengTopCard.suit, preset);
+        const score = 500000 + liengRankWeight * 10 + lSuitScore;
+        const lTopSym = RANKS.find(r => r.raw === liengTopCard.rank)?.sym || liengTopCard.rank;
+        const lTopIcon = SUITS.find(s => s.id === liengTopCard.suit)?.symbol || '';
+        return {
+          score,
+          typeName: "Liêng",
+          desc: `⚡ LIÊNG ${liengSymbol} (${lTopSym}${lTopIcon})`
+        };
+      }
     }
 
-    // 3. Ba Tây (All 3 are J, Q, K) -> 100,000 + rank * 10 + suitScore
+    // 3. Ba Tây (All 3 are J, Q, K)
     const isDi = cards.every(c => c.rank === 11 || c.rank === 12 || c.rank === 13);
     if (isDi) {
       const symbols = sorted.map(c => RANKS.find(r => r.raw === c.rank)?.sym).join('-');
-      const score = 100000 + topCard.rank * 10 + suitScore;
+      if (preset === 'international') {
+        return {
+          score: 100000,
+          typeName: "Ba Tây",
+          desc: `👑 BA TÂY (${symbols})`
+        };
+      } else {
+        const score = 100000 + topCard.rank * 10 + suitScore;
+        const topSym = RANKS.find(r => r.raw === topCard.rank)?.sym || topCard.rank;
+        const topIcon = SUITS.find(s => s.id === topCard.suit)?.symbol || '';
+        return {
+          score,
+          typeName: "Ba Tây",
+          desc: `👑 BA TÂY (${symbols}) - Lá cao: ${topSym}${topIcon}`
+        };
+      }
+    }
+
+    // 4. Điểm thường (Điểm mod 10)
+    const totalPts = cards.reduce((sum, c) => sum + (RANKS.find(r => r.raw === c.rank)?.lieng || 0), 0);
+    const mod = totalPts % 10;
+    const ptText = mod === 0 ? "0 Điểm (Bù/Tịt)" : `${mod} Điểm`;
+
+    if (preset === 'international') {
+      const score = mod * 1000;
+      return {
+        score,
+        typeName: "Điểm Thường",
+        desc: `⭐ ${ptText}`
+      };
+    } else {
+      const score = mod * 1000 + topCard.rank * 10 + suitScore;
       const topSym = RANKS.find(r => r.raw === topCard.rank)?.sym || topCard.rank;
       const topIcon = SUITS.find(s => s.id === topCard.suit)?.symbol || '';
       return {
         score,
-        typeName: "Ba Tây",
-        desc: `👑 BA TÂY (${symbols}) - Lá cao: ${topSym}${topIcon}`
+        typeName: "Điểm Thường",
+        desc: `⭐ ${ptText} (${topSym}${topIcon})`
       };
     }
-
-    // 4. Điểm thường (Điểm mod 10) -> (Tổng % 10) * 1000 + rank * 10 + suitScore
-    const totalPts = cards.reduce((sum, c) => sum + (RANKS.find(r => r.raw === c.rank)?.lieng || 0), 0);
-    const mod = totalPts % 10;
-    const score = mod * 1000 + topCard.rank * 10 + suitScore;
-    const ptText = mod === 0 ? "0 Điểm (Bù/Tịt)" : `${mod} Điểm`;
-    const topSym = RANKS.find(r => r.raw === topCard.rank)?.sym || topCard.rank;
-    const topIcon = SUITS.find(s => s.id === topCard.suit)?.symbol || '';
-    return {
-      score,
-      typeName: "Điểm Thường",
-      desc: `⭐ ${ptText} (${topSym}${topIcon})`
-    };
   }
 
   static compare(a, b) {
@@ -2039,6 +2066,13 @@ class AppController {
   openSettings() {
     const cfg = GAME_CONFIGS[this.currentGameType];
     document.getElementById('gameRuleDescription').textContent = cfg.desc;
+    
+    // Sync current suitPreset to the radio buttons
+    const radio = document.querySelector(`input[name="suitPreset"][value="${this.suitPreset}"]`);
+    if (radio) {
+      radio.checked = true;
+    }
+
     document.getElementById('modalSettings').style.display = 'flex';
   }
 
@@ -2050,6 +2084,13 @@ class AppController {
     const selected = document.querySelector('input[name="suitPreset"]:checked');
     if (selected) {
       this.suitPreset = selected.value;
+      // Re-calculate and re-render immediately if cards are present!
+      if (this.isReady()) {
+        this.calculate();
+      } else {
+        this.renderPlayers();
+        this.updateUI();
+      }
     }
     this.closeSettings();
   }

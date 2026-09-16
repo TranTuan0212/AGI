@@ -130,6 +130,15 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE ===\n');
   const s9Co_SouthA = LiengEvaluator.evaluate(diem9_9Co, 'southA');
   const s9Ro_SouthA = LiengEvaluator.evaluate(diem9_9Ro, 'southA');
   assert(LiengEvaluator.compare(s9Ro_SouthA, s9Co_SouthA) > 0, 'Luật Miền Nam Bích lớn: 9♦ (Rô) thắng 9♥ (Cơ)');
+
+  // Test Chuẩn Quốc Tế: Không so chất -> Cùng 9 điểm là ĐỒNG HẠNG (Hòa) tuyệt đối!
+  const s9K_Int = LiengEvaluator.evaluate(diem9_K, 'international');
+  const s9Co_Int = LiengEvaluator.evaluate(diem9_9Co, 'international');
+  const s9Ro_Int = LiengEvaluator.evaluate(diem9_9Ro, 'international');
+  assert(s9K_Int.score === 9000 && s9Co_Int.score === 9000 && s9Ro_Int.score === 9000, 'Chuẩn Quốc Tế: Cả 3 tụ 9 điểm đều có điểm số bằng nhau (9.000 điểm)');
+  assert(LiengEvaluator.compare(s9K_Int, s9Co_Int) === 0, 'Chuẩn Quốc Tế: 9 điểm có K♦ HÒA với 9 điểm có 9♥ (Đồng Hạng 1)');
+  assert(LiengEvaluator.compare(s9Co_Int, s9Ro_Int) === 0, 'Chuẩn Quốc Tế: 9 điểm 9♥ HÒA với 9 điểm 9♦ (Đồng Hạng 1)');
+  assert(s9K_Int.desc === '⭐ 9 Điểm', 'Chuẩn Quốc Tế: Tiêu đề hiển thị gọn gàng "9 Điểm", không ghi chất phụ');
 }
 
 // 5. Test Binh 13 Thắng Trắng & Precedence

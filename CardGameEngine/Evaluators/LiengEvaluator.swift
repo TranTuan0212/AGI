@@ -55,11 +55,10 @@ public class LiengEvaluator {
         let ranks = sorted.map { $0.rank.rawValue }
         
         // 1. Check Sáp (3 of the same rank)
-        // Highest rank wins. If same rank, highest card suit wins.
         if ranks[0] == ranks[1] && ranks[1] == ranks[2] {
             let symbol = sorted[0].rank.displaySymbol
             let topCard = sorted[0]
-            let suitScore = suitRule.suitValue(topCard.suit)
+            let suitScore = suitRule == .international ? 0 : suitRule.suitValue(topCard.suit)
             let score = 1_000_000 + (ranks[0] * 10) + suitScore
             return LiengHandScore(
                 handType: .sap,
@@ -85,46 +84,74 @@ public class LiengEvaluator {
         }
         
         if isLieng {
-            let topCard = (ranks == [14, 3, 2]) ? (sorted.first(where: { $0.rank == .three }) ?? sorted[0]) : sorted[0]
-            let suitScore = suitRule.suitValue(topCard.suit)
-            let score = 500_000 + (liengRankWeight * 10) + suitScore
-            let cardDesc = " (\(topCard.rank.displaySymbol)\(topCard.suit.rawValue))"
-            return LiengHandScore(
-                handType: .lieng,
-                calculatedScore: score,
-                descriptionVN: "⚡ LIÊNG \(liengSymbol)\(cardDesc)"
-            )
+            if suitRule == .international {
+                let score = 500_000 + (liengRankWeight * 10)
+                return LiengHandScore(
+                    handType: .lieng,
+                    calculatedScore: score,
+                    descriptionVN: "⚡ LIÊNG \(liengSymbol)"
+                )
+            } else {
+                let topCard = (ranks == [14, 3, 2]) ? (sorted.first(where: { $0.rank == .three }) ?? sorted[0]) : sorted[0]
+                let suitScore = suitRule.suitValue(topCard.suit)
+                let score = 500_000 + (liengRankWeight * 10) + suitScore
+                let cardDesc = " (\(topCard.rank.displaySymbol)\(topCard.suit.rawValue))"
+                return LiengHandScore(
+                    handType: .lieng,
+                    calculatedScore: score,
+                    descriptionVN: "⚡ LIÊNG \(liengSymbol)\(cardDesc)"
+                )
+            }
         }
         
         // 3. Check Ba Tây (J, Q, K)
         let isAllFace = cards.allSatisfy { $0.rank == .jack || $0.rank == .queen || $0.rank == .king }
         if isAllFace {
-            let topCard = sorted[0]
-            let suitScore = suitRule.suitValue(topCard.suit)
-            let score = 100_000 + (topCard.rank.rawValue * 10) + suitScore
             let symbols = sorted.map { $0.rank.displaySymbol }.joined(separator: "-")
-            return LiengHandScore(
-                handType: .di,
-                calculatedScore: score,
-                descriptionVN: "👑 BA TÂY (\(symbols)) - Lá cao: \(topCard.rank.displaySymbol)\(topCard.suit.rawValue)"
-            )
+            if suitRule == .international {
+                return LiengHandScore(
+                    handType: .di,
+                    calculatedScore: 100_000,
+                    descriptionVN: "👑 BA TÂY (\(symbols))"
+                )
+            } else {
+                let topCard = sorted[0]
+                let suitScore = suitRule.suitValue(topCard.suit)
+                let score = 100_000 + (topCard.rank.rawValue * 10) + suitScore
+                return LiengHandScore(
+                    handType: .di,
+                    calculatedScore: score,
+                    descriptionVN: "👑 BA TÂY (\(symbols)) - Lá cao: \(topCard.rank.displaySymbol)\(topCard.suit.rawValue)"
+                )
+            }
         }
         
         // 4. Điểm thường (mod 10)
         // A = 1, 2-9 = number, 10,J,Q,K = 0
-        // Score = (modPoint * 1000) + (highestCardRank * 10) + suitScore
         let totalPoints = cards.reduce(0) { $0 + $1.rank.liengPoint }
         let modPoint = totalPoints % 10
-        let topCard = sorted[0]
-        let suitScore = suitRule.suitValue(topCard.suit)
-        let score = (modPoint * 1_000) + (topCard.rank.rawValue * 10) + suitScore
         let pointText = modPoint == 0 ? "0 Điểm (Bù/Tịt)" : "\(modPoint) Điểm"
-        let cardDesc = " (\(topCard.rank.displaySymbol)\(topCard.suit.rawValue))"
         
-        return LiengHandScore(
-            handType: .diem,
-            calculatedScore: score,
-            descriptionVN: "⭐ \(pointText)\(cardDesc)"
-        )
+        if suitRule == .international {
+            // Chuẩn Quốc Tế: Không so chất -> Bằng điểm là hòa/đồng hạng tuyệt đối!
+            let score = modPoint * 1_000
+            return LiengHandScore(
+                handType: .diem,
+                calculatedScore: score,
+                descriptionVN: "⭐ \(pointText)"
+            )
+        } else {
+            // Có so chất (Miền Bắc / Miền Nam): So lá cao nhất -> chất bài
+            let topCard = sorted[0]
+            let suitScore = suitRule.suitValue(topCard.suit)
+            let score = (modPoint * 1_000) + (topCard.rank.rawValue * 10) + suitScore
+            let cardDesc = " (\(topCard.rank.displaySymbol)\(topCard.suit.rawValue))"
+            
+            return LiengHandScore(
+                handType: .diem,
+                calculatedScore: score,
+                descriptionVN: "⭐ \(pointText)\(cardDesc)"
+            )
+        }
     }
 }
