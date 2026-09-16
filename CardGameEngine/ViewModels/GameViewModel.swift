@@ -219,6 +219,8 @@ public class GameViewModel: ObservableObject {
         guard isReadyToCalculate else { return }
         
         switch gameType {
+        case .phom9:
+            calculatePhom()
         case .binh13:
             calculateBinh13()
         case .binh9:
@@ -231,10 +233,6 @@ public class GameViewModel: ObservableObject {
             calculateLieng()
         case .texasHoldem:
             calculateTexasHoldem()
-        case .omaha:
-            calculateOmaha()
-        case .sevenCardStud:
-            calculateSevenCardStud()
         }
         
         recordMatchToHistory()
@@ -267,6 +265,23 @@ public class GameViewModel: ObservableObject {
 
     
     // MARK: - Game Calculation Logic
+    
+    private func calculatePhom() {
+        let inputList = players.enumerated().map { (index: $0.offset, name: $0.element.name, cards: $0.element.cards) }
+        let ranked = PhomEvaluator.rankPlayers(players: inputList)
+        
+        for item in ranked {
+            let idx = item.index
+            players[idx].rankOrder = item.rank
+            players[idx].score = item.scoreDelta
+            players[idx].resultTitle = item.result.isU ? "🎉 Ù (0 điểm)" : (item.result.isMom ? "💀 Móm / Cháy (\(item.result.deadwoodScore)đ)" : "\(item.result.deadwoodScore) điểm rác (\(item.result.phoms.count) phỏm)")
+            players[idx].resultDetail = item.result.summary
+        }
+        
+        if let winner = players.first(where: { $0.rankOrder == 1 }) {
+            showdownSummary = "🏆 \(winner.name) Thắng ván Phỏm với \(winner.resultTitle)!"
+        }
+    }
     
     private func calculateLieng() {
         var scores = [(index: Int, score: LiengHandScore)]()
@@ -304,42 +319,6 @@ public class GameViewModel: ObservableObject {
         
         let winner = players[scores[0].index]
         showdownSummary = "🏆 \(winner.name) Thắng Pot với \(winner.resultTitle)!"
-    }
-    
-    private func calculateOmaha() {
-        var scores = [(index: Int, score: PokerHandScore)]()
-        for (i, p) in players.enumerated() {
-            let score = OmahaEvaluator.evaluateOmaha(holeCards: p.cards, boardCards: communityCards)
-            scores.append((index: i, score: score))
-            players[i].resultTitle = score.descriptionVN
-            players[i].resultDetail = "Đúng 2 lá tẩy + 3 lá chung: \(score.cards.map { $0.displayName }.joined(separator: " "))"
-        }
-        
-        scores.sort { $0.score > $1.score }
-        for (rank, item) in scores.enumerated() {
-            players[item.index].rankOrder = rank + 1
-        }
-        
-        let winner = players[scores[0].index]
-        showdownSummary = "🏆 \(winner.name) Thắng Omaha Pot với \(winner.resultTitle)!"
-    }
-    
-    private func calculateSevenCardStud() {
-        var scores = [(index: Int, score: PokerHandScore)]()
-        for (i, p) in players.enumerated() {
-            let score = PokerEvaluator.evaluate7Cards(p.cards)
-            scores.append((index: i, score: score))
-            players[i].resultTitle = score.descriptionVN
-            players[i].resultDetail = "5 lá tốt nhất trong 7 lá: \(score.cards.map { $0.displayName }.joined(separator: " "))"
-        }
-        
-        scores.sort { $0.score > $1.score }
-        for (rank, item) in scores.enumerated() {
-            players[item.index].rankOrder = rank + 1
-        }
-        
-        let winner = players[scores[0].index]
-        showdownSummary = "🏆 \(winner.name) Thắng Stud với \(winner.resultTitle)!"
     }
     
     private func calculateBinh13() {

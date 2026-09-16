@@ -13,6 +13,7 @@
 		C9C8F069F9956FA9D4F6F913 /* Binh9Evaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66ED88ADB5BFEBD2EE192150 /* Binh9Evaluator.swift */; };
 		2368E376E1162311ABA5F2C0 /* LiengEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0899B2DC9C116DD8DC764E6E /* LiengEvaluator.swift */; };
 		7E2F0FF8223CC159D68E7CD5 /* OmahaEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E93766A6B7E7FF1D1A956C95 /* OmahaEvaluator.swift */; };
+		6B6B855B44B5EB85EF336BF3 /* PhomEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10273CDF9DA8C2023DF1C438 /* PhomEvaluator.swift */; };
 		3F2154079CCCA1D285FB94B9 /* PokerEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 734784A620633B401138A623 /* PokerEvaluator.swift */; };
 		4A0C3F5A8865BA0E2321AF69 /* Card.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03C07ABB7F730CC71285D32D /* Card.swift */; };
 		957F553AA7D4E1C9CF383C7A /* GameType.swift in Sources */ = {isa = PBXBuildFile; fileRef = E58DDCE6E2138128F974C3DD /* GameType.swift */; };
@@ -38,6 +39,7 @@
 		66ED88ADB5BFEBD2EE192150 /* Binh9Evaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Binh9Evaluator.swift; sourceTree = "<group>"; };
 		0899B2DC9C116DD8DC764E6E /* LiengEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiengEvaluator.swift; sourceTree = "<group>"; };
 		E93766A6B7E7FF1D1A956C95 /* OmahaEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmahaEvaluator.swift; sourceTree = "<group>"; };
+		10273CDF9DA8C2023DF1C438 /* PhomEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhomEvaluator.swift; sourceTree = "<group>"; };
 		734784A620633B401138A623 /* PokerEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PokerEvaluator.swift; sourceTree = "<group>"; };
 		03C07ABB7F730CC71285D32D /* Card.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Card.swift; sourceTree = "<group>"; };
 		E58DDCE6E2138128F974C3DD /* GameType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameType.swift; sourceTree = "<group>"; };
@@ -87,6 +89,7 @@
 				66ED88ADB5BFEBD2EE192150 /* Binh9Evaluator.swift */,
 				0899B2DC9C116DD8DC764E6E /* LiengEvaluator.swift */,
 				E93766A6B7E7FF1D1A956C95 /* OmahaEvaluator.swift */,
+				10273CDF9DA8C2023DF1C438 /* PhomEvaluator.swift */,
 				734784A620633B401138A623 /* PokerEvaluator.swift */,
 			);
 			path = Evaluators;
@@ -212,6 +215,7 @@
 				C9C8F069F9956FA9D4F6F913 /* Binh9Evaluator.swift in Sources */,
 				2368E376E1162311ABA5F2C0 /* LiengEvaluator.swift in Sources */,
 				7E2F0FF8223CC159D68E7CD5 /* OmahaEvaluator.swift in Sources */,
+				6B6B855B44B5EB85EF336BF3 /* PhomEvaluator.swift in Sources */,
 				3F2154079CCCA1D285FB94B9 /* PokerEvaluator.swift in Sources */,
 				4A0C3F5A8865BA0E2321AF69 /* Card.swift in Sources */,
 				957F553AA7D4E1C9CF383C7A /* GameType.swift in Sources */,

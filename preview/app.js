@@ -28,6 +28,14 @@ const RANKS = [
 ];
 
 const GAME_CONFIGS = {
+  phom9: {
+    name: "Phỏm 9 lá (Tá Lả)",
+    cardsPerPlayer: 9,
+    community: 0,
+    minPlayers: 2,
+    maxPlayers: 4,
+    desc: "9 lá/người (2-4 người). Ghép các phỏm dọc (sảnh cùng chất) hoặc phỏm ngang (3-4 lá cùng số). Ai Ù (0 lá rác) thắng tuyệt đối. Tính điểm các lá rác còn lại (A=1, J=11, Q=12, K=13), ít điểm nhất thắng; không có phỏm bị Móm (Cháy)."
+  },
   binh13: {
     name: "Binh 13 lá (Mậu Binh / Chợ Lớn)",
     cardsPerPlayer: 13,
@@ -69,28 +77,12 @@ const GAME_CONFIGS = {
     desc: "3 lá/người, phân cấp: Sáp > Liêng (Sảnh) > Đĩ (Ba Tây J-Q-K) > Điểm Mậu thầu mod 10, so lá cao nhất và chất theo cài đặt."
   },
   texasHoldem: {
-    name: "Texas Hold'em (2 tẩy + 5 chung)",
+    name: "Poker (Texas Hold'em 2+5)",
     cardsPerPlayer: 2,
     community: 5,
     minPlayers: 2,
     maxPlayers: 10,
-    desc: "2 lá tẩy + 5 lá bài chung, chọn 5 lá tốt nhất từ 7 lá. Đầy đủ sảnh bánh xe A-2-3-4-5 và kicker 5 bậc."
-  },
-  omaha: {
-    name: "Omaha Poker (4 tẩy + 5 chung)",
-    cardsPerPlayer: 4,
-    community: 5,
-    minPlayers: 2,
-    maxPlayers: 10,
-    desc: "4 lá tẩy + 5 lá bài chung, BẮT BUỘC dùng đúng 2 lá tẩy + 3 lá chung để tạo bộ 5 lá mạnh nhất."
-  },
-  sevenCardStud: {
-    name: "Xì Tố 7 lá (Seven Card Stud)",
-    cardsPerPlayer: 7,
-    community: 0,
-    minPlayers: 2,
-    maxPlayers: 7,
-    desc: "7 lá bài riêng mỗi người, chọn bộ 5 lá mạnh nhất trong 7 lá để so tài."
+    desc: "2 lá tẩy + 5 lá bài chung, chọn 5 lá tốt nhất từ 7 lá. 10 cấp bậc từ Mậu thầu đến Sảnh rồng đồng chất, đầy đủ sảnh bánh xe A-2-3-4-5 và kicker 5 bậc."
   }
 };
 
@@ -691,6 +683,234 @@ class Binh13Evaluator {
   }
 }
 
+// MARK: - Phom (Tá Lả) Evaluator
+class PhomEvaluator {
+  static cardPoint(card) {
+    if (card.rank === 14) return 1; // A = 1
+    return card.rank; // 2..13 (J=11, Q=12, K=13)
+  }
+
+  static evaluate(cards) {
+    if (!cards || cards.length === 0) {
+      return { isU: false, isMom: true, phoms: [], deadwood: [], deadwoodScore: 0, summary: "Không có bài" };
+    }
+
+    const allPhoms = this.findAllCandidatePhoms(cards);
+    let bestPhoms = [];
+    let bestDeadwood = [...cards];
+    let minDeadwoodScore = cards.reduce((sum, c) => sum + this.cardPoint(c), 0);
+    let isU = false;
+
+    const search = (startIndex, currentPhoms, usedCardIds) => {
+      const currentDeadwood = cards.filter(c => !usedCardIds.has(c.id));
+      const currentScore = currentDeadwood.reduce((sum, c) => sum + this.cardPoint(c), 0);
+
+      if (currentDeadwood.length === 0 && currentPhoms.length > 0) {
+        isU = true;
+        bestPhoms = [...currentPhoms];
+        bestDeadwood = [];
+        minDeadwoodScore = 0;
+        return;
+      }
+
+      if (currentPhoms.length > 0) {
+        if (bestPhoms.length === 0 || currentScore < minDeadwoodScore) {
+          minDeadwoodScore = currentScore;
+          bestPhoms = [...currentPhoms];
+          bestDeadwood = currentDeadwood;
+        }
+      }
+
+      for (let i = startIndex; i < allPhoms.length; i++) {
+        if (isU) return;
+        const candidate = allPhoms[i];
+        const candIds = new Set(candidate.cards.map(c => c.id));
+        let disjoint = true;
+        for (const id of candIds) {
+          if (usedCardIds.has(id)) {
+            disjoint = false;
+            break;
+          }
+        }
+        if (disjoint) {
+          const nextUsed = new Set(usedCardIds);
+          candIds.forEach(id => nextUsed.add(id));
+          search(i + 1, [...currentPhoms, candidate], nextUsed);
+        }
+      }
+    };
+
+    search(0, [], new Set());
+
+    const isMom = bestPhoms.length === 0;
+    if (isMom) {
+      bestDeadwood = [...cards];
+      minDeadwoodScore = cards.reduce((sum, c) => sum + this.cardPoint(c), 0);
+    }
+
+    let summary = "";
+    if (isU) {
+      const phomDesc = bestPhoms.map(p => p.description).join(" + ");
+      summary = `🎉 Ù (0 điểm rác) [${phomDesc}]`;
+    } else if (isMom) {
+      summary = `💀 Móm / Cháy (Không có phỏm, ${minDeadwoodScore} điểm rác)`;
+    } else {
+      const phomDesc = bestPhoms.map(p => p.description).join(" + ");
+      const deadwoodDesc = bestDeadwood.map(c => `${c.sym}${c.suitIcon}`).join(" ");
+      summary = `${bestPhoms.length} Phỏm [${phomDesc}] | Rác (${deadwoodDesc}): ${minDeadwoodScore} điểm`;
+    }
+
+    return {
+      isU,
+      isMom,
+      phoms: bestPhoms,
+      deadwood: bestDeadwood,
+      deadwoodScore: minDeadwoodScore,
+      summary
+    };
+  }
+
+  static findAllCandidatePhoms(cards) {
+    const candidates = [];
+
+    // A. Phỏm ngang (3-4 lá cùng số)
+    const rankGroups = {};
+    cards.forEach(c => {
+      rankGroups[c.rank] = rankGroups[c.rank] || [];
+      rankGroups[c.rank].push(c);
+    });
+
+    for (const rank in rankGroups) {
+      const grp = rankGroups[rank];
+      if (grp.length === 3) {
+        candidates.push({
+          cards: grp,
+          isVertical: false,
+          description: `Phỏm ngang (${grp.map(c => c.sym + c.suitIcon).join(" ")})`
+        });
+      } else if (grp.length === 4) {
+        candidates.push({
+          cards: grp,
+          isVertical: false,
+          description: `Phỏm ngang 4 lá (${grp.map(c => c.sym + c.suitIcon).join(" ")})`
+        });
+        for (let i = 0; i < 4; i++) {
+          const sub = grp.filter((_, idx) => idx !== i);
+          candidates.push({
+            cards: sub,
+            isVertical: false,
+            description: `Phỏm ngang (${sub.map(c => c.sym + c.suitIcon).join(" ")})`
+          });
+        }
+      }
+    }
+
+    // B. Phỏm dọc (Cùng chất, liên tiếp >= 3 lá)
+    const suitGroups = {};
+    cards.forEach(c => {
+      suitGroups[c.suit] = suitGroups[c.suit] || [];
+      suitGroups[c.suit].push(c);
+    });
+
+    for (const suit in suitGroups) {
+      const grp = suitGroups[suit];
+      if (grp.length < 3) continue;
+
+      const getVal = (c, aceHigh) => (c.rank === 14 ? (aceHigh ? 14 : 1) : c.rank);
+      const sorted = [...grp].sort((a, b) => getVal(a, false) - getVal(b, false));
+
+      const n = sorted.length;
+      for (let i = 0; i < n; i++) {
+        for (let j = i + 2; j < n; j++) {
+          const sub = sorted.slice(i, j + 1);
+          let consec = true;
+          for (let k = 0; k < sub.length - 1; k++) {
+            if (getVal(sub[k + 1], false) !== getVal(sub[k], false) + 1) {
+              consec = false;
+              break;
+            }
+          }
+          if (consec) {
+            candidates.push({
+              cards: sub,
+              isVertical: true,
+              description: `Phỏm dọc (${sub.map(c => c.sym + c.suitIcon).join(" ")})`
+            });
+          }
+        }
+      }
+
+      // Ace High: Q-K-A
+      const hasA = grp.find(c => c.rank === 14);
+      const hasK = grp.find(c => c.rank === 13);
+      const hasQ = grp.find(c => c.rank === 12);
+      if (hasA && hasK && hasQ) {
+        candidates.push({
+          cards: [hasQ, hasK, hasA],
+          isVertical: true,
+          description: `Phỏm dọc (${hasQ.sym}${hasQ.suitIcon} ${hasK.sym}${hasK.suitIcon} ${hasA.sym}${hasA.suitIcon})`
+        });
+        const hasJ = grp.find(c => c.rank === 11);
+        if (hasJ) {
+          candidates.push({
+            cards: [hasJ, hasQ, hasK, hasA],
+            isVertical: true,
+            description: `Phỏm dọc (${hasJ.sym}${hasJ.suitIcon} ${hasQ.sym}${hasQ.suitIcon} ${hasK.sym}${hasK.suitIcon} ${hasA.sym}${hasA.suitIcon})`
+          });
+        }
+      }
+    }
+
+    return candidates;
+  }
+
+  static rankPlayers(players) {
+    const evaluated = players.map((p, idx) => ({
+      index: idx,
+      name: p.name,
+      result: this.evaluate(p.cards)
+    }));
+
+    evaluated.sort((a, b) => {
+      if (a.result.isU !== b.result.isU) return a.result.isU ? -1 : 1;
+      if (a.result.isMom !== b.result.isMom) return a.result.isMom ? 1 : -1;
+      if (a.result.deadwoodScore !== b.result.deadwoodScore) return a.result.deadwoodScore - b.result.deadwoodScore;
+      return a.index - b.index;
+    });
+
+    const hasU = evaluated.some(e => e.result.isU);
+    const n = evaluated.length;
+
+    return evaluated.map((item, pos) => {
+      let delta = 0;
+      if (hasU) {
+        delta = item.result.isU ? (n - 1) * 6 : -6;
+      } else {
+        if (pos === 0) {
+          let winTotal = 0;
+          for (let otherPos = 1; otherPos < n; otherPos++) {
+            let penalty = otherPos;
+            if (evaluated[otherPos].result.isMom) penalty += 1;
+            winTotal += penalty;
+          }
+          delta = winTotal;
+        } else {
+          let penalty = pos;
+          if (item.result.isMom) penalty += 1;
+          delta = -penalty;
+        }
+      }
+      return {
+        index: item.index,
+        name: item.name,
+        result: item.result,
+        rank: pos + 1,
+        scoreDelta: delta
+      };
+    });
+  }
+}
+
 // MARK: - State & App Controller
 
 class AppController {
@@ -1157,17 +1377,14 @@ class AppController {
 
   calculate() {
     switch(this.currentGameType) {
+      case 'phom9':
+        this.calcPhom();
+        break;
       case 'lieng3':
         this.calcLieng();
         break;
       case 'texasHoldem':
         this.calcHoldem();
-        break;
-      case 'omaha':
-        this.calcOmaha();
-        break;
-      case 'sevenCardStud':
-        this.calcStud();
         break;
       case 'binh13':
         this.calcBinh13();
@@ -1321,52 +1538,25 @@ class AppController {
     document.getElementById('matrixSection').style.display = 'none';
   }
 
-  calcOmaha() {
-    const evaluated = this.players.map((p, idx) => {
-      const hole2Combos = getCombinations(p.cards, 2);
-      const board3Combos = getCombinations(this.communityCards, 3);
-      let best = null;
-      for (const h of hole2Combos) {
-        for (const b of board3Combos) {
-          const score = PokerEvaluator.evaluate5([...h, ...b]);
-          if (!best || PokerEvaluator.compareScores(score, best) > 0) {
-            best = score;
-          }
-        }
-      }
-      p.resultTitle = best.desc;
-      p.resultDetail = `Đúng 2 lá tẩy + 3 lá chung: ${best.cards.map(c => c.sym + c.suitIcon).join(' ')}`;
-      return { idx, score: best };
+  calcPhom() {
+    const inputList = this.players.map((p, idx) => ({
+      index: idx,
+      name: p.name,
+      cards: p.cards
+    }));
+    const ranked = PhomEvaluator.rankPlayers(inputList);
+
+    ranked.forEach(item => {
+      const p = this.players[item.index];
+      p.rankOrder = item.rank;
+      p.score = item.scoreDelta;
+      p.resultTitle = item.result.isU ? "🎉 Ù (0 điểm)" : (item.result.isMom ? `💀 Móm / Cháy (${item.result.deadwoodScore}đ)` : `${item.result.deadwoodScore} điểm rác (${item.result.phoms.length} phỏm)`);
+      p.resultDetail = item.result.summary;
     });
 
-    evaluated.sort((a, b) => PokerEvaluator.compareScores(b.score, a.score));
-    evaluated.forEach((item, r) => {
-      this.players[item.idx].rankOrder = r + 1;
-    });
-
-    const winner = this.players[evaluated[0].idx];
+    const winner = this.players.find(p => p.rankOrder === 1);
     document.getElementById('bannerWinner').innerHTML = `
-      🏆 <strong>${winner.name}</strong> Thắng Omaha Pot với ${winner.resultTitle}!
-    `;
-    document.getElementById('matrixSection').style.display = 'none';
-  }
-
-  calcStud() {
-    const evaluated = this.players.map((p, idx) => {
-      const best5 = PokerEvaluator.evaluateBestOfMany(p.cards);
-      p.resultTitle = best5.desc;
-      p.resultDetail = `5 lá tốt nhất từ 7 lá: ${best5.cards.map(c => c.sym + c.suitIcon).join(' ')}`;
-      return { idx, score: best5 };
-    });
-
-    evaluated.sort((a, b) => PokerEvaluator.compareScores(b.score, a.score));
-    evaluated.forEach((item, r) => {
-      this.players[item.idx].rankOrder = r + 1;
-    });
-
-    const winner = this.players[evaluated[0].idx];
-    document.getElementById('bannerWinner').innerHTML = `
-      🏆 <strong>${winner.name}</strong> Thắng Stud với ${winner.resultTitle}!
+      🏆 <strong>${winner ? winner.name : '—'}</strong> Thắng ván Phỏm với ${winner ? winner.resultTitle : ''}!
     `;
     document.getElementById('matrixSection').style.display = 'none';
   }

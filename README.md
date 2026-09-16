@@ -1,7 +1,7 @@
 # Trợ Lý & Trọng Tài So Bài Tây 52 Lá (iOS SwiftUI & Web Simulator)
-### Binh (Mậu Binh) — Liêng (3 Cây) — Xì Tố (Poker Hold'em, Omaha, Stud)
+### Phỏm (Tá Lả) — Binh (Mậu Binh) — Liêng (3 Cây) — Poker (Texas Hold'em)
 
-Ứng dụng chuyên dụng hỗ trợ bàn chơi bài Tây ngoài đời thực: Đóng vai trò là **Trọng tài số hóa** giúp kiểm tra bài, chia bài tuần tự (Round-Robin) hoặc thủ công, tự động phát hiện các bộ bài, sảnh bánh xe, kicker 5 bậc, thắng trắng/lục phé bôn, kiểm tra lủng và công bố người thắng thua chuẩn xác 100%.
+Ứng dụng chuyên dụng hỗ trợ bàn chơi bài Tây ngoài đời thực: Đóng vai trò là **Trọng tài số hóa** giúp kiểm tra bài, chia bài tuần tự (Round-Robin) hoặc thủ công, tự động nhận diện Phỏm tối ưu, tính điểm rác, bắt Ù/Móm, sảnh bánh xe Poker, kicker 5 bậc, thắng trắng/lục phé bôn, kiểm tra lủng và công bố người thắng thua chuẩn xác 100%.
 
 ---
 
@@ -13,11 +13,11 @@ Dự án gồm 2 phần được xây dựng song hành:
 Nằm trong thư mục `CardGameEngine/`:
 - **Models**:
   - `Card.swift`: 52 lá bài Tây, 4 chất (♠, ♣, ♦, ♥), 13 giá trị (2 đến A), cấu hình 4 preset quy ước chất.
-  - `GameType.swift`: Cấu hình 8 thể loại & biến thể game, số lá bài mỗi người, số lá chung.
+  - `GameType.swift`: Cấu hình 7 thể loại & biến thể game (Phỏm 9 lá, Binh 13 lá, Binh 9 lá, Binh 6 lá, Liêng, Poker Hold'em).
   - `Player.swift`: Thông tin các nhóm người chơi (A, B, C...), lá bài trên tay, điểm số, thứ hạng.
 - **Evaluators (Bộ não thẩm định bài)**:
-  - `PokerEvaluator.swift`: Đánh giá 5 lá & 7 lá, nhận diện sảnh bánh xe $A-2-3-4-5$, vector kicker 5 bậc.
-  - `OmahaEvaluator.swift`: Bắt buộc đúng 2 lá tẩy + 3 lá chung trong 60 tổ hợp.
+  - `PhomEvaluator.swift`: Tự động tìm tổ hợp Phỏm ngang & Phỏm dọc tối ưu, bắt Ù (0 rác), Móm (Cháy bài), tính điểm rác ($A=1, J=11, Q=12, K=13$) và xếp hạng người chơi.
+  - `PokerEvaluator.swift`: Đánh giá 7 lá Poker Texas Hold'em (2 tẩy + 5 chung), 10 cấp bậc từ Mậu thầu đến Sảnh rồng đồng chất, nhận diện sảnh bánh xe $A-2-3-4-5$, vector kicker 5 bậc.
   - `LiengEvaluator.swift`: Sáp > Liêng > Đĩ (Ba Tây) > Điểm mod 10, tiebreak theo preset chất.
   - `Binh13Evaluator.swift`: Thứ tự ưu tiên thắng trắng (Rồng cuốn, Sảnh rồng, Đồng hoa 13 lá, 5 đôi 1 sám, Lục phé bôn), thuật toán tự động xếp 3 chi tối ưu không lủng, bắt sập hầm x2, đè hàng x2, phạt lủng x2.
   - `Binh9Evaluator.swift`: 3 chi 3 lá (Chi 1 $\ge$ Chi 2 $\ge$ Chi 3), Ba sám cô, Ba sảnh.

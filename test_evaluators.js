@@ -250,7 +250,71 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE ===\n');
   assert(matchQuad.scoreA === 22, `Cùng Tứ Quý chi 2 và thắng cả 3 chi: Sập hầm 6 chi + Đè hàng nhân đôi 16 chi = 22 chi (Thực tế: ${matchQuad.scoreA} chi)`);
 }
 
+// 11. Test Phỏm (Tá Lả) Evaluator
+{
+  // Case 1: Ù 9 lá (3 Phỏm: 3-3-3 ngang, 7-8-9 bích, J-Q-K cơ)
+  const uCards = [
+    { id: '3h', rank: 3, sym: '3', suit: 'hearts', suitIcon: '♥' },
+    { id: '3d', rank: 3, sym: '3', suit: 'diamonds', suitIcon: '♦' },
+    { id: '3s', rank: 3, sym: '3', suit: 'spades', suitIcon: '♠' },
+    { id: '7s', rank: 7, sym: '7', suit: 'spades', suitIcon: '♠' },
+    { id: '8s', rank: 8, sym: '8', suit: 'spades', suitIcon: '♠' },
+    { id: '9s', rank: 9, sym: '9', suit: 'spades', suitIcon: '♠' },
+    { id: 'Jh', rank: 11, sym: 'J', suit: 'hearts', suitIcon: '♥' },
+    { id: 'Qh', rank: 12, sym: 'Q', suit: 'hearts', suitIcon: '♥' },
+    { id: 'Kh', rank: 13, sym: 'K', suit: 'hearts', suitIcon: '♥' }
+  ];
+  const uResult = PhomEvaluator.evaluate(uCards);
+  assert(uResult.isU === true, `Phỏm: Nhận diện chính xác Ù 9 lá (3 phỏm)`);
+  assert(uResult.deadwoodScore === 0, `Phỏm: Điểm rác của Ù phải bằng 0 (Thực tế: ${uResult.deadwoodScore})`);
+  assert(uResult.phoms.length === 3, `Phỏm: Đủ 3 phỏm tạo thành Ù (Thực tế: ${uResult.phoms.length})`);
+
+  // Case 2: 1 Phỏm (7-7-7) + 6 lá rác (A=1, 2=2, 4=4, 5=5, J=11, K=13) -> Tổng rác = 36
+  const onePhomCards = [
+    { id: '7h', rank: 7, sym: '7', suit: 'hearts', suitIcon: '♥' },
+    { id: '7d', rank: 7, sym: '7', suit: 'diamonds', suitIcon: '♦' },
+    { id: '7s', rank: 7, sym: '7', suit: 'spades', suitIcon: '♠' },
+    { id: 'Ac', rank: 14, sym: 'A', suit: 'clubs', suitIcon: '♣' }, // A = 1
+    { id: '2c', rank: 2, sym: '2', suit: 'clubs', suitIcon: '♣' },  // 2
+    { id: '4h', rank: 4, sym: '4', suit: 'hearts', suitIcon: '♥' }, // 4
+    { id: '5d', rank: 5, sym: '5', suit: 'diamonds', suitIcon: '♦' }, // 5
+    { id: 'Js', rank: 11, sym: 'J', suit: 'spades', suitIcon: '♠' }, // 11
+    { id: 'Kd', rank: 13, sym: 'K', suit: 'diamonds', suitIcon: '♦' } // 13
+  ];
+  const onePhomResult = PhomEvaluator.evaluate(onePhomCards);
+  assert(onePhomResult.isU === false, `Phỏm: Không bị nhận nhầm thành Ù`);
+  assert(onePhomResult.isMom === false, `Phỏm: Có 1 phỏm nên không bị Móm`);
+  assert(onePhomResult.deadwoodScore === 36, `Phỏm: Tính điểm rác chính xác 1+2+4+5+11+13 = 36 (Thực tế: ${onePhomResult.deadwoodScore})`);
+
+  // Case 3: Móm (Không có bất kỳ phỏm nào)
+  const momCards = [
+    { id: '2h', rank: 2, sym: '2', suit: 'hearts', suitIcon: '♥' },
+    { id: '4d', rank: 4, sym: '4', suit: 'diamonds', suitIcon: '♦' },
+    { id: '6s', rank: 6, sym: '6', suit: 'spades', suitIcon: '♠' },
+    { id: '8c', rank: 8, sym: '8', suit: 'clubs', suitIcon: '♣' },
+    { id: '10h', rank: 10, sym: '10', suit: 'hearts', suitIcon: '♥' },
+    { id: 'Qd', rank: 12, sym: 'Q', suit: 'diamonds', suitIcon: '♦' },
+    { id: 'As', rank: 14, sym: 'A', suit: 'spades', suitIcon: '♠' },
+    { id: '3c', rank: 3, sym: '3', suit: 'clubs', suitIcon: '♣' },
+    { id: '9h', rank: 9, sym: '9', suit: 'hearts', suitIcon: '♥' }
+  ];
+  const momResult = PhomEvaluator.evaluate(momCards);
+  assert(momResult.isMom === true, `Phỏm: Nhận diện chính xác Móm (Cháy bài)`);
+  assert(momResult.phoms.length === 0, `Phỏm: Móm có 0 phỏm`);
+
+  // Case 4: Xếp hạng 3 người chơi: Player A (Ù) vs Player B (1 phỏm, 36 điểm rác) vs Player C (Móm)
+  const ranked = PhomEvaluator.rankPlayers([
+    { name: 'Player B', cards: onePhomCards },
+    { name: 'Player C', cards: momCards },
+    { name: 'Player A', cards: uCards }
+  ]);
+  assert(ranked[0].name === 'Player A' && ranked[0].rank === 1, `Phỏm: Người Ù đứng Hạng 1`);
+  assert(ranked[1].name === 'Player B' && ranked[1].rank === 2, `Phỏm: Người có phỏm đứng Hạng 2`);
+  assert(ranked[2].name === 'Player C' && ranked[2].rank === 3, `Phỏm: Người Móm đứng Chót bảng (Hạng 3)`);
+  assert(ranked[0].scoreDelta === 12, `Phỏm: Người Ù ăn mỗi nhà 6 chi (Tổng +12 chi)`);
+}
 
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);
+
 
 
