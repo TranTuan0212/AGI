@@ -312,6 +312,28 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE ===\n');
   assert(ranked[1].name === 'Player B' && ranked[1].rank === 2, `Phỏm: Người có phỏm đứng Hạng 2`);
   assert(ranked[2].name === 'Player C' && ranked[2].rank === 3, `Phỏm: Người Móm đứng Chót bảng (Hạng 3)`);
   assert(ranked[0].scoreDelta === 12, `Phỏm: Người Ù ăn mỗi nhà 6 chi (Tổng +12 chi)`);
+
+  // Case 5: Phỏm Đồng điểm: 2 người cùng 36 điểm rác -> Cả 2 cùng Đồng Hạng 1
+  const onePhomCards2 = [
+    { id: '8h', rank: 8, sym: '8', suit: 'hearts', suitIcon: '♥' },
+    { id: '8d', rank: 8, sym: '8', suit: 'diamonds', suitIcon: '♦' },
+    { id: '8s', rank: 8, sym: '8', suit: 'spades', suitIcon: '♠' },
+    { id: 'Ah', rank: 14, sym: 'A', suit: 'hearts', suitIcon: '♥' }, // 1
+    { id: '2h', rank: 2, sym: '2', suit: 'hearts', suitIcon: '♥' },  // 2
+    { id: '4d', rank: 4, sym: '4', suit: 'diamonds', suitIcon: '♦' }, // 4
+    { id: '5s', rank: 5, sym: '5', suit: 'spades', suitIcon: '♠' }, // 5
+    { id: 'Jc', rank: 11, sym: 'J', suit: 'clubs', suitIcon: '♣' }, // 11
+    { id: 'Kc', rank: 13, sym: 'K', suit: 'clubs', suitIcon: '♣' } // 13 -> sum rác = 36
+  ];
+  const rankedTie = PhomEvaluator.rankPlayers([
+    { name: 'Player A', cards: onePhomCards },
+    { name: 'Player B', cards: onePhomCards2 },
+    { name: 'Player C', cards: momCards }
+  ]);
+  assert(rankedTie[0].rank === 1 && rankedTie[1].rank === 1, `Phỏm: Cả 2 người bằng điểm rác đều nhận Hạng 1 (Đồng Hạng 1)`);
+  assert(rankedTie[2].rank === 3, `Phỏm: Người Móm xếp sau đứng Hạng 3`);
+  assert(rankedTie[0].scoreDelta > 0 && rankedTie[1].scoreDelta > 0, `Phỏm: 2 người Đồng Hạng 1 cùng được chia phần tiền thắng`);
+  assert(rankedTie[0].scoreDelta + rankedTie[1].scoreDelta + rankedTie[2].scoreDelta === 0, `Phỏm: Tổng điểm thắng thua toàn bàn bảo toàn Zero-Sum (= 0)`);
 }
 
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);

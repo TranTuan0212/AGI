@@ -60,6 +60,18 @@ public struct ResultModalView: View {
                                         Text(player.name)
                                             .font(.headline)
                                         
+                                        let isTie = viewModel.players.filter({ $0.rankOrder == player.rankOrder }).count > 1
+                                        if isTie {
+                                            Text("ĐỒNG HẠNG")
+                                                .font(.caption2)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(.orange)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(Color.orange.opacity(0.15))
+                                                .cornerRadius(4)
+                                        }
+                                        
                                         if player.isLung {
                                             Text("LỦNG")
                                                 .font(.caption2)

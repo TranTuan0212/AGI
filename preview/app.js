@@ -878,36 +878,73 @@ class PhomEvaluator {
       return a.index - b.index;
     });
 
-    const hasU = evaluated.some(e => e.result.isU);
     const n = evaluated.length;
-
-    return evaluated.map((item, pos) => {
-      let delta = 0;
-      if (hasU) {
-        delta = item.result.isU ? (n - 1) * 6 : -6;
-      } else {
-        if (pos === 0) {
-          let winTotal = 0;
-          for (let otherPos = 1; otherPos < n; otherPos++) {
-            let penalty = otherPos;
-            if (evaluated[otherPos].result.isMom) penalty += 1;
-            winTotal += penalty;
-          }
-          delta = winTotal;
-        } else {
-          let penalty = pos;
-          if (item.result.isMom) penalty += 1;
-          delta = -penalty;
+    const ranks = new Array(n).fill(1);
+    let currentRank = 1;
+    for (let i = 0; i < n; i++) {
+      if (i > 0) {
+        const prev = evaluated[i - 1];
+        const curr = evaluated[i];
+        const isSame = (prev.result.isU === curr.result.isU) &&
+                       (prev.result.isMom === curr.result.isMom) &&
+                       (prev.result.deadwoodScore === curr.result.deadwoodScore);
+        if (!isSame) {
+          currentRank = i + 1;
         }
       }
-      return {
-        index: item.index,
-        name: item.name,
-        result: item.result,
-        rank: pos + 1,
-        scoreDelta: delta
-      };
-    });
+      ranks[i] = currentRank;
+    }
+
+    const hasU = evaluated.some(e => e.result.isU);
+    const rank1Count = ranks.filter(r => r === 1).length;
+    const deltas = new Array(n).fill(0);
+
+    if (hasU) {
+      const uCount = evaluated.filter(e => e.result.isU).length;
+      const nonUCount = n - uCount;
+      const totalPool = nonUCount * 6;
+      const winPerU = uCount > 0 ? Math.floor(totalPool / uCount) : 0;
+      let remainder = uCount > 0 ? totalPool % uCount : 0;
+
+      for (let i = 0; i < n; i++) {
+        if (evaluated[i].result.isU) {
+          deltas[i] = winPerU + (remainder > 0 ? 1 : 0);
+          if (remainder > 0) remainder--;
+        } else {
+          deltas[i] = -6;
+        }
+      }
+    } else {
+      let totalPool = 0;
+      for (let i = 0; i < n; i++) {
+        if (ranks[i] > 1) {
+          let penalty = i;
+          if (evaluated[i].result.isMom) penalty += 1;
+          if (penalty < 1) penalty = 1;
+          deltas[i] = -penalty;
+          totalPool += penalty;
+        }
+      }
+
+      if (rank1Count > 0) {
+        const winPerWinner = Math.floor(totalPool / rank1Count);
+        let remainder = totalPool % rank1Count;
+        for (let i = 0; i < n; i++) {
+          if (ranks[i] === 1) {
+            deltas[i] = winPerWinner + (remainder > 0 ? 1 : 0);
+            if (remainder > 0) remainder--;
+          }
+        }
+      }
+    }
+
+    return evaluated.map((item, pos) => ({
+      index: item.index,
+      name: item.name,
+      result: item.result,
+      rank: ranks[pos],
+      scoreDelta: deltas[pos]
+    }));
   }
 }
 
@@ -1321,7 +1358,11 @@ class AppController {
 
       let rankBadgeHtml = '';
       if (hasResult) {
-        const rankText = p.rankOrder === 1 ? '👑 Nhất' : (p.rankOrder === 2 ? '🥈 Nhì' : (p.rankOrder === 3 ? '🥉 Ba' : 'Bét'));
+        const isTie = this.players.filter(other => other.rankOrder === p.rankOrder).length > 1;
+        const rankText = p.rankOrder === 1 ? (isTie ? '👑 Đ.Hạng 1' : '👑 Nhất') :
+                         (p.rankOrder === 2 ? (isTie ? '🥈 Đ.Hạng 2' : '🥈 Nhì') :
+                         (p.rankOrder === 3 ? (isTie ? '🥉 Đ.Hạng 3' : '🥉 Ba') :
+                         (isTie ? `Đ.Hạng ${p.rankOrder}` : 'Bét')));
         const badgeClass = p.rankOrder === 1 ? 'rank-1' : (p.rankOrder === 2 ? 'rank-2' : 'rank-other');
         const scoreStr = (p.score >= 0 ? '+' : '') + p.score + ' chi';
         const scoreClass = p.score > 0 ? 'score-pos' : (p.score < 0 ? 'score-neg' : 'score-zero');
@@ -1566,14 +1607,25 @@ class AppController {
     });
 
     evaluated.sort((a, b) => LiengEvaluator.compare(b.score, a.score));
+    let currentRank = 1;
     evaluated.forEach((item, r) => {
-      this.players[item.idx].rankOrder = r + 1;
+      if (r > 0 && LiengEvaluator.compare(item.score, evaluated[r - 1].score) < 0) {
+        currentRank = r + 1;
+      }
+      this.players[item.idx].rankOrder = currentRank;
     });
 
-    const winner = this.players[evaluated[0].idx];
-    document.getElementById('bannerWinner').innerHTML = `
-      🏆 <strong>${winner.name}</strong> Thắng Cuộc với ${winner.resultTitle}!
-    `;
+    const winners = this.players.filter(p => p.rankOrder === 1);
+    if (winners.length > 1) {
+      document.getElementById('bannerWinner').innerHTML = `
+        👑 <strong>Đồng Hạng 1</strong>: ${winners.map(w => w.name).join(', ')} (Cùng ${winners[0].resultTitle})!
+      `;
+    } else {
+      const winner = winners[0];
+      document.getElementById('bannerWinner').innerHTML = `
+        🏆 <strong>${winner ? winner.name : '—'}</strong> Thắng Cuộc với ${winner ? winner.resultTitle : ''}!
+      `;
+    }
     document.getElementById('matrixSection').style.display = 'none';
   }
 
@@ -1587,14 +1639,25 @@ class AppController {
     });
 
     evaluated.sort((a, b) => PokerEvaluator.compareScores(b.score, a.score));
+    let currentRank = 1;
     evaluated.forEach((item, r) => {
-      this.players[item.idx].rankOrder = r + 1;
+      if (r > 0 && PokerEvaluator.compareScores(item.score, evaluated[r - 1].score) < 0) {
+        currentRank = r + 1;
+      }
+      this.players[item.idx].rankOrder = currentRank;
     });
 
-    const winner = this.players[evaluated[0].idx];
-    document.getElementById('bannerWinner').innerHTML = `
-      🏆 <strong>${winner.name}</strong> Thắng Pot với ${winner.resultTitle}!
-    `;
+    const winners = this.players.filter(p => p.rankOrder === 1);
+    if (winners.length > 1) {
+      document.getElementById('bannerWinner').innerHTML = `
+        👑 <strong>Đồng Hạng 1 (Split Pot)</strong>: ${winners.map(w => w.name).join(', ')} với ${winners[0].resultTitle}!
+      `;
+    } else {
+      const winner = winners[0];
+      document.getElementById('bannerWinner').innerHTML = `
+        🏆 <strong>${winner ? winner.name : '—'}</strong> Thắng Pot với ${winner ? winner.resultTitle : ''}!
+      `;
+    }
     document.getElementById('matrixSection').style.display = 'none';
   }
 
@@ -1614,10 +1677,17 @@ class AppController {
       p.resultDetail = item.result.summary;
     });
 
-    const winner = this.players.find(p => p.rankOrder === 1);
-    document.getElementById('bannerWinner').innerHTML = `
-      🏆 <strong>${winner ? winner.name : '—'}</strong> Thắng ván Phỏm với ${winner ? winner.resultTitle : ''}!
-    `;
+    const winners = this.players.filter(p => p.rankOrder === 1);
+    if (winners.length > 1) {
+      document.getElementById('bannerWinner').innerHTML = `
+        👑 <strong>Đồng Hạng 1</strong>: ${winners.map(w => w.name).join(', ')} (Hòa điểm với ${winners[0].resultTitle})!
+      `;
+    } else {
+      const winner = winners[0];
+      document.getElementById('bannerWinner').innerHTML = `
+        🏆 <strong>${winner ? winner.name : '—'}</strong> Thắng ván Phỏm với ${winner ? winner.resultTitle : ''}!
+      `;
+    }
     document.getElementById('matrixSection').style.display = 'none';
   }
 
@@ -1654,14 +1724,25 @@ class AppController {
     }
 
     const sortedIdx = Array.from({ length: N }, (_, i) => i).sort((a, b) => this.players[b].score - this.players[a].score);
+    let currentRank = 1;
     sortedIdx.forEach((idx, r) => {
-      this.players[idx].rankOrder = r + 1;
+      if (r > 0 && this.players[idx].score < this.players[sortedIdx[r - 1]].score) {
+        currentRank = r + 1;
+      }
+      this.players[idx].rankOrder = currentRank;
     });
 
-    const winner = this.players[sortedIdx[0]];
-    document.getElementById('bannerWinner').innerHTML = `
-      🏆 <strong>${winner.name}</strong> Dẫn đầu với tổng điểm: <strong>${winner.score > 0 ? '+' : ''}${winner.score} chi</strong>!
-    `;
+    const winners = this.players.filter(p => p.rankOrder === 1);
+    if (winners.length > 1) {
+      document.getElementById('bannerWinner').innerHTML = `
+        👑 <strong>Đồng Hạng 1</strong>: ${winners.map(w => w.name).join(', ')} (Cùng <strong>${winners[0].score > 0 ? '+' : ''}${winners[0].score} chi</strong>)!
+      `;
+    } else {
+      const winner = winners[0];
+      document.getElementById('bannerWinner').innerHTML = `
+        🏆 <strong>${winner ? winner.name : '—'}</strong> Dẫn đầu với tổng điểm: <strong>${winner ? (winner.score > 0 ? '+' : '') + winner.score : 0} chi</strong>!
+      `;
+    }
 
     // Render Matrix Table
     const matSection = document.getElementById('matrixSection');
@@ -1687,8 +1768,7 @@ class AppController {
   }
 
   calcBinh9() {
-    // Similar 3 chi x 3 cards
-    this.calcBinh13(); // Uses same robust evaluator
+    this.calcBinh13();
   }
 
   calcBinh6Poker() {
@@ -1700,14 +1780,25 @@ class AppController {
     });
 
     evaluated.sort((a, b) => PokerEvaluator.compareScores(b.score, a.score));
+    let currentRank = 1;
     evaluated.forEach((item, r) => {
-      this.players[item.idx].rankOrder = r + 1;
+      if (r > 0 && PokerEvaluator.compareScores(item.score, evaluated[r - 1].score) < 0) {
+        currentRank = r + 1;
+      }
+      this.players[item.idx].rankOrder = currentRank;
     });
 
-    const winner = this.players[evaluated[0].idx];
-    document.getElementById('bannerWinner').innerHTML = `
-      🏆 <strong>${winner.name}</strong> Thắng Binh 6 lá với ${winner.resultTitle}!
-    `;
+    const winners = this.players.filter(p => p.rankOrder === 1);
+    if (winners.length > 1) {
+      document.getElementById('bannerWinner').innerHTML = `
+        👑 <strong>Đồng Hạng 1</strong>: ${winners.map(w => w.name).join(', ')} với ${winners[0].resultTitle}!
+      `;
+    } else {
+      const winner = winners[0];
+      document.getElementById('bannerWinner').innerHTML = `
+        🏆 <strong>${winner ? winner.name : '—'}</strong> Thắng Binh 6 lá với ${winner ? winner.resultTitle : ''}!
+      `;
+    }
     document.getElementById('matrixSection').style.display = 'none';
   }
 
@@ -1725,6 +1816,7 @@ class AppController {
       const item = document.createElement('div');
       item.className = 'rank-item';
       const rankCls = p.rankOrder === 1 ? 'rank-1' : (p.rankOrder === 2 ? 'rank-2' : (p.rankOrder === 3 ? 'rank-3' : 'rank-other'));
+      const isTie = this.players.filter(other => other.rankOrder === p.rankOrder).length > 1;
 
       item.innerHTML = `
         <div class="rank-badge ${rankCls}">${p.rankOrder}</div>
@@ -1732,6 +1824,7 @@ class AppController {
           <div class="rank-title-row">
             <div>
               <span class="rank-player-name">${p.name}</span>
+              ${isTie ? '<span class="tie-tag" style="font-size:10px;font-weight:700;color:#f59e0b;background:rgba(245,158,11,0.15);padding:2px 5px;border-radius:4px;margin-left:4px;">ĐỒNG HẠNG</span>' : ''}
               ${p.isLung ? '<span class="lung-tag">LỦNG</span>' : ''}
             </div>
             ${p.score !== 0 ? `<span class="rank-score ${p.score > 0 ? 'positive' : 'negative'}">${p.score > 0 ? '+' : ''}${p.score} chi</span>` : ''}

@@ -255,45 +255,74 @@ public struct PhomEvaluator {
             return a.index < b.index
         }
         
-        // Tính điểm chi (chips) theo thứ tự:
-        // Nếu có Ù: Người Ù ăn mỗi nhà 5 chi (hoặc 6 chi), các nhà còn lại -5 chi
-        // Nếu không có Ù: Nhất (+N chi), Nhì (-1 chi), Ba (-2 chi), Bét/Móm (-3 chi)
-        let hasU = sorted.contains(where: { $0.result.isU })
         let n = sorted.count
-        
-        var output: [(index: Int, name: String, result: PhomResult, rank: Int, scoreDelta: Int)] = []
-        
-        for (pos, item) in sorted.enumerated() {
-            let rank = pos + 1
-            var delta = 0
-            
-            if hasU {
-                if item.result.isU {
-                    delta = (n - 1) * 6 // Ăn mỗi nhà 6 chi
-                } else {
-                    delta = -6 // Đền 6 chi cho người Ù
+        var ranks = [Int](repeating: 1, count: n)
+        var currentRank = 1
+        for i in 0..<n {
+            if i > 0 {
+                let prev = sorted[i - 1]
+                let curr = sorted[i]
+                let isSame = (prev.result.isU == curr.result.isU) &&
+                             (prev.result.isMom == curr.result.isMom) &&
+                             (prev.result.deadwoodScore == curr.result.deadwoodScore)
+                if !isSame {
+                    currentRank = i + 1
                 }
-            } else {
-                // Nhất ăn tiền theo bậc: Nhất = +sum, Nhì = -1, Ba = -2, Bét = -3 (nếu 4 người: +6, -1, -2, -3)
-                if pos == 0 {
-                    // Người nhất
-                    var winTotal = 0
-                    for otherPos in 1..<n {
-                        let penalty = item.result.isMom ? otherPos : (otherPos >= 3 ? otherPos + (sorted[otherPos].result.isMom ? 1 : 0) : otherPos)
-                        winTotal += penalty
-                    }
-                    delta = winTotal
+            }
+            ranks[i] = currentRank
+        }
+        
+        // Tính điểm chi (chips):
+        // Nếu có Ù: Người Ù ăn chia đều tổng tiền cược của các nhà thua (6 chi/nhà)
+        // Nếu không có Ù: Nhất ăn tất từ các người thứ hạng sau. Nếu đồng hạng 1: chia đều tiền thắng!
+        let hasU = sorted.contains(where: { $0.result.isU })
+        let rank1Count = ranks.filter { $0 == 1 }.count
+        var deltas = [Int](repeating: 0, count: n)
+        
+        if hasU {
+            let uCount = sorted.filter { $0.result.isU }.count
+            let nonUCount = n - uCount
+            let totalPool = nonUCount * 6
+            let winPerU = uCount > 0 ? totalPool / uCount : 0
+            var remainder = uCount > 0 ? totalPool % uCount : 0
+            
+            for i in 0..<n {
+                if sorted[i].result.isU {
+                    deltas[i] = winPerU + (remainder > 0 ? 1 : 0)
+                    if remainder > 0 { remainder -= 1 }
                 } else {
-                    // Người thua
-                    var penalty = pos
-                    if item.result.isMom {
-                        penalty += 1 // Móm bị phạt thêm 1 chi
+                    deltas[i] = -6
+                }
+            }
+        } else {
+            var totalPool = 0
+            for i in 0..<n {
+                if ranks[i] > 1 {
+                    var penalty = i
+                    if sorted[i].result.isMom {
+                        penalty += 1 // Móm phạt thêm 1 chi
                     }
-                    delta = -penalty
+                    if penalty < 1 { penalty = 1 }
+                    deltas[i] = -penalty
+                    totalPool += penalty
                 }
             }
             
-            output.append((index: item.index, name: item.name, result: item.result, rank: rank, scoreDelta: delta))
+            if rank1Count > 0 {
+                let winPerWinner = totalPool / rank1Count
+                var remainder = totalPool % rank1Count
+                for i in 0..<n {
+                    if ranks[i] == 1 {
+                        deltas[i] = winPerWinner + (remainder > 0 ? 1 : 0)
+                        if remainder > 0 { remainder -= 1 }
+                    }
+                }
+            }
+        }
+        
+        var output: [(index: Int, name: String, result: PhomResult, rank: Int, scoreDelta: Int)] = []
+        for (pos, item) in sorted.enumerated() {
+            output.append((index: item.index, name: item.name, result: item.result, rank: ranks[pos], scoreDelta: deltas[pos]))
         }
         
         return output

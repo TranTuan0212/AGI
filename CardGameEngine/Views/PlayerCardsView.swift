@@ -81,8 +81,13 @@ public struct PlayerCardsView: View {
                             .buttonStyle(PlainButtonStyle())
 
                             if let rank = player.rankOrder {
+                                let isTie = viewModel.players.filter({ $0.rankOrder == rank }).count > 1
+                                let badgeText = rank == 1 ? (isTie ? "👑 Đ.Hạng 1" : "👑 Nhất") :
+                                                (rank == 2 ? (isTie ? "🥈 Đ.Hạng 2" : "🥈 Nhì") :
+                                                (rank == 3 ? (isTie ? "🥉 Đ.Hạng 3" : "🥉 Ba") :
+                                                (isTie ? "Đ.Hạng \(rank)" : "Bét")))
                                 HStack(spacing: 4) {
-                                    Text(rank == 1 ? "👑 Nhất" : (rank == 2 ? "🥈 Nhì" : (rank == 3 ? "🥉 Ba" : "Bét")))
+                                    Text(badgeText)
                                         .font(.system(size: 9, weight: .bold))
                                         .foregroundColor(rank == 1 ? .yellow : (rank == 2 ? .blue : .secondary))
                                         .padding(.horizontal, 4)
