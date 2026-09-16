@@ -8,45 +8,30 @@ public struct Deck52GridView: View {
     let ranks: [Rank] = Rank.allCases // 2 to Ace
     
     public var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Label("Bàn Bài Tây 52 Lá", systemImage: "suit.club.fill")
-                    .font(.headline)
-                    .foregroundColor(.primary)
-                
-                Spacer()
-                
-                Text("Chạm để chọn hoặc gỡ lá bài")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.horizontal, 4)
-            
-            VStack(spacing: 3) {
-                ForEach(suits) { suit in
-                    HStack(spacing: 3) {
-                        // Suit header
-                        Text(suit.rawValue)
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundColor(suit.isRed ? .red : .primary)
-                            .frame(width: 18)
+        VStack(spacing: 3) {
+            ForEach(suits) { suit in
+                HStack(spacing: 3) {
+                    // Suit header
+                    Text(suit.rawValue)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(suit.isRed ? .red : .primary)
+                        .frame(width: 20)
+                    
+                    // 13 ranks for this suit
+                    ForEach(ranks) { rank in
+                        let card = Card(rank: rank, suit: suit)
+                        let owner = viewModel.cardOwner(card)
                         
-                        // 13 ranks for this suit
-                        ForEach(ranks) { rank in
-                            let card = Card(rank: rank, suit: suit)
-                            let owner = viewModel.cardOwner(card)
-                            
-                            CardButton(card: card, owner: owner) {
-                                viewModel.onCardTapped(card)
-                            }
+                        CardButton(card: card, owner: owner) {
+                            viewModel.onCardTapped(card)
                         }
                     }
                 }
             }
-            .padding(6)
-            .background(Color(.secondarySystemBackground))
-            .cornerRadius(10)
         }
+        .padding(6)
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(10)
     }
 }
 
@@ -60,14 +45,14 @@ struct CardButton: View {
             ZStack(alignment: .topTrailing) {
                 VStack(spacing: 1) {
                     Text(card.rank.displaySymbol)
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundColor(card.suit.isRed ? .red : .black)
                     
                     Text(card.suit.rawValue)
-                        .font(.system(size: 11))
+                        .font(.system(size: 13))
                         .foregroundColor(card.suit.isRed ? .red : .black)
                 }
-                .frame(maxWidth: .infinity, minHeight: 40)
+                .frame(maxWidth: .infinity, minHeight: 46)
                 .background(owner != nil ? Color.gray.opacity(0.2) : Color.white)
                 .cornerRadius(6)
                 .overlay(

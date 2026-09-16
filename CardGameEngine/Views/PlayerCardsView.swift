@@ -8,25 +8,24 @@ public struct PlayerCardsView: View {
     
     public var body: some View {
 
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 6) {
             // Community Cards (If applicable)
             if viewModel.gameType.communityCardsCount > 0 {
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 3) {
                     HStack {
-                        Label("Bài Chung (Board)", systemImage: "rectangle.stack.fill")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
+                        Label("Bài Chung", systemImage: "rectangle.stack.fill")
+                            .font(.system(size: 12, weight: .bold))
                             .foregroundColor(.orange)
                         
                         Spacer()
                         
                         Text("\(viewModel.communityCards.count)/\(viewModel.gameType.communityCardsCount) lá")
-                            .font(.caption)
+                            .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.secondary)
                     }
                     
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
+                        HStack(spacing: 4) {
                             ForEach(viewModel.communityCards) { card in
                                 MiniCardView(card: card) {
                                     viewModel.removeCard(card)
@@ -41,39 +40,40 @@ public struct PlayerCardsView: View {
                                 }
                             }
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, 1)
                     }
                 }
-                .padding(10)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
                 .background(Color.orange.opacity(0.1))
-                .cornerRadius(10)
+                .cornerRadius(8)
             }
             
             // Player mats
-            VStack(spacing: 8) {
+            VStack(spacing: 5) {
                 ForEach(0..<viewModel.players.count, id: \.self) { idx in
                     let player = viewModel.players[idx]
                     let isCurrentRoundRobin = viewModel.inputMode == .roundRobin && viewModel.roundRobinPointer == idx
                     let isManualSelected = viewModel.inputMode == .manual && viewModel.selectedPlayerIndex == idx
                     let isHighlight = isCurrentRoundRobin || isManualSelected
                     
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 3) {
                         HStack {
                             Circle()
                                 .fill(isHighlight ? Color.green : Color.gray.opacity(0.4))
-                                .frame(width: 10, height: 10)
+                                .frame(width: 8, height: 8)
                             
                             Button(action: {
                                 editingIndex = idx
                                 editingName = player.name
                                 isShowingRenameDialog = true
                             }) {
-                                HStack(spacing: 4) {
+                                HStack(spacing: 3) {
                                     Text(player.name)
-                                        .font(.headline)
+                                        .font(.system(size: 13, weight: .bold))
                                         .foregroundColor(isHighlight ? .primary : .secondary)
                                     Image(systemName: "pencil")
-                                        .font(.caption2)
+                                        .font(.system(size: 9))
                                         .foregroundColor(.secondary)
                                 }
                             }
@@ -81,12 +81,11 @@ public struct PlayerCardsView: View {
 
                             
                             if isHighlight {
-                                Text(viewModel.inputMode == .roundRobin ? "▶ Lượt nhận" : "▶ Đang chọn")
-                                    .font(.caption2)
-                                    .fontWeight(.bold)
+                                Text(viewModel.inputMode == .roundRobin ? "▶ Lượt" : "▶ Đang chọn")
+                                    .font(.system(size: 9, weight: .bold))
                                     .foregroundColor(.green)
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1)
                                     .background(Color.green.opacity(0.15))
                                     .cornerRadius(4)
                             }
@@ -94,38 +93,38 @@ public struct PlayerCardsView: View {
                             Spacer()
                             
                             // Card counter
-                            Text("\(player.cards.count)/\(viewModel.gameType.cardsPerPlayer) lá")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
+                            Text("\(player.cards.count)/\(viewModel.gameType.cardsPerPlayer)")
+                                .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(player.cards.count == viewModel.gameType.cardsPerPlayer ? .blue : .secondary)
                         }
                         
                         // Cards display
                         ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 6) {
+                            HStack(spacing: 4) {
                                 ForEach(player.cards) { card in
                                     MiniCardView(card: card) {
                                         viewModel.removeCard(card)
                                     }
                                 }
                                 
-                                // Placeholders
+                                // Placeholders (show up to 6 placeholders to save space)
                                 let missing = viewModel.gameType.cardsPerPlayer - player.cards.count
-                                if missing > 0 {
-                                    ForEach(0..<missing, id: \.self) { _ in
+                                let showCount = min(missing, 6)
+                                if showCount > 0 {
+                                    ForEach(0..<showCount, id: \.self) { _ in
                                         CardPlaceholderView()
                                     }
                                 }
                             }
-                            .padding(.vertical, 2)
+                            .padding(.vertical, 1)
                         }
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 7)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
                     .background(isHighlight ? Color.accentColor.opacity(0.08) : Color(.secondarySystemBackground))
-                    .cornerRadius(10)
+                    .cornerRadius(8)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 10)
+                        RoundedRectangle(cornerRadius: 8)
                             .stroke(isHighlight ? Color.accentColor : Color.clear, lineWidth: 1.5)
                     )
                     .onTapGesture {
@@ -148,7 +147,6 @@ public struct PlayerCardsView: View {
     }
 }
 
-
 struct MiniCardView: View {
     let card: Card
     let onRemove: () -> Void
@@ -157,18 +155,18 @@ struct MiniCardView: View {
         Button(action: onRemove) {
             VStack(spacing: 0) {
                 Text(card.rank.displaySymbol)
-                    .font(.system(size: 13, weight: .bold))
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundColor(card.suit.isRed ? .red : .black)
                 Text(card.suit.rawValue)
-                    .font(.system(size: 12))
+                    .font(.system(size: 11))
                     .foregroundColor(card.suit.isRed ? .red : .black)
             }
-            .frame(width: 32, height: 44)
+            .frame(width: 28, height: 38)
             .background(Color.white)
-            .cornerRadius(5)
-            .shadow(color: Color.black.opacity(0.12), radius: 2, x: 0, y: 1)
+            .cornerRadius(4)
+            .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
             .overlay(
-                RoundedRectangle(cornerRadius: 5)
+                RoundedRectangle(cornerRadius: 4)
                     .stroke(Color.gray.opacity(0.25), lineWidth: 1)
             )
         }
@@ -178,13 +176,13 @@ struct MiniCardView: View {
 
 struct CardPlaceholderView: View {
     var body: some View {
-        RoundedRectangle(cornerRadius: 5)
-            .stroke(style: StrokeStyle(lineWidth: 1, dash: [3]))
+        RoundedRectangle(cornerRadius: 4)
+            .stroke(style: StrokeStyle(lineWidth: 1, dash: [2]))
             .foregroundColor(Color.gray.opacity(0.35))
-            .frame(width: 32, height: 44)
+            .frame(width: 28, height: 38)
             .overlay(
                 Image(systemName: "plus")
-                    .font(.system(size: 10))
+                    .font(.system(size: 9))
                     .foregroundColor(Color.gray.opacity(0.4))
             )
     }
