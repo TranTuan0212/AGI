@@ -56,7 +56,7 @@ public struct PhomEvaluator {
         var minDeadwoodScore = cards.reduce(0) { $0 + cardPoint($1) }
         var isU = false
         
-        func search(startIndex: Int, currentPhoms: [PhomHand], usedCardIds: Set<UUID>) {
+        func search(startIndex: Int, currentPhoms: [PhomHand], usedCardIds: Set<String>) {
             let currentDeadwood = cards.filter { !usedCardIds.contains($0.id) }
             let currentScore = currentDeadwood.reduce(0) { $0 + cardPoint($1) }
             
@@ -153,7 +153,7 @@ public struct PhomEvaluator {
             
             // Chuẩn hóa giá trị: A=1, 2=2... K=13
             // Đối với trường hợp Q-K-A: thêm A với giá trị 14
-            var sortedNormal = group.sorted { cardRankOrder($0.rank, aceHigh: false) < cardRankOrder($1.rank, aceHigh: false) }
+            let sortedNormal = group.sorted { cardRankOrder($0.rank, aceHigh: false) < cardRankOrder($1.rank, aceHigh: false) }
             
             // Tìm tất cả các dãy liên tiếp từ sortedNormal
             let runs = findConsecutiveRuns(sortedNormal, aceHigh: false)

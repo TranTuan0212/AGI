@@ -118,7 +118,7 @@ public class GameViewModel: ObservableObject {
     // Handle card click
     public func onCardTapped(_ card: Card) {
         // If already selected, remove it
-        if let owner = cardOwner(card) {
+        if cardOwner(card) != nil {
             removeCard(card)
             return
         }
