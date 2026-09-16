@@ -474,5 +474,3 @@ public class Binh13Evaluator {
         return (totalScore, detail)
     }
 }
-
-}

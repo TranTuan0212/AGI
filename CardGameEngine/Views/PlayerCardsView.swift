@@ -132,6 +132,7 @@ public struct PlayerCardsView: View {
                             viewModel.selectedPlayerIndex = idx
                         }
                     }
+                }
             }
         }
         .alert("Đổi Tên Người Chơi", isPresented: $isShowingRenameDialog) {
