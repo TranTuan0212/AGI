@@ -74,7 +74,15 @@ const GAME_CONFIGS = {
     community: 0,
     minPlayers: 2,
     maxPlayers: 10,
-    desc: "3 lá/người, phân cấp: Sáp > Liêng (Sảnh) > Đĩ (Ba Tây J-Q-K) > Điểm Mậu thầu mod 10, so lá cao nhất và chất theo cài đặt."
+    desc: "3 lá/người, phân cấp: Sáp (10.000 + rank) > Liêng (5.000 + rank) > Ba Tây (1.000) > Điểm mod 10. Bằng điểm nhau thì đồng hạng."
+  },
+  xiDach2: {
+    name: "Xì Dách (2 Lá / Xì Lát)",
+    cardsPerPlayer: 2,
+    community: 0,
+    minPlayers: 2,
+    maxPlayers: 10,
+    desc: "2 lá/người: Xì Bàng (A-A: 5021) > Xì Dách (A + 10/J/Q/K: 4000) > Ngũ Linh (5 lá ≤ 21đ) > Đủ tuổi (16-21đ) > Non (<16đ) > Quắc (>21đ)."
   },
   texasHoldem: {
     name: "Poker (Texas Hold'em 2+5)",
@@ -267,78 +275,150 @@ class PokerEvaluator {
 }
 
 class LiengEvaluator {
-  static evaluate(cards, preset) {
+  static evaluate(cards) {
     if (!cards || cards.length !== 3) {
-      return { type: 1, typeName: "Điểm", desc: "Không đủ 3 lá", sortKey: [0] };
+      return { score: 0, typeName: "Điểm", desc: "Không đủ 3 lá" };
     }
     const sorted = [...cards].sort((a, b) => b.rank - a.rank);
     const ranks = sorted.map(c => c.rank);
-    const topCard = sorted[0];
 
-    // 1. Sáp (3 same rank)
+    // 1. Sáp (3 same rank) -> 10,000 + rank
     if (ranks[0] === ranks[1] && ranks[1] === ranks[2]) {
       const sym = RANKS.find(r => r.raw === ranks[0])?.sym || ranks[0];
+      const score = 10000 + ranks[0];
       return {
-        type: 4, typeName: "Sáp",
-        desc: `Sáp ${sym}`,
-        sortKey: [4, ranks[0], getSuitValue(topCard.suit, preset)]
+        score,
+        typeName: "Sáp",
+        desc: `🔥 SÁP ${sym}`
       };
     }
 
-    // 2. Liêng (3 consecutive)
+    // 2. Liêng (3 consecutive) -> 5,000 + rank
     let isLieng = false;
-    let liengHigh = 0;
-    let liengTop = topCard;
+    let liengRankWeight = 0;
+    let liengSymbol = "";
 
     if (ranks[0] - ranks[1] === 1 && ranks[1] - ranks[2] === 1) {
       isLieng = true;
-      liengHigh = ranks[0];
-      liengTop = sorted[0];
+      liengRankWeight = ranks[0];
+      liengSymbol = sorted.map(c => RANKS.find(r => r.raw === c.rank)?.sym).reverse().join('-');
     } else if (ranks[0] === 14 && ranks[1] === 3 && ranks[2] === 2) {
-      // A-2-3
+      // A-2-3 -> 5003
       isLieng = true;
-      liengHigh = 3;
-      liengTop = sorted.find(c => c.rank === 3) || sorted[0];
+      liengRankWeight = 3;
+      liengSymbol = "A-2-3";
     }
 
     if (isLieng) {
-      const nameStr = sorted.map(c => RANKS.find(r => r.raw === c.rank)?.sym).reverse().join('-');
+      const score = 5000 + liengRankWeight;
       return {
-        type: 3, typeName: "Liêng",
-        desc: `Liêng ${nameStr}`,
-        sortKey: [3, liengHigh, getSuitValue(liengTop.suit, preset)]
+        score,
+        typeName: "Liêng",
+        desc: `⚡ LIÊNG ${liengSymbol}`
       };
     }
 
-    // 3. Đĩ (All 3 are J, Q, K)
+    // 3. Ba Tây (All 3 are J, Q, K) -> 1,000
     const isDi = cards.every(c => c.rank === 11 || c.rank === 12 || c.rank === 13);
     if (isDi) {
       const nameStr = sorted.map(c => RANKS.find(r => r.raw === c.rank)?.sym).join('-');
       return {
-        type: 2, typeName: "Đĩ (Ba Tây)",
-        desc: `Đĩ (${nameStr}) - Lá cao: ${topCard.sym}${topCard.suitIcon}`,
-        sortKey: [2, ranks[0], getSuitValue(topCard.suit, preset)]
+        score: 1000,
+        typeName: "Ba Tây",
+        desc: `👑 BA TÂY (${nameStr})`
       };
     }
 
-    // 4. Mậu thầu (Điểm mod 10)
+    // 4. Điểm thường (Điểm mod 10) -> (Tổng % 10) * 100
     const totalPts = cards.reduce((sum, c) => sum + (RANKS.find(r => r.raw === c.rank)?.lieng || 0), 0);
     const mod = totalPts % 10;
-    const ptText = mod === 0 ? "0 điểm (Bù/Tịt)" : `${mod} điểm`;
+    const score = mod * 100;
+    const ptText = mod === 0 ? "0 Điểm (Bù/Tịt)" : `${mod} Điểm`;
     return {
-      type: 1, typeName: "Điểm",
-      desc: `${ptText} - Lá cao: ${topCard.sym}${topCard.suitIcon}`,
-      sortKey: [1, mod, ranks[0], getSuitValue(topCard.suit, preset)]
+      score,
+      typeName: "Điểm Thường",
+      desc: `⭐ ${ptText}`
     };
   }
 
   static compare(a, b) {
-    for (let i = 0; i < Math.min(a.sortKey.length, b.sortKey.length); i++) {
-      if (a.sortKey[i] !== b.sortKey[i]) {
-        return a.sortKey[i] - b.sortKey[i];
+    return (a.score || 0) - (b.score || 0);
+  }
+}
+
+class XiDachEvaluator {
+  static cardBaseValue(card) {
+    if (card.rank === 14) return 1;
+    if (card.rank >= 10) return 10;
+    return card.rank;
+  }
+
+  static bestTotal(cards) {
+    const nonAces = cards.filter(c => c.rank !== 14);
+    const aceCount = cards.filter(c => c.rank === 14).length;
+    const baseSum = nonAces.reduce((sum, c) => sum + this.cardBaseValue(c), 0);
+
+    if (aceCount === 0) return baseSum;
+
+    let possibleTotals = new Set([baseSum]);
+    for (let i = 0; i < aceCount; i++) {
+      const nextTotals = new Set();
+      for (const t of possibleTotals) {
+        nextTotals.add(t + 1);
+        nextTotals.add(t + 10);
+        nextTotals.add(t + 11);
+      }
+      possibleTotals = nextTotals;
+    }
+
+    const validTotals = Array.from(possibleTotals).filter(t => t <= 21);
+    if (validTotals.length > 0) {
+      return Math.max(...validTotals);
+    }
+    return Math.min(...possibleTotals);
+  }
+
+  static evaluate(cards) {
+    if (!cards || cards.length < 2) {
+      return { score: 0, title: "Chưa đủ 2 lá", detail: "Cần ít nhất 2 lá" };
+    }
+
+    const count = cards.length;
+    const aceCount = cards.filter(c => c.rank === 14).length;
+
+    // Case A: Exactly 2 cards
+    if (count === 2) {
+      // 1. Xì Bàng (A-A) -> 5021
+      if (aceCount === 2) {
+        return { score: 5021, title: "👑 Xì Bàng (A-A)", detail: "Thắng tuyệt đối toàn bàn" };
+      }
+
+      // 2. Xì Dách (A + 10/J/Q/K) -> 4000
+      const hasFaceOr10 = cards.some(c => c.rank >= 10 && c.rank <= 13);
+      if (aceCount === 1 && hasFaceOr10) {
+        return { score: 4000, title: "🔥 Xì Dách (21đ)", detail: "1 Át + 1 Quân Tây/10" };
       }
     }
-    return 0;
+
+    // Case B: 5 cards (Ngũ Linh)
+    const total = this.bestTotal(cards);
+    if (count === 5 && total <= 21) {
+      const score = 3000 + (21 - total);
+      return { score, title: `🌟 Ngũ Linh (${total}đ)`, detail: "5 lá đủ điểm (≤ 21đ)" };
+    }
+
+    // Case C: Standard totals
+    if (total >= 16 && total <= 21) {
+      return { score: 2000 + total, title: `${total} Điểm (Đủ tuổi)`, detail: "Đạt ngưỡng chuẩn 16-21đ" };
+    } else if (total < 16) {
+      return { score: 1000 + total, title: `⚠️ Non (${total}đ)`, detail: "Chưa đủ 16 điểm" };
+    } else {
+      return { score: Math.max(0, 35 - total), title: `❌ Quắc (${total}đ)`, detail: "Vượt ngưỡng 21 điểm" };
+    }
+  }
+
+  static compare(a, b) {
+    return (a.score || 0) - (b.score || 0);
   }
 }
 
@@ -979,12 +1059,11 @@ class AppController {
   }
 
   initPlayers() {
-    const names = ["Nhóm A", "Nhóm B", "Nhóm C", "Nhóm D", "Nhóm E", "Nhóm F", "Nhóm G", "Nhóm H"];
     this.players = [];
     for (let i = 0; i < this.playerCount; i++) {
       this.players.push({
         id: `P${i}`,
-        name: names[i % names.length],
+        name: `Tụ ${i + 1}`,
         cards: [],
         score: 0,
         rankOrder: null,
@@ -1087,7 +1166,7 @@ class AppController {
   getCardOwner(cardId) {
     for (const p of this.players) {
       if (p.cards.some(c => c.id === cardId)) {
-        const clean = p.name.replace("Nhóm ", "").trim();
+        let clean = p.name.replace("Tụ ", "").replace("Nhóm ", "").trim();
         return clean.length <= 3 ? clean : clean.slice(0, 3).toUpperCase();
       }
     }
@@ -1152,10 +1231,8 @@ class AppController {
   }
 
   onCardClick(card) {
-
-    // If card already selected -> remove it
+    // If card already selected -> locked! (Users must tap the card on the mat to remove)
     if (this.getCardOwner(card.id)) {
-      this.removeCard(card.id);
       return;
     }
 
@@ -1235,11 +1312,17 @@ class AppController {
   }
 
   removeCard(cardId) {
-    for (const p of this.players) {
+    for (let i = 0; i < this.players.length; i++) {
+      const p = this.players[i];
       const idx = p.cards.findIndex(c => c.id === cardId);
       if (idx !== -1) {
         p.cards.splice(idx, 1);
         this.actionHistory = this.actionHistory.filter(h => h.cardId !== cardId);
+        
+        // Reset focus back to this player so next tapped card goes to this exact player!
+        this.selectedPlayerIndex = i;
+        this.roundRobinPointer = i;
+        this.isSelectingCommunity = false;
         break;
       }
     }
@@ -1247,6 +1330,7 @@ class AppController {
     if (cIdx !== -1) {
       this.communityCards.splice(cIdx, 1);
       this.actionHistory = this.actionHistory.filter(h => h.cardId !== cardId);
+      this.isSelectingCommunity = true;
     }
     this.clearResultsState();
     this.renderDeck();
@@ -1382,29 +1466,27 @@ class AppController {
         const rankText = p.rankOrder === 1 ? (isTie ? '👑 Đ.Hạng 1' : '👑 Nhất') :
                          (p.rankOrder === 2 ? (isTie ? '🥈 Đ.Hạng 2' : '🥈 Nhì') :
                          (p.rankOrder === 3 ? (isTie ? '🥉 Đ.Hạng 3' : '🥉 Ba') :
-                         (isTie ? `Đ.Hạng ${p.rankOrder}` : 'Bét')));
+                         (isTie ? `Đ.Hạng ${p.rankOrder}` : `Hạng ${p.rankOrder}`)));
         const badgeClass = p.rankOrder === 1 ? 'rank-1' : (p.rankOrder === 2 ? 'rank-2' : 'rank-other');
-        const scoreStr = (p.score >= 0 ? '+' : '') + p.score + ' chi';
-        const scoreClass = p.score > 0 ? 'score-pos' : (p.score < 0 ? 'score-neg' : 'score-zero');
-        rankBadgeHtml = `<span class="p-rank-badge ${badgeClass}">${rankText}</span> <span class="p-score-tag ${scoreClass}">${scoreStr}</span>`;
+        const scoreStr = p.score !== 0 ? `<span class="p-score-tag ${p.score > 0 ? 'score-pos' : 'score-neg'}">${p.score > 0 ? '+' : ''}${p.score} chi</span>` : '';
+        const titleHtml = p.resultTitle ? `<span class="p-hand-title-inline">${p.resultTitle}</span>` : '';
+        rankBadgeHtml = `<span class="p-rank-badge ${badgeClass}">${rankText}</span> ${titleHtml} ${scoreStr}`;
       }
 
-      const countOrTitleHtml = (hasResult && p.resultTitle)
-        ? `<span class="p-hand-title" title="${p.resultTitle}">${p.resultTitle}</span>`
-        : `<span class="p-count ${p.cards.length === cfg.cardsPerPlayer ? 'full' : ''}">${p.cards.length}/${cfg.cardsPerPlayer} lá</span>`;
+      const counterHtml = `<span class="p-count ${p.cards.length === cfg.cardsPerPlayer ? 'full' : ''}">${p.cards.length}/${cfg.cardsPerPlayer} lá</span>`;
 
       const header = document.createElement('div');
       header.className = 'player-card-header';
       header.innerHTML = `
         <div class="p-left">
           <span class="p-dot" style="${isWinner ? 'background:#f59e0b;' : ''}"></span>
-          <div class="p-name-container" title="Bấm để đổi tên người chơi">
+          <div class="p-name-container" title="Bấm để đổi tên tụ">
             <span class="p-name" style="${isWinner ? 'color:#f59e0b;font-weight:700;' : ''}">${p.name}</span>
             <span class="p-edit-icon">✏️</span>
           </div>
           ${rankBadgeHtml ? rankBadgeHtml : (isActive ? `<span class="p-tag">${this.inputMode === 'roundRobin' ? '▶ Lượt nhận' : '▶ Đang chọn'}</span>` : '')}
         </div>
-        ${countOrTitleHtml}
+        ${counterHtml}
       `;
       
       const nameBox = header.querySelector('.p-name-container');
@@ -1504,6 +1586,9 @@ class AppController {
       case 'lieng3':
         this.calcLieng();
         break;
+      case 'xiDach2':
+        this.calcXiDach();
+        break;
       case 'texasHoldem':
         this.calcHoldem();
         break;
@@ -1521,7 +1606,8 @@ class AppController {
         break;
     }
     this.recordMatchResult();
-    this.openResultModal();
+    this.renderPlayers(); // Show result directly on the mats!
+    this.updateUI();
   }
 
   recordMatchResult() {
@@ -1620,7 +1706,7 @@ class AppController {
 
   calcLieng() {
     const evaluated = this.players.map((p, idx) => {
-      const score = LiengEvaluator.evaluate(p.cards, this.suitPreset);
+      const score = LiengEvaluator.evaluate(p.cards);
       p.resultTitle = score.desc;
       p.resultDetail = `Loại: ${score.typeName}`;
       return { idx, score };
@@ -1644,6 +1730,37 @@ class AppController {
       const winner = winners[0];
       document.getElementById('bannerWinner').innerHTML = `
         🏆 <strong>${winner ? winner.name : '—'}</strong> Thắng Cuộc với ${winner ? winner.resultTitle : ''}!
+      `;
+    }
+    document.getElementById('matrixSection').style.display = 'none';
+  }
+
+  calcXiDach() {
+    const evaluated = this.players.map((p, idx) => {
+      const score = XiDachEvaluator.evaluate(p.cards);
+      p.resultTitle = score.title;
+      p.resultDetail = score.detail;
+      return { idx, score };
+    });
+
+    evaluated.sort((a, b) => XiDachEvaluator.compare(b.score, a.score));
+    let currentRank = 1;
+    evaluated.forEach((item, r) => {
+      if (r > 0 && XiDachEvaluator.compare(item.score, evaluated[r - 1].score) < 0) {
+        currentRank = r + 1;
+      }
+      this.players[item.idx].rankOrder = currentRank;
+    });
+
+    const winners = this.players.filter(p => p.rankOrder === 1);
+    if (winners.length > 1) {
+      document.getElementById('bannerWinner').innerHTML = `
+        👑 <strong>Đồng Hạng 1</strong>: ${winners.map(w => w.name).join(', ')} (Cùng ${winners[0].resultTitle})!
+      `;
+    } else {
+      const winner = winners[0];
+      document.getElementById('bannerWinner').innerHTML = `
+        🏆 <strong>${winner ? winner.name : '—'}</strong> Thắng Xì Dách với ${winner ? winner.resultTitle : ''}!
       `;
     }
     document.getElementById('matrixSection').style.display = 'none';

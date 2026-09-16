@@ -12,6 +12,7 @@
 		75DF7A19A3E40813E8CB89F2 /* Binh6Evaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B437A8EBE6498D3BA2071FF /* Binh6Evaluator.swift */; };
 		C9C8F069F9956FA9D4F6F913 /* Binh9Evaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66ED88ADB5BFEBD2EE192150 /* Binh9Evaluator.swift */; };
 		2368E376E1162311ABA5F2C0 /* LiengEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0899B2DC9C116DD8DC764E6E /* LiengEvaluator.swift */; };
+		A1C9E1B2C3D4E5F60718293A /* XiDachEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2D0F2A3B4C5D6E71829304B /* XiDachEvaluator.swift */; };
 		7E2F0FF8223CC159D68E7CD5 /* OmahaEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = E93766A6B7E7FF1D1A956C95 /* OmahaEvaluator.swift */; };
 		6B6B855B44B5EB85EF336BF3 /* PhomEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10273CDF9DA8C2023DF1C438 /* PhomEvaluator.swift */; };
 		3F2154079CCCA1D285FB94B9 /* PokerEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 734784A620633B401138A623 /* PokerEvaluator.swift */; };
@@ -38,6 +39,7 @@
 		3B437A8EBE6498D3BA2071FF /* Binh6Evaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Binh6Evaluator.swift; sourceTree = "<group>"; };
 		66ED88ADB5BFEBD2EE192150 /* Binh9Evaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Binh9Evaluator.swift; sourceTree = "<group>"; };
 		0899B2DC9C116DD8DC764E6E /* LiengEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiengEvaluator.swift; sourceTree = "<group>"; };
+		B2D0F2A3B4C5D6E71829304B /* XiDachEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XiDachEvaluator.swift; sourceTree = "<group>"; };
 		E93766A6B7E7FF1D1A956C95 /* OmahaEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OmahaEvaluator.swift; sourceTree = "<group>"; };
 		10273CDF9DA8C2023DF1C438 /* PhomEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhomEvaluator.swift; sourceTree = "<group>"; };
 		734784A620633B401138A623 /* PokerEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PokerEvaluator.swift; sourceTree = "<group>"; };
@@ -88,6 +90,7 @@
 				3B437A8EBE6498D3BA2071FF /* Binh6Evaluator.swift */,
 				66ED88ADB5BFEBD2EE192150 /* Binh9Evaluator.swift */,
 				0899B2DC9C116DD8DC764E6E /* LiengEvaluator.swift */,
+				B2D0F2A3B4C5D6E71829304B /* XiDachEvaluator.swift */,
 				E93766A6B7E7FF1D1A956C95 /* OmahaEvaluator.swift */,
 				10273CDF9DA8C2023DF1C438 /* PhomEvaluator.swift */,
 				734784A620633B401138A623 /* PokerEvaluator.swift */,
@@ -214,6 +217,7 @@
 				75DF7A19A3E40813E8CB89F2 /* Binh6Evaluator.swift in Sources */,
 				C9C8F069F9956FA9D4F6F913 /* Binh9Evaluator.swift in Sources */,
 				2368E376E1162311ABA5F2C0 /* LiengEvaluator.swift in Sources */,
+				A1C9E1B2C3D4E5F60718293A /* XiDachEvaluator.swift in Sources */,
 				7E2F0FF8223CC159D68E7CD5 /* OmahaEvaluator.swift in Sources */,
 				6B6B855B44B5EB85EF336BF3 /* PhomEvaluator.swift in Sources */,
 				3F2154079CCCA1D285FB94B9 /* PokerEvaluator.swift in Sources */,

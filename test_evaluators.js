@@ -95,26 +95,26 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE ===\n');
   assert(best.type !== 6, 'Omaha 4 lá cơ trên tay + 1 lá cơ trên bàn KHÔNG được Thùng (Flush)');
 }
 
-// 4. Test Liêng (Sáp > Liêng > Đĩ > Điểm mod 10)
+// 4. Test Liêng (Sáp > Liêng > Ba Tây > Điểm mod 10 theo DataGroupingUI)
 {
   const sap = [{ rank: 7, suit: 'hearts' }, { rank: 7, suit: 'spades' }, { rank: 7, suit: 'diamonds' }];
   const lieng = [{ rank: 12, suit: 'hearts' }, { rank: 13, suit: 'diamonds' }, { rank: 14, suit: 'clubs' }]; // Q-K-A
   const di = [{ rank: 11, suit: 'hearts' }, { rank: 12, suit: 'spades' }, { rank: 11, suit: 'diamonds' }]; // J-Q-J
   const diem9 = [{ rank: 5, suit: 'hearts' }, { rank: 4, suit: 'spades' }, { rank: 10, suit: 'diamonds' }]; // 9 điểm
 
-  const sSap = LiengEvaluator.evaluate(sap, 'north');
-  const sLieng = LiengEvaluator.evaluate(lieng, 'north');
-  const sDi = LiengEvaluator.evaluate(di, 'north');
-  const sDiem9 = LiengEvaluator.evaluate(diem9, 'north');
+  const sSap = LiengEvaluator.evaluate(sap);
+  const sLieng = LiengEvaluator.evaluate(lieng);
+  const sDi = LiengEvaluator.evaluate(di);
+  const sDiem9 = LiengEvaluator.evaluate(diem9);
 
-  assert(sSap.type === 4, 'Nhận diện Sáp 7');
-  assert(sLieng.type === 3, 'Nhận diện Liêng Q-K-A');
-  assert(sDi.type === 2, 'Nhận diện Đĩ J-Q-J');
-  assert(sDiem9.type === 1, 'Nhận diện Điểm (9 điểm)');
+  assert(sSap.score === 10007 && sSap.typeName === 'Sáp', 'Nhận diện Sáp 7 (10.007 điểm)');
+  assert(sLieng.score === 5014 && sLieng.typeName === 'Liêng', 'Nhận diện Liêng Q-K-A (5.014 điểm)');
+  assert(sDi.score === 1000 && sDi.typeName === 'Ba Tây', 'Nhận diện Ba Tây J-Q-J (1.000 điểm)');
+  assert(sDiem9.score === 900 && sDiem9.typeName === 'Điểm Thường', 'Nhận diện Điểm (9 điểm = 900 điểm)');
 
   assert(LiengEvaluator.compare(sSap, sLieng) > 0, 'Sáp thắng Liêng');
-  assert(LiengEvaluator.compare(sLieng, sDi) > 0, 'Liêng thắng Đĩ');
-  assert(LiengEvaluator.compare(sDi, sDiem9) > 0, 'Đĩ thắng 9 điểm');
+  assert(LiengEvaluator.compare(sLieng, sDi) > 0, 'Liêng thắng Ba Tây');
+  assert(LiengEvaluator.compare(sDi, sDiem9) > 0, 'Ba Tây thắng 9 điểm');
 }
 
 // 5. Test Binh 13 Thắng Trắng & Precedence
@@ -336,7 +336,88 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE ===\n');
   assert(rankedTie[0].scoreDelta + rankedTie[1].scoreDelta + rankedTie[2].scoreDelta === 0, `Phỏm: Tổng điểm thắng thua toàn bàn bảo toàn Zero-Sum (= 0)`);
 }
 
+// 12. Test Xì Dách (2 Lá / Xì Lát) Evaluator theo DataGroupingUI
+{
+  // 12.1 Xì Bàng (A-A) -> score = 5021
+  const xiBang = [
+    { rank: 14, suit: 'hearts' },
+    { rank: 14, suit: 'spades' }
+  ];
+  const sXiBang = XiDachEvaluator.evaluate(xiBang);
+  assert(sXiBang.score === 5021 && sXiBang.title.includes('Xì Bàng'), 'Xì Dách: Nhận diện đúng Xì Bàng (A-A, 5.021 điểm)');
+
+  // 12.2 Xì Dách (A + 10/J/Q/K) -> score = 4000
+  const xiDach = [
+    { rank: 14, suit: 'diamonds' },
+    { rank: 13, suit: 'clubs' } // A + K
+  ];
+  const sXiDach = XiDachEvaluator.evaluate(xiDach);
+  assert(sXiDach.score === 4000 && sXiDach.title.includes('Xì Dách'), 'Xì Dách: Nhận diện đúng Xì Dách (A + K, 4.000 điểm)');
+
+  // 12.3 Ngũ Linh (5 lá <= 21đ) -> 3000 + (21 - total)
+  const nguLinh18 = [
+    { rank: 2, suit: 'hearts' },
+    { rank: 3, suit: 'spades' },
+    { rank: 4, suit: 'diamonds' },
+    { rank: 4, suit: 'clubs' },
+    { rank: 5, suit: 'hearts' } // Total = 18
+  ];
+  const nguLinh19 = [
+    { rank: 2, suit: 'hearts' },
+    { rank: 3, suit: 'spades' },
+    { rank: 4, suit: 'diamonds' },
+    { rank: 4, suit: 'clubs' },
+    { rank: 6, suit: 'hearts' } // Total = 19
+  ];
+  const sNL18 = XiDachEvaluator.evaluate(nguLinh18);
+  const sNL19 = XiDachEvaluator.evaluate(nguLinh19);
+  assert(sNL18.score === 3003 && sNL18.title.includes('Ngũ Linh'), 'Xì Dách: Nhận diện Ngũ Linh 18đ (3.003 điểm)');
+  assert(sNL19.score === 3002 && sNL19.title.includes('Ngũ Linh'), 'Xì Dách: Nhận diện Ngũ Linh 19đ (3.002 điểm)');
+  assert(XiDachEvaluator.compare(sNL18, sNL19) > 0, 'Xì Dách: Ngũ Linh điểm nhỏ hơn thắng (18đ thắng 19đ)');
+
+  // 12.4 Đủ Điểm / Đủ Tuổi (16 - 21đ) -> 2000 + total
+  const du20 = [
+    { rank: 10, suit: 'hearts' },
+    { rank: 10, suit: 'spades' } // 20đ
+  ];
+  const sDu20 = XiDachEvaluator.evaluate(du20);
+  assert(sDu20.score === 2020 && sDu20.title.includes('Đủ tuổi'), 'Xì Dách: Nhận diện Đủ tuổi 20đ (2.020 điểm)');
+
+  // 12.5 Non (< 16đ) -> 1000 + total
+  const non15 = [
+    { rank: 7, suit: 'hearts' },
+    { rank: 8, suit: 'spades' } // 15đ
+  ];
+  const sNon15 = XiDachEvaluator.evaluate(non15);
+  assert(sNon15.score === 1015 && sNon15.title.includes('Non'), 'Xì Dách: Nhận diện Non 15đ (1.015 điểm)');
+
+  // 12.6 Quắc (> 21đ) -> max(0, 35 - total)
+  const quac23 = [
+    { rank: 10, suit: 'hearts' },
+    { rank: 10, suit: 'diamonds' },
+    { rank: 3, suit: 'clubs' } // 23đ -> 35 - 23 = 12
+  ];
+  const quac25 = [
+    { rank: 10, suit: 'hearts' },
+    { rank: 10, suit: 'diamonds' },
+    { rank: 5, suit: 'clubs' } // 25đ -> 35 - 25 = 10
+  ];
+  const sQuac23 = XiDachEvaluator.evaluate(quac23);
+  const sQuac25 = XiDachEvaluator.evaluate(quac25);
+  assert(sQuac23.score === 12 && sQuac23.title.includes('Quắc'), 'Xì Dách: Nhận diện Quắc 23đ (12 điểm)');
+  assert(sQuac25.score === 10 && sQuac25.title.includes('Quắc'), 'Xì Dách: Nhận diện Quắc 25đ (10 điểm)');
+  assert(XiDachEvaluator.compare(sQuac23, sQuac25) > 0, 'Xì Dách: Quắc ít điểm hơn thắng (23đ thắng 25đ)');
+
+  // 12.7 So sánh thứ tự các bộ bài
+  assert(XiDachEvaluator.compare(sXiBang, sXiDach) > 0, 'Xì Dách: Xì Bàng thắng Xì Dách');
+  assert(XiDachEvaluator.compare(sXiDach, sNL18) > 0, 'Xì Dách: Xì Dách thắng Ngũ Linh');
+  assert(XiDachEvaluator.compare(sNL18, sDu20) > 0, 'Xì Dách: Ngũ Linh thắng Đủ tuổi');
+  assert(XiDachEvaluator.compare(sDu20, sNon15) > 0, 'Xì Dách: Đủ tuổi thắng Non');
+  assert(XiDachEvaluator.compare(sNon15, sQuac23) > 0, 'Xì Dách: Non thắng Quắc');
+}
+
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);
+
 
 
 

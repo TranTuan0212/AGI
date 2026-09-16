@@ -55,7 +55,7 @@ struct CardButton: View {
                 )
                 .opacity(owner != nil ? 0.6 : 1.0)
                 
-                // Badge of current owner (A, B, C or Board)
+                // Badge of current owner (Tụ 1, Tụ 2, Bài chung...)
                 if let owner = owner {
                     Text(shortOwner(owner))
                         .font(.system(size: 8, weight: .black))
@@ -69,9 +69,13 @@ struct CardButton: View {
             }
         }
         .buttonStyle(PlainButtonStyle())
+        .disabled(owner != nil) // Locked when already chosen! Tap card on mat to remove
     }
     
     private func shortOwner(_ name: String) -> String {
+        if name.contains("Tụ ") {
+            return name.replacingOccurrences(of: "Tụ ", with: "")
+        }
         if name.contains("Nhóm ") {
             return name.replacingOccurrences(of: "Nhóm ", with: "")
         }

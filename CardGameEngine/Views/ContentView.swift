@@ -65,7 +65,7 @@ public struct ContentView: View {
                             }
                             .disabled(viewModel.numberOfPlayers <= viewModel.gameType.minPlayers)
                             
-                            Text("\(viewModel.numberOfPlayers) Nhóm")
+                            Text("\(viewModel.numberOfPlayers) Tụ")
                                 .font(.system(size: 13, weight: .bold))
                                 .foregroundColor(.blue)
                                 .frame(minWidth: 54)

@@ -4,6 +4,7 @@ public enum GameCategory: String, CaseIterable, Identifiable, Codable {
     case phom = "Phỏm (Tá Lả)"
     case binh = "Binh (Mậu Binh)"
     case lieng = "Liêng (3 Cây / Cào Tố)"
+    case xiDach = "Xì Dách (2 Lá / Xì Lát)"
     case poker = "Poker (Texas Hold'em)"
     
     public var id: String { rawValue }
@@ -22,6 +23,9 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
     // Lieng
     case lieng3 = "Liêng (3 Cây chuẩn)"
     
+    // Xi Dach
+    case xiDach2 = "Xì Dách (2 Lá chuẩn)"
+    
     // Poker
     case texasHoldem = "Poker (Texas Hold'em 2+5)"
     
@@ -35,6 +39,7 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
         case .binh6Poker: return "Binh 6 lá"
         case .binh6Split: return "Binh 6 lá (2 chi)"
         case .lieng3: return "Liêng (3 Cây)"
+        case .xiDach2: return "Xì Dách (2 Lá)"
         case .texasHoldem: return "Texas Hold'em"
         }
     }
@@ -47,6 +52,8 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
             return .binh
         case .lieng3:
             return .lieng
+        case .xiDach2:
+            return .xiDach
         case .texasHoldem:
             return .poker
         }
@@ -60,6 +67,7 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
         case .binh9: return 9
         case .binh6Poker, .binh6Split: return 6
         case .lieng3: return 3
+        case .xiDach2: return 2
         case .texasHoldem: return 2
         }
     }
@@ -81,6 +89,7 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
         case .binh9: return 5
         case .binh6Poker, .binh6Split: return 8
         case .lieng3: return 10
+        case .xiDach2: return 10
         case .texasHoldem: return 10
         }
     }
@@ -98,7 +107,9 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
         case .binh6Split:
             return "6 lá/người, chia thành 2 chi (mỗi chi 3 lá), Chi 1 ≥ Chi 2, so từng chi."
         case .lieng3:
-            return "3 lá/người, phân cấp: Sáp > Liêng (Sảnh) > Đĩ (Ba Tây J-Q-K) > Điểm Mậu thầu mod 10, so lá to nhất và chất theo cài đặt."
+            return "3 lá/người, phân cấp: Sáp (10.000 + độ mạnh) > Liêng (5.000 + độ mạnh) > Ba Tây (1.000) > Điểm mod 10. Bằng điểm nhau thì đồng hạng."
+        case .xiDach2:
+            return "2 lá/người: Xì Bàng (A-A: 5021) > Xì Dách (A + 10/J/Q/K: 4000) > Ngũ Linh (5 lá ≤ 21đ) > Đủ tuổi (16-21đ) > Non (<16đ) > Quắc (>21đ)."
         case .texasHoldem:
             return "2 lá bài riêng (hole cards) + 5 lá bài chung (board). Tạo kết hợp 5 lá mạnh nhất từ 7 lá. 10 cấp bậc từ Mậu thầu đến Sảnh rồng đồng chất, đầy đủ sảnh bánh xe A-2-3-4-5 và kicker 5 bậc."
         }

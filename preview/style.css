@@ -383,6 +383,13 @@ body {
   white-space: nowrap;
 }
 
+.p-hand-title-inline {
+  font-size: 10px;
+  font-weight: 700;
+  color: #D97706;
+  white-space: nowrap;
+}
+
 /* Overlapping Hand Cards (Xếp đè như cầm bài thật) */
 .hand-cards-container {
   display: flex;
@@ -599,6 +606,8 @@ body {
   background: #E8F0FE;
   border-color: var(--ios-primary);
   opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .card-owner-badge {

@@ -3,15 +3,15 @@ import SwiftUI
 import Combine
 
 public enum InputMode: String, CaseIterable, Identifiable {
-    case roundRobin = "Chia Tuần Tự (A ➔ B ➔ C)"
-    case manual = "Chọn Thủ Công Từng Nhóm"
+    case roundRobin = "Chia Tuần Tự (Tụ 1 ➔ Tụ 2 ➔ Tụ 3)"
+    case manual = "Chọn Thủ Công Từng Tụ"
     
     public var id: String { rawValue }
     
     public var shortTitle: String {
         switch self {
         case .roundRobin: return "Chia Tuần Tự"
-        case .manual: return "Chọn Thủ Công"
+        case .manual: return "Chọn Từng Tụ"
         }
     }
 }
@@ -71,17 +71,15 @@ public class GameViewModel: ObservableObject {
     }
     
     private func setupInitialPlayers() {
-        let names = ["Nhóm A", "Nhóm B", "Nhóm C", "Nhóm D", "Nhóm E", "Nhóm F", "Nhóm G", "Nhóm H"]
         players = (0..<numberOfPlayers).map { i in
-            Player(name: names[i % names.count])
+            Player(name: "Tụ \(i + 1)")
         }
     }
     
     private func updatePlayerCount() {
-        let names = ["Nhóm A", "Nhóm B", "Nhóm C", "Nhóm D", "Nhóm E", "Nhóm F", "Nhóm G", "Nhóm H", "Nhóm I", "Nhóm K"]
         if players.count < numberOfPlayers {
             for i in players.count..<numberOfPlayers {
-                players.append(Player(name: names[i % names.count]))
+                players.append(Player(name: "Tụ \(i + 1)"))
             }
         } else if players.count > numberOfPlayers {
             players = Array(players.prefix(numberOfPlayers))
@@ -119,9 +117,8 @@ public class GameViewModel: ObservableObject {
     
     // Handle card click
     public func onCardTapped(_ card: Card) {
-        // If already selected, remove it
+        // If already selected, do NOT remove from keypad! (Users must tap the card on the player's mat to remove)
         if cardOwner(card) != nil {
-            removeCard(card)
             return
         }
         
@@ -199,12 +196,18 @@ public class GameViewModel: ObservableObject {
         }
     }
     
-    // Remove specific card
+    // Remove specific card: return focus to the exact player that lost the card!
     public func removeCard(_ card: Card) {
         for i in 0..<players.count {
             if let idx = players[i].cards.firstIndex(of: card) {
                 players[i].cards.remove(at: idx)
                 actionHistory.removeAll { $0.card == card }
+                
+                // Set focus back to this player so next card tapped goes to this player!
+                selectedPlayerIndex = i
+                roundRobinPointer = i
+                isSelectingCommunity = false
+                
                 clearResultsState()
                 return
             }
@@ -212,6 +215,7 @@ public class GameViewModel: ObservableObject {
         if let idx = communityCards.firstIndex(of: card) {
             communityCards.remove(at: idx)
             actionHistory.removeAll { $0.card == card }
+            isSelectingCommunity = true
             clearResultsState()
         }
     }
@@ -270,13 +274,15 @@ public class GameViewModel: ObservableObject {
             calculateBinh6Split()
         case .lieng3:
             calculateLieng()
+        case .xiDach2:
+            calculateXiDach()
         case .texasHoldem:
             calculateTexasHoldem()
         }
         
         recordMatchToHistory()
         hasCalculatedResults = true
-        isShowResultModal = true
+        isShowResultModal = false // Show result directly on the mats without popup!
     }
     
     private func recordMatchToHistory() {
@@ -333,6 +339,34 @@ public class GameViewModel: ObservableObject {
             scores.append((index: i, score: score))
             players[i].resultTitle = score.descriptionVN
             players[i].resultDetail = "Loại: \(score.handType.nameVN)"
+        }
+        
+        scores.sort { $0.score > $1.score }
+        
+        var currentRank = 1
+        for i in 0..<scores.count {
+            if i > 0 && scores[i].score < scores[i - 1].score {
+                currentRank = i + 1
+            }
+            players[scores[i].index].rankOrder = currentRank
+        }
+        
+        let rank1Players = players.filter { $0.rankOrder == 1 }
+        if rank1Players.count > 1 {
+            let names = rank1Players.map { $0.name }.joined(separator: ", ")
+            showdownSummary = "👑 Đồng Hạng 1: \(names) (Cùng \(rank1Players[0].resultTitle))!"
+        } else if let winner = rank1Players.first {
+            showdownSummary = "🏆 \(winner.name) Thắng cuộc với \(winner.resultTitle)!"
+        }
+    }
+    
+    private func calculateXiDach() {
+        var scores = [(index: Int, score: XiDachScore)]()
+        for (i, p) in players.enumerated() {
+            let score = XiDachEvaluator.evaluate(cards: p.cards)
+            scores.append((index: i, score: score))
+            players[i].resultTitle = score.title
+            players[i].resultDetail = score.detail
         }
         
         scores.sort { $0.score > $1.score }

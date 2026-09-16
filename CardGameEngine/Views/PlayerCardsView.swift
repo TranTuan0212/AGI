@@ -105,19 +105,28 @@ public struct PlayerCardsView: View {
                                 let badgeText = rank == 1 ? (isTie ? "👑 Đ.Hạng 1" : "👑 Nhất") :
                                                 (rank == 2 ? (isTie ? "🥈 Đ.Hạng 2" : "🥈 Nhì") :
                                                 (rank == 3 ? (isTie ? "🥉 Đ.Hạng 3" : "🥉 Ba") :
-                                                (isTie ? "Đ.Hạng \(rank)" : "Bét")))
-                                HStack(spacing: 4) {
+                                                (isTie ? "Đ.Hạng \(rank)" : "Hạng \(rank)")))
+                                HStack(spacing: 5) {
                                     Text(badgeText)
-                                        .font(.system(size: 9, weight: .bold))
+                                        .font(.system(size: 10, weight: .bold))
                                         .foregroundColor(rank == 1 ? .yellow : (rank == 2 ? .blue : .secondary))
-                                        .padding(.horizontal, 4)
-                                        .padding(.vertical, 1)
-                                        .background(rank == 1 ? Color.yellow.opacity(0.2) : Color.gray.opacity(0.15))
+                                        .padding(.horizontal, 5)
+                                        .padding(.vertical, 1.5)
+                                        .background(rank == 1 ? Color.yellow.opacity(0.25) : Color.gray.opacity(0.18))
                                         .cornerRadius(4)
                                     
-                                    Text("\(player.score >= 0 ? "+" : "")\(player.score) chi")
-                                        .font(.system(size: 9, weight: .bold))
-                                        .foregroundColor(player.score > 0 ? .green : (player.score < 0 ? .red : .secondary))
+                                    if !player.resultTitle.isEmpty {
+                                        Text(player.resultTitle)
+                                            .font(.system(size: 11, weight: .bold))
+                                            .foregroundColor(isWinner ? .orange : .primary)
+                                            .lineLimit(1)
+                                    }
+                                    
+                                    if player.score != 0 {
+                                        Text("\(player.score >= 0 ? "+" : "")\(player.score) chi")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .foregroundColor(player.score > 0 ? .green : (player.score < 0 ? .red : .secondary))
+                                    }
                                 }
                             } else if isHighlight {
                                 Text(viewModel.inputMode == .roundRobin ? "▶ Lượt" : "▶ Đang chọn")
@@ -131,17 +140,10 @@ public struct PlayerCardsView: View {
                             
                             Spacer()
                             
-                            // Result hand title OR Card counter
-                            if let _ = player.rankOrder, !player.resultTitle.isEmpty {
-                                Text(player.resultTitle)
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(isWinner ? .orange : .primary)
-                                    .lineLimit(1)
-                            } else {
-                                Text("\(player.cards.count)/\(viewModel.gameType.cardsPerPlayer)")
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundColor(player.cards.count == viewModel.gameType.cardsPerPlayer ? .blue : .secondary)
-                            }
+                            // Card counter
+                            Text("\(player.cards.count)/\(viewModel.gameType.cardsPerPlayer)")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(player.cards.count == viewModel.gameType.cardsPerPlayer ? .blue : .secondary)
                         }
                         
                         // Cards display
@@ -192,7 +194,7 @@ public struct PlayerCardsView: View {
             }
             Button("Hủy", role: .cancel) {}
         } message: {
-            Text("Nhập tên hiển thị mới cho nhóm này:")
+            Text("Nhập tên hiển thị mới cho tụ này:")
         }
     }
 }
