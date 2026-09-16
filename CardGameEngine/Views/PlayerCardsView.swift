@@ -53,14 +53,15 @@ public struct PlayerCardsView: View {
             VStack(spacing: 5) {
                 ForEach(0..<viewModel.players.count, id: \.self) { idx in
                     let player = viewModel.players[idx]
-                    let isCurrentRoundRobin = viewModel.inputMode == .roundRobin && viewModel.roundRobinPointer == idx
-                    let isManualSelected = viewModel.inputMode == .manual && viewModel.selectedPlayerIndex == idx
-                    let isHighlight = isCurrentRoundRobin || isManualSelected
+                    let isWinner = viewModel.hasCalculatedResults && player.rankOrder == 1
+                    let isCurrentRoundRobin = viewModel.inputMode == .roundRobin && viewModel.roundRobinPointer == idx && !viewModel.hasCalculatedResults
+                    let isManualSelected = viewModel.inputMode == .manual && viewModel.selectedPlayerIndex == idx && !viewModel.hasCalculatedResults
+                    let isHighlight = isCurrentRoundRobin || isManualSelected || isWinner
                     
                     VStack(alignment: .leading, spacing: 3) {
                         HStack {
                             Circle()
-                                .fill(isHighlight ? Color.green : Color.gray.opacity(0.4))
+                                .fill(isWinner ? Color.yellow : (isHighlight ? Color.green : Color.gray.opacity(0.4)))
                                 .frame(width: 8, height: 8)
                             
                             Button(action: {
@@ -71,7 +72,7 @@ public struct PlayerCardsView: View {
                                 HStack(spacing: 3) {
                                     Text(player.name)
                                         .font(.system(size: 13, weight: .bold))
-                                        .foregroundColor(isHighlight ? .primary : .secondary)
+                                        .foregroundColor(isWinner ? .orange : (isHighlight ? .primary : .secondary))
                                     Image(systemName: "pencil")
                                         .font(.system(size: 9))
                                         .foregroundColor(.secondary)
@@ -79,8 +80,21 @@ public struct PlayerCardsView: View {
                             }
                             .buttonStyle(PlainButtonStyle())
 
-                            
-                            if isHighlight {
+                            if let rank = player.rankOrder {
+                                HStack(spacing: 4) {
+                                    Text(rank == 1 ? "👑 Nhất" : (rank == 2 ? "🥈 Nhì" : (rank == 3 ? "🥉 Ba" : "Bét")))
+                                        .font(.system(size: 9, weight: .bold))
+                                        .foregroundColor(rank == 1 ? .yellow : (rank == 2 ? .blue : .secondary))
+                                        .padding(.horizontal, 4)
+                                        .padding(.vertical, 1)
+                                        .background(rank == 1 ? Color.yellow.opacity(0.2) : Color.gray.opacity(0.15))
+                                        .cornerRadius(4)
+                                    
+                                    Text("\(player.score >= 0 ? "+" : "")\(player.score) chi")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .foregroundColor(player.score > 0 ? .green : (player.score < 0 ? .red : .secondary))
+                                }
+                            } else if isHighlight {
                                 Text(viewModel.inputMode == .roundRobin ? "▶ Lượt" : "▶ Đang chọn")
                                     .font(.system(size: 9, weight: .bold))
                                     .foregroundColor(.green)
@@ -92,10 +106,17 @@ public struct PlayerCardsView: View {
                             
                             Spacer()
                             
-                            // Card counter
-                            Text("\(player.cards.count)/\(viewModel.gameType.cardsPerPlayer)")
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(player.cards.count == viewModel.gameType.cardsPerPlayer ? .blue : .secondary)
+                            // Result hand title OR Card counter
+                            if let _ = player.rankOrder, !player.resultTitle.isEmpty {
+                                Text(player.resultTitle)
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(isWinner ? .orange : .primary)
+                                    .lineLimit(1)
+                            } else {
+                                Text("\(player.cards.count)/\(viewModel.gameType.cardsPerPlayer)")
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(player.cards.count == viewModel.gameType.cardsPerPlayer ? .blue : .secondary)
+                            }
                         }
                         
                         // Cards display
@@ -121,11 +142,14 @@ public struct PlayerCardsView: View {
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 4)
-                    .background(isHighlight ? Color.accentColor.opacity(0.08) : Color(.secondarySystemBackground))
+                    .background(
+                        isWinner ? Color.yellow.opacity(0.12) :
+                        (isHighlight ? Color.accentColor.opacity(0.08) : Color(.secondarySystemBackground))
+                    )
                     .cornerRadius(8)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
-                            .stroke(isHighlight ? Color.accentColor : Color.clear, lineWidth: 1.5)
+                            .stroke(isWinner ? Color.yellow : (isHighlight ? Color.accentColor : Color.clear), lineWidth: 1.5)
                     )
                     .onTapGesture {
                         if viewModel.inputMode == .manual {

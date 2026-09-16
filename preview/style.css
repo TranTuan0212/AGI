@@ -247,6 +247,12 @@ body {
   box-shadow: 0 0 8px rgba(52, 199, 89, 0.3);
 }
 
+.player-compact-card.winner-mat {
+  border-color: #f59e0b;
+  background: #FFFBEB;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+}
+
 .player-card-header {
   display: flex;
   justify-content: space-between;
@@ -316,6 +322,51 @@ body {
 
 .p-count.full {
   color: var(--ios-primary);
+}
+
+.p-rank-badge {
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.p-rank-badge.rank-1 {
+  background: #FEF3C7;
+  color: #B45309;
+}
+.p-rank-badge.rank-2 {
+  background: #DBEAFE;
+  color: #1D4ED8;
+}
+.p-rank-badge.rank-other {
+  background: #F3F4F6;
+  color: #4B5563;
+}
+
+.p-score-tag {
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+.p-score-tag.score-pos {
+  color: #10B981;
+}
+.p-score-tag.score-neg {
+  color: #EF4444;
+}
+.p-score-tag.score-zero {
+  color: #6B7280;
+}
+
+.p-hand-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: #D97706;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Overlapping Hand Cards (Xếp đè như cầm bài thật) */

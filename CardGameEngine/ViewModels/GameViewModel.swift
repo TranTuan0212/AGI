@@ -164,6 +164,29 @@ public class GameViewModel: ObservableObject {
                 }
             }
         }
+        
+        // Auto-calculate immediately when all cards are dealt
+        if isReadyToCalculate {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+                guard let self = self, self.isReadyToCalculate else { return }
+                self.calculateResults()
+            }
+        }
+    }
+    
+    // Clear calculated results when cards change
+    private func clearResultsState() {
+        hasCalculatedResults = false
+        isShowResultModal = false
+        showdownSummary = ""
+        confrontationMatrix.removeAll()
+        for i in 0..<players.count {
+            players[i].rankOrder = nil
+            players[i].score = 0
+            players[i].resultTitle = ""
+            players[i].resultDetail = ""
+            players[i].isLung = false
+        }
     }
     
     // Remove specific card
@@ -172,12 +195,14 @@ public class GameViewModel: ObservableObject {
             if let idx = players[i].cards.firstIndex(of: card) {
                 players[i].cards.remove(at: idx)
                 actionHistory.removeAll { $0.card == card }
+                clearResultsState()
                 return
             }
         }
         if let idx = communityCards.firstIndex(of: card) {
             communityCards.remove(at: idx)
             actionHistory.removeAll { $0.card == card }
+            clearResultsState()
         }
     }
     
@@ -204,6 +229,10 @@ public class GameViewModel: ObservableObject {
             let commDealt = Array(deck.prefix(commTargetCount))
             communityCards = commDealt
             deck.removeFirst(commTargetCount)
+        }
+        
+        if isReadyToCalculate {
+            calculateResults()
         }
     }
     

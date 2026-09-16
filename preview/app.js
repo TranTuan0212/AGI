@@ -1009,7 +1009,14 @@ class AppController {
     }
 
     document.getElementById('btnReset').addEventListener('click', () => this.resetTable());
-    document.getElementById('btnCalculate').addEventListener('click', () => this.calculate());
+    document.getElementById('btnCalculate').addEventListener('click', () => {
+      const hasResults = this.players.some(p => p.rankOrder != null);
+      if (hasResults) {
+        this.openResultModal();
+      } else {
+        this.calculate();
+      }
+    });
 
     // History Modal events
     const btnCloseHist = document.getElementById('btnCloseHistory');
@@ -1159,6 +1166,32 @@ class AppController {
     this.renderDeck();
     this.renderPlayers();
     this.updateUI();
+
+    // Auto calculate if all cards are dealt
+    if (this.isReady()) {
+      setTimeout(() => {
+        if (this.isReady()) {
+          this.calculate();
+        }
+      }, 200);
+    }
+  }
+
+  isReady() {
+    const cfg = GAME_CONFIGS[this.currentGameType];
+    const allFull = this.players.every(p => p.cards.length === cfg.cardsPerPlayer);
+    const commFull = this.communityCards.length === cfg.community;
+    return allFull && commFull;
+  }
+
+  clearResultsState() {
+    this.players.forEach(p => {
+      p.rankOrder = null;
+      p.score = 0;
+      p.resultTitle = "";
+      p.resultDetail = "";
+      p.isLung = false;
+    });
   }
 
   removeCard(cardId) {
@@ -1175,6 +1208,7 @@ class AppController {
       this.communityCards.splice(cIdx, 1);
       this.actionHistory = this.actionHistory.filter(h => h.cardId !== cardId);
     }
+    this.clearResultsState();
     this.renderDeck();
     this.renderPlayers();
     this.updateUI();
@@ -1230,6 +1264,14 @@ class AppController {
     this.renderDeck();
     this.renderPlayers();
     this.updateUI();
+
+    if (this.isReady()) {
+      setTimeout(() => {
+        if (this.isReady()) {
+          this.calculate();
+        }
+      }, 200);
+    }
   }
 
   renderPlayers() {
@@ -1263,10 +1305,12 @@ class AppController {
     this.players.forEach((p, idx) => {
       const isRR = this.inputMode === 'roundRobin' && this.roundRobinPointer === idx;
       const isManual = this.inputMode === 'manual' && this.selectedPlayerIndex === idx;
+      const hasResult = p.rankOrder != null;
+      const isWinner = p.rankOrder === 1;
       const isActive = isRR || isManual;
 
       const mat = document.createElement('div');
-      mat.className = `player-compact-card ${isActive ? 'active' : ''}`;
+      mat.className = `player-compact-card ${isActive && !hasResult ? 'active' : ''} ${isWinner ? 'winner-mat' : ''}`;
       mat.addEventListener('click', () => {
         if (this.inputMode === 'manual') {
           this.selectedPlayerIndex = idx;
@@ -1275,20 +1319,31 @@ class AppController {
         }
       });
 
+      let rankBadgeHtml = '';
+      if (hasResult) {
+        const rankText = p.rankOrder === 1 ? '👑 Nhất' : (p.rankOrder === 2 ? '🥈 Nhì' : (p.rankOrder === 3 ? '🥉 Ba' : 'Bét'));
+        const badgeClass = p.rankOrder === 1 ? 'rank-1' : (p.rankOrder === 2 ? 'rank-2' : 'rank-other');
+        const scoreStr = (p.score >= 0 ? '+' : '') + p.score + ' chi';
+        const scoreClass = p.score > 0 ? 'score-pos' : (p.score < 0 ? 'score-neg' : 'score-zero');
+        rankBadgeHtml = `<span class="p-rank-badge ${badgeClass}">${rankText}</span> <span class="p-score-tag ${scoreClass}">${scoreStr}</span>`;
+      }
+
+      const countOrTitleHtml = (hasResult && p.resultTitle)
+        ? `<span class="p-hand-title" title="${p.resultTitle}">${p.resultTitle}</span>`
+        : `<span class="p-count ${p.cards.length === cfg.cardsPerPlayer ? 'full' : ''}">${p.cards.length}/${cfg.cardsPerPlayer} lá</span>`;
+
       const header = document.createElement('div');
       header.className = 'player-card-header';
       header.innerHTML = `
         <div class="p-left">
-          <span class="p-dot"></span>
+          <span class="p-dot" style="${isWinner ? 'background:#f59e0b;' : ''}"></span>
           <div class="p-name-container" title="Bấm để đổi tên người chơi">
-            <span class="p-name">${p.name}</span>
+            <span class="p-name" style="${isWinner ? 'color:#f59e0b;font-weight:700;' : ''}">${p.name}</span>
             <span class="p-edit-icon">✏️</span>
           </div>
-          ${isActive ? `<span class="p-tag">${this.inputMode === 'roundRobin' ? '▶ Lượt nhận' : '▶ Đang chọn'}</span>` : ''}
+          ${rankBadgeHtml ? rankBadgeHtml : (isActive ? `<span class="p-tag">${this.inputMode === 'roundRobin' ? '▶ Lượt nhận' : '▶ Đang chọn'}</span>` : '')}
         </div>
-        <span class="p-count ${p.cards.length === cfg.cardsPerPlayer ? 'full' : ''}">
-          ${p.cards.length}/${cfg.cardsPerPlayer} lá
-        </span>
+        ${countOrTitleHtml}
       `;
       
       const nameBox = header.querySelector('.p-name-container');
@@ -1356,10 +1411,15 @@ class AppController {
     const allFull = this.players.every(p => p.cards.length === cfg.cardsPerPlayer);
     const commFull = this.communityCards.length === cfg.community;
     const isReady = allFull && commFull;
+    const hasResults = this.players.some(p => p.rankOrder != null);
 
     const btnCalc = document.getElementById('btnCalculate');
-    btnCalc.disabled = !isReady;
-    btnCalc.innerHTML = isReady ? `<span>👑 SO BÀI NGAY</span>` : `<span>👑 Chưa đủ lá</span>`;
+    btnCalc.disabled = !isReady && !hasResults;
+    if (hasResults) {
+      btnCalc.innerHTML = `<span>👑 XEM KẾT QUẢ</span>`;
+    } else {
+      btnCalc.innerHTML = isReady ? `<span>👑 SO BÀI NGAY</span>` : `<span>👑 Chưa đủ lá</span>`;
+    }
 
     // Turn indicator
     const turn = document.getElementById('turnIndicator');

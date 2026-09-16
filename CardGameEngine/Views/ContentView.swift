@@ -147,11 +147,17 @@ public struct ContentView: View {
                                 .cornerRadius(6)
                         }
                         
-                        Button(action: { viewModel.calculateResults() }) {
+                        Button(action: { 
+                            if viewModel.hasCalculatedResults {
+                                viewModel.isShowResultModal = true
+                            } else {
+                                viewModel.calculateResults()
+                            }
+                        }) {
                             HStack(spacing: 4) {
                                 Image(systemName: "crown.fill")
                                     .font(.caption)
-                                Text("So Bài")
+                                Text(viewModel.hasCalculatedResults ? "Xem Kết Quả" : "So Bài")
                                     .font(.caption)
                                     .fontWeight(.bold)
                             }
@@ -159,13 +165,13 @@ public struct ContentView: View {
                             .padding(.horizontal, 10)
                             .padding(.vertical, 6)
                             .background(
-                                viewModel.isReadyToCalculate ?
+                                (viewModel.isReadyToCalculate || viewModel.hasCalculatedResults) ?
                                 LinearGradient(colors: [Color.blue, Color.purple], startPoint: .leading, endPoint: .trailing) :
                                 LinearGradient(colors: [Color.gray, Color.gray.opacity(0.7)], startPoint: .leading, endPoint: .trailing)
                             )
                             .cornerRadius(6)
                         }
-                        .disabled(!viewModel.isReadyToCalculate)
+                        .disabled(!viewModel.isReadyToCalculate && !viewModel.hasCalculatedResults)
                     }
                     .padding(.horizontal)
                     
