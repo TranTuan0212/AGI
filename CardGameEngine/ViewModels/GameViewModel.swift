@@ -7,6 +7,13 @@ public enum InputMode: String, CaseIterable, Identifiable {
     case manual = "Chọn Thủ Công Từng Nhóm"
     
     public var id: String { rawValue }
+    
+    public var shortTitle: String {
+        switch self {
+        case .roundRobin: return "Chia Tuần Tự"
+        case .manual: return "Chọn Thủ Công"
+        }
+    }
 }
 
 public class GameViewModel: ObservableObject {

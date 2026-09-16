@@ -83,6 +83,9 @@ body {
   color: var(--ios-primary);
   outline: none;
   cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .stepper-compact {

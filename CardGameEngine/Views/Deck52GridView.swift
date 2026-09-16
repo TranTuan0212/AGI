@@ -22,14 +22,14 @@ public struct Deck52GridView: View {
             }
             .padding(.horizontal, 4)
             
-            VStack(spacing: 5) {
+            VStack(spacing: 3) {
                 ForEach(suits) { suit in
-                    HStack(spacing: 4) {
+                    HStack(spacing: 3) {
                         // Suit header
                         Text(suit.rawValue)
-                            .font(.system(size: 18, weight: .bold))
+                            .font(.system(size: 16, weight: .bold))
                             .foregroundColor(suit.isRed ? .red : .primary)
-                            .frame(width: 24)
+                            .frame(width: 18)
                         
                         // 13 ranks for this suit
                         ForEach(ranks) { rank in
@@ -43,9 +43,9 @@ public struct Deck52GridView: View {
                     }
                 }
             }
-            .padding(8)
+            .padding(6)
             .background(Color(.secondarySystemBackground))
-            .cornerRadius(12)
+            .cornerRadius(10)
         }
     }
 }
@@ -58,16 +58,16 @@ struct CardButton: View {
     var body: some View {
         Button(action: action) {
             ZStack(alignment: .topTrailing) {
-                VStack(spacing: 2) {
+                VStack(spacing: 1) {
                     Text(card.rank.displaySymbol)
-                        .font(.system(size: 13, weight: .bold))
+                        .font(.system(size: 12, weight: .bold))
                         .foregroundColor(card.suit.isRed ? .red : .black)
                     
                     Text(card.suit.rawValue)
-                        .font(.system(size: 12))
+                        .font(.system(size: 11))
                         .foregroundColor(card.suit.isRed ? .red : .black)
                 }
-                .frame(maxWidth: .infinity, minHeight: 46)
+                .frame(maxWidth: .infinity, minHeight: 40)
                 .background(owner != nil ? Color.gray.opacity(0.2) : Color.white)
                 .cornerRadius(6)
                 .overlay(

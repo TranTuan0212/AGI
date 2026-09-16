@@ -10,38 +10,94 @@ public struct ContentView: View {
         NavigationView {
             VStack(spacing: 0) {
                 // 1. Compact Header (Game Selector & Player Count Controls)
-                VStack(spacing: 6) {
+                VStack(spacing: 8) {
                     HStack(spacing: 8) {
-                        Picker("Thể Loại", selection: $viewModel.gameType) {
+                        // Game Selector Menu
+                        Menu {
                             ForEach(GameType.allCases) { type in
-                                Text(type.rawValue).tag(type)
+                                Button(action: {
+                                    viewModel.gameType = type
+                                }) {
+                                    HStack {
+                                        Text(type.rawValue)
+                                        if viewModel.gameType == type {
+                                            Image(systemName: "checkmark")
+                                        }
+                                    }
+                                }
                             }
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "suit.spade.fill")
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundColor(.blue)
+                                
+                                Text(viewModel.gameType.shortName)
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundColor(.primary)
+                                    .lineLimit(1)
+                                
+                                Image(systemName: "chevron.up.chevron.down")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 7)
+                            .background(Color(.secondarySystemBackground))
+                            .cornerRadius(8)
                         }
-                        .pickerStyle(MenuPickerStyle())
-                        .font(.subheadline)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
+                        
+                        Spacer(minLength: 4)
+                        
+                        // Custom Responsive Stepper
+                        HStack(spacing: 6) {
+                            Button(action: {
+                                if viewModel.numberOfPlayers > viewModel.gameType.minPlayers {
+                                    viewModel.numberOfPlayers -= 1
+                                }
+                            }) {
+                                Image(systemName: "minus")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(viewModel.numberOfPlayers > viewModel.gameType.minPlayers ? .blue : .gray)
+                                    .frame(width: 28, height: 28)
+                                    .background(Color(.systemBackground))
+                                    .cornerRadius(6)
+                            }
+                            .disabled(viewModel.numberOfPlayers <= viewModel.gameType.minPlayers)
+                            
+                            Text("\(viewModel.numberOfPlayers) Nhóm")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(.blue)
+                                .frame(minWidth: 54)
+                            
+                            Button(action: {
+                                if viewModel.numberOfPlayers < viewModel.gameType.maxPlayers {
+                                    viewModel.numberOfPlayers += 1
+                                }
+                            }) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundColor(viewModel.numberOfPlayers < viewModel.gameType.maxPlayers ? .blue : .gray)
+                                    .frame(width: 28, height: 28)
+                                    .background(Color(.systemBackground))
+                                    .cornerRadius(6)
+                            }
+                            .disabled(viewModel.numberOfPlayers >= viewModel.gameType.maxPlayers)
+                        }
+                        .padding(3)
                         .background(Color(.secondarySystemBackground))
                         .cornerRadius(8)
-                        
-                        Spacer()
-                        
-                        Stepper(value: $viewModel.numberOfPlayers, in: viewModel.gameType.minPlayers...viewModel.gameType.maxPlayers) {
-                            Text("\(viewModel.numberOfPlayers) Nhóm")
-                                .font(.subheadline)
-                                .fontWeight(.bold)
-                                .foregroundColor(.blue)
-                        }
                     }
                     
+                    // Segmented Input Mode Picker (Short titles to prevent clipping on small iPhones)
                     Picker("Chế độ", selection: $viewModel.inputMode) {
                         ForEach(InputMode.allCases) { mode in
-                            Text(mode.rawValue).tag(mode)
+                            Text(mode.shortTitle).tag(mode)
                         }
                     }
                     .pickerStyle(SegmentedPickerStyle())
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(Color(.systemBackground))
                 .shadow(color: Color.black.opacity(0.04), radius: 2, x: 0, y: 1)

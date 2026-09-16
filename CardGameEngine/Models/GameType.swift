@@ -25,6 +25,19 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
     
     public var id: String { rawValue }
     
+    public var shortName: String {
+        switch self {
+        case .binh13: return "Binh 13 lá"
+        case .binh9: return "Binh 9 lá"
+        case .binh6Poker: return "Binh 6 lá"
+        case .binh6Split: return "Binh 6 lá (2 chi)"
+        case .lieng3: return "Liêng (3 Cây)"
+        case .texasHoldem: return "Texas Hold'em"
+        case .omaha: return "Omaha Poker"
+        case .sevenCardStud: return "Xì Tố 7 lá"
+        }
+    }
+    
     public var category: GameCategory {
         switch self {
         case .binh13, .binh9, .binh6Poker, .binh6Split:

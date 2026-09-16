@@ -120,7 +120,8 @@ public struct PlayerCardsView: View {
                             .padding(.vertical, 2)
                         }
                     }
-                    .padding(10)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
                     .background(isHighlight ? Color.accentColor.opacity(0.08) : Color(.secondarySystemBackground))
                     .cornerRadius(10)
                     .overlay(
@@ -154,21 +155,21 @@ struct MiniCardView: View {
     
     var body: some View {
         Button(action: onRemove) {
-            VStack(spacing: 1) {
+            VStack(spacing: 0) {
                 Text(card.rank.displaySymbol)
-                    .font(.system(size: 14, weight: .bold))
+                    .font(.system(size: 13, weight: .bold))
                     .foregroundColor(card.suit.isRed ? .red : .black)
                 Text(card.suit.rawValue)
-                    .font(.system(size: 13))
+                    .font(.system(size: 12))
                     .foregroundColor(card.suit.isRed ? .red : .black)
             }
-            .frame(width: 38, height: 50)
+            .frame(width: 32, height: 44)
             .background(Color.white)
-            .cornerRadius(6)
+            .cornerRadius(5)
             .shadow(color: Color.black.opacity(0.12), radius: 2, x: 0, y: 1)
             .overlay(
-                RoundedRectangle(cornerRadius: 6)
-                    .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 5)
+                    .stroke(Color.gray.opacity(0.25), lineWidth: 1)
             )
         }
         .buttonStyle(PlainButtonStyle())
@@ -177,13 +178,13 @@ struct MiniCardView: View {
 
 struct CardPlaceholderView: View {
     var body: some View {
-        RoundedRectangle(cornerRadius: 6)
+        RoundedRectangle(cornerRadius: 5)
             .stroke(style: StrokeStyle(lineWidth: 1, dash: [3]))
-            .foregroundColor(Color.gray.opacity(0.4))
-            .frame(width: 38, height: 50)
+            .foregroundColor(Color.gray.opacity(0.35))
+            .frame(width: 32, height: 44)
             .overlay(
                 Image(systemName: "plus")
-                    .font(.system(size: 12))
+                    .font(.system(size: 10))
                     .foregroundColor(Color.gray.opacity(0.4))
             )
     }
