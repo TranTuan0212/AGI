@@ -8,24 +8,99 @@ public struct Deck52GridView: View {
     let ranks: [Rank] = Rank.allCases // 2 to Ace
     
     public var body: some View {
-        VStack(spacing: 3) {
-            ForEach(suits) { suit in
-                HStack(spacing: 3) {
-                    // 13 ranks for this suit (no suit header to maximize card width)
-                    ForEach(ranks) { rank in
-                        let card = Card(rank: rank, suit: suit)
-                        let owner = viewModel.cardOwner(card)
-                        
-                        CardButton(card: card, owner: owner) {
-                            viewModel.onCardTapped(card)
+        if viewModel.isRankOnlyActive {
+            RankOnlyGridView(viewModel: viewModel)
+        } else {
+            VStack(spacing: 3) {
+                ForEach(suits) { suit in
+                    HStack(spacing: 3) {
+                        // 13 ranks for this suit (no suit header to maximize card width)
+                        ForEach(ranks) { rank in
+                            let card = Card(rank: rank, suit: suit)
+                            let owner = viewModel.cardOwner(card)
+                            
+                            CardButton(card: card, owner: owner) {
+                                viewModel.onCardTapped(card)
+                            }
                         }
                     }
                 }
             }
+            .padding(4)
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(10)
         }
-        .padding(4)
+    }
+}
+
+// MARK: - Rank-Only Keypad (A -> K for 3 Cây & 2 Lá)
+public struct RankOnlyGridView: View {
+    @ObservedObject var viewModel: GameViewModel
+    
+    let row1: [Rank] = [.ace, .two, .three, .four, .five]
+    let row2: [Rank] = [.six, .seven, .eight, .nine, .ten]
+    let row3: [Rank] = [.jack, .queen, .king]
+    
+    public var body: some View {
+        VStack(spacing: 6) {
+            // Row 1: A, 2, 3, 4, 5
+            HStack(spacing: 6) {
+                ForEach(row1) { rank in
+                    RankButton(rank: rank) {
+                        viewModel.onRankTapped(rank)
+                    }
+                }
+            }
+            
+            // Row 2: 6, 7, 8, 9, 10
+            HStack(spacing: 6) {
+                ForEach(row2) { rank in
+                    RankButton(rank: rank) {
+                        viewModel.onRankTapped(rank)
+                    }
+                }
+            }
+            
+            // Row 3: J, Q, K
+            HStack(spacing: 6) {
+                ForEach(row3) { rank in
+                    RankButton(rank: rank) {
+                        viewModel.onRankTapped(rank)
+                    }
+                }
+            }
+        }
+        .padding(6)
         .background(Color(.secondarySystemBackground))
-        .cornerRadius(10)
+        .cornerRadius(12)
+    }
+}
+
+struct RankButton: View {
+    let rank: Rank
+    let action: () -> Void
+    
+    var textColor: Color {
+        if rank == .ace { return .red }
+        if rank == .jack || rank == .queen || rank == .king { return .blue }
+        return .primary
+    }
+    
+    var body: some View {
+        Button(action: action) {
+            Text(rank.displaySymbol)
+                .font(.system(size: 24, weight: .bold))
+                .foregroundColor(textColor)
+                .frame(maxWidth: .infinity, minHeight: 56)
+                .background(Color(.systemBackground))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.gray.opacity(0.3), lineWidth: 1.5)
+                )
+                .shadow(color: Color.black.opacity(0.04), radius: 2, x: 0, y: 1)
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 

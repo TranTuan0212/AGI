@@ -242,4 +242,59 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE (6 TRÒ CHƠI) =
   assert(app.selectedPlayerIndex === 0, 'AppController: Chọn Tụ 1');
 }
 
+// 11. Test Chế độ không so chất (Bàn phím A->K) trong Cài Đặt (Hình răng cưa ⚙️)
+{
+  let storage = { 'card_game_rank_only_mode': 'true' };
+  const sandbox = {
+    window: { addEventListener: () => {} },
+    document: {
+      getElementById: () => ({ style: {}, innerHTML: '', appendChild: () => {}, classList: { add: () => {}, remove: () => {} }, querySelector: () => ({ addEventListener: () => {} }), addEventListener: () => {} }),
+      querySelectorAll: () => [],
+      createElement: () => ({ style: {}, dataset: {}, appendChild: () => {}, addEventListener: () => {}, querySelector: () => ({ addEventListener: () => {} }), setAttribute: () => {} })
+    },
+    localStorage: {
+      getItem: (k) => storage[k] || null,
+      setItem: (k, v) => { storage[k] = v; }
+    },
+    console: console,
+    setTimeout: setTimeout
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(appCode, sandbox);
+  const AppCtrl = vm.runInContext('AppController', sandbox);
+  const app = new AppCtrl();
+
+  assert(app.isRankOnlyMode === true, 'Rank-Only: Tự động tải cài đặt đã lưu từ localStorage');
+  assert(app.isRankOnlyActive() === true, 'Rank-Only: Hoạt động khi đang ở game Liêng (lieng3)');
+
+  // Kiểm tra khi đổi sang game khác (ví dụ binh9 hoặc texasHoldem)
+  app.currentGameType = 'binh9';
+  assert(app.isRankOnlyActive() === false, 'Rank-Only: Tự động vô hiệu hóa và chuyển về bàn phím 52 lá khi ở game Binh 9 lá');
+
+  // Chuyển lại game Liêng (3 Cây)
+  app.currentGameType = 'lieng3';
+  app.playerCount = 2;
+  app.initPlayers();
+
+  // Test chọn một lá NHIỀU LẦN (Không lock)
+  // Tụ 1 và Tụ 2 đều nhận 3 lá A (tổng cộng bấm 'A' 6 lần liên tiếp)
+  const rankAce = { raw: 14, sym: 'A' };
+  for (let i = 0; i < 6; i++) {
+    app.onRankClick(rankAce);
+  }
+
+  assert(app.players[0].cards.length === 3, 'Rank-Only: Tụ 1 nhận đủ 3 lá A');
+  assert(app.players[1].cards.length === 3, 'Rank-Only: Tụ 2 cũng nhận đủ 3 lá A (chọn nhiều lần không bị khóa)');
+  assert(app.isReady() === true, 'Rank-Only: Tự động nhận diện sẵn sàng tính điểm');
+
+  // Cả hai đều có Sáp A -> Vì không so chất nên phải ĐỒNG HẠNG 1!
+  assert(app.players[0].rankOrder === 1, 'Rank-Only: Tụ 1 đạt Hạng 1 (Sáp A)');
+  assert(app.players[1].rankOrder === 1, 'Rank-Only: Tụ 2 đạt Đồng Hạng 1 (Sáp A - Không so chất)');
+
+  // Test lưu cài đặt khi tắt
+  app.isRankOnlyMode = false;
+  sandbox.localStorage.setItem('card_game_rank_only_mode', 'false');
+  assert(app.isRankOnlyActive() === false, 'Rank-Only: Tắt chế độ thành công và ghi nhớ vào storage');
+}
+
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);

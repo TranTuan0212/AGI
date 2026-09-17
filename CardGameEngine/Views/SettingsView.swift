@@ -7,7 +7,15 @@ public struct SettingsView: View {
     public var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Quy Ước So Chất Bài")) {
+                Section(header: Text("Tùy Chọn 3 Cây & 2 Lá (Liêng / Xì Dách)")) {
+                    Toggle("Chế độ không so chất (Bàn phím A➔K)", isOn: $viewModel.isRankOnlyMode)
+                    
+                    Text("Khi bật, 3 Cây (Liêng) và 2 Lá (Xì Dách) dùng bàn phím số A➔K to bản, một lá có thể chọn nhiều lần (không khóa phím), tính điểm bằng nhau là Đồng Hạng.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Section(header: Text("Quy Ước So Chất Bài (Khi Chơi 52 Lá)")) {
                     Picker("Hệ Thống Chất", selection: $viewModel.suitPreset) {
                         ForEach(SuitRulePreset.allCases) { preset in
                             Text(preset.rawValue).tag(preset)

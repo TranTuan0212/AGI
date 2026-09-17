@@ -213,22 +213,36 @@ struct MiniCardView: View {
     
     var body: some View {
         Button(action: onRemove) {
-            VStack(spacing: 0) {
+            if card.isRankOnly {
                 Text(card.rank.displaySymbol)
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(card.suit.isRed ? .red : .black)
-                Text(card.suit.rawValue)
-                    .font(.system(size: 11))
-                    .foregroundColor(card.suit.isRed ? .red : .black)
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(card.rank == .ace ? .red : (card.rank == .jack || card.rank == .queen || card.rank == .king ? .blue : .primary))
+                    .frame(width: 32, height: 40)
+                    .background(Color.white)
+                    .cornerRadius(5)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 5)
+                            .stroke(Color.gray.opacity(0.35), lineWidth: 1)
+                    )
+                    .shadow(color: Color.black.opacity(0.08), radius: 1, x: 0, y: 1)
+            } else {
+                VStack(spacing: 0) {
+                    Text(card.rank.displaySymbol)
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(card.suit.isRed ? .red : .black)
+                    Text(card.suit.rawValue)
+                        .font(.system(size: 10))
+                        .foregroundColor(card.suit.isRed ? .red : .black)
+                }
+                .frame(width: 26, height: 36)
+                .background(Color.white)
+                .cornerRadius(4)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 4)
+                        .stroke(Color.gray.opacity(0.3), lineWidth: 0.8)
+                )
+                .shadow(color: Color.black.opacity(0.08), radius: 1, x: 0, y: 1)
             }
-            .frame(width: 28, height: 38)
-            .background(Color.white)
-            .cornerRadius(4)
-            .shadow(color: Color.black.opacity(0.1), radius: 1, x: 0, y: 1)
-            .overlay(
-                RoundedRectangle(cornerRadius: 4)
-                    .stroke(Color.gray.opacity(0.25), lineWidth: 1)
-            )
         }
         .buttonStyle(PlainButtonStyle())
     }

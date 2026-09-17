@@ -57,6 +57,20 @@ public class GameViewModel: ObservableObject {
     // Action History for Undo
     private var actionHistory: [(card: Card, target: String)] = []
     
+    // Rank-Only Mode (A->K) for 3 Cây & 2 Lá
+    @Published public var isRankOnlyMode: Bool {
+        didSet {
+            UserDefaults.standard.set(isRankOnlyMode, forKey: "isRankOnlyMode")
+            if isReadyToCalculate {
+                calculateResults()
+            }
+        }
+    }
+    
+    public var isRankOnlyActive: Bool {
+        return isRankOnlyMode && (gameType == .lieng3 || gameType == .xiDach2)
+    }
+    
     public func targetCards(for playerIndex: Int) -> Int {
         return gameType.cardsPerPlayer
     }
@@ -68,9 +82,9 @@ public class GameViewModel: ObservableObject {
             players[index].name = trimmed
         }
     }
-
     
     public init() {
+        self.isRankOnlyMode = UserDefaults.standard.bool(forKey: "isRankOnlyMode")
         setupInitialPlayers()
     }
     
@@ -227,6 +241,56 @@ public class GameViewModel: ObservableObject {
         }
     }
     
+    // Rank-Only Tap Handler (allows multiple taps of the same rank without locking)
+    public func onRankTapped(_ rank: Rank) {
+        clearResultsState()
+        
+        let cardId = "rank_\(rank.rawValue)_\(UUID().uuidString)"
+        let card = Card(rank: rank, suit: .spades, customId: cardId, isRankOnly: true)
+        
+        if inputMode == .roundRobin {
+            var nextNeedingIdx: Int? = nil
+            for i in 0..<players.count {
+                let checkIdx = (roundRobinPointer + i) % players.count
+                if players[checkIdx].cards.count < targetCards(for: checkIdx) {
+                    nextNeedingIdx = checkIdx
+                    break
+                }
+            }
+            
+            if let idx = nextNeedingIdx {
+                players[idx].cards.append(card)
+                actionHistory.append((card: card, target: players[idx].id))
+                roundRobinPointer = (idx + 1) % players.count
+                selectedPlayerIndex = roundRobinPointer
+            }
+        } else {
+            let targetCount = targetCards(for: selectedPlayerIndex)
+            if players[selectedPlayerIndex].cards.count < targetCount {
+                players[selectedPlayerIndex].cards.append(card)
+                actionHistory.append((card: card, target: players[selectedPlayerIndex].id))
+                
+                if players[selectedPlayerIndex].cards.count == targetCount {
+                    var nextNeedingIdx: Int? = nil
+                    for i in 0..<players.count {
+                        let checkIdx = (selectedPlayerIndex + 1 + i) % players.count
+                        if players[checkIdx].cards.count < targetCards(for: checkIdx) {
+                            nextNeedingIdx = checkIdx
+                            break
+                        }
+                    }
+                    if let next = nextNeedingIdx {
+                        selectedPlayerIndex = next
+                    }
+                }
+            }
+        }
+        
+        if isReadyToCalculate {
+            calculateResults()
+        }
+    }
+    
     // Clear calculated results when cards change
     private func clearResultsState() {
         hasCalculatedResults = false
@@ -351,9 +415,10 @@ public class GameViewModel: ObservableObject {
     // MARK: - Game Calculation Logic
     
     private func calculateLieng() {
+        let rule = isRankOnlyActive ? .international : suitPreset
         var scores = [(index: Int, score: LiengHandScore)]()
         for (i, p) in players.enumerated() {
-            let score = LiengEvaluator.evaluate(cards: p.cards, suitRule: suitPreset)
+            let score = LiengEvaluator.evaluate(cards: p.cards, suitRule: rule)
             scores.append((index: i, score: score))
             players[i].resultTitle = score.descriptionVN
             players[i].resultDetail = "Loại: \(score.handType.nameVN)"

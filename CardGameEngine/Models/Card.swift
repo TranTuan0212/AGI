@@ -97,18 +97,22 @@ public enum Rank: Int, CaseIterable, Identifiable, Codable, Comparable {
 public struct Card: Identifiable, Hashable, Codable, Comparable {
     public let suit: Suit
     public let rank: Rank
+    public let customId: String?
+    public let isRankOnly: Bool
     
     public var id: String {
-        return "\(rank.displaySymbol)\(suit.rawValue)"
+        return customId ?? "\(rank.displaySymbol)\(suit.rawValue)"
     }
     
-    public init(rank: Rank, suit: Suit) {
+    public init(rank: Rank, suit: Suit = .spades, customId: String? = nil, isRankOnly: Bool = false) {
         self.rank = rank
         self.suit = suit
+        self.customId = customId
+        self.isRankOnly = isRankOnly
     }
     
     public var displayName: String {
-        return "\(rank.displaySymbol)\(suit.rawValue)"
+        return isRankOnly ? rank.displaySymbol : "\(rank.displaySymbol)\(suit.rawValue)"
     }
     
     public static func < (lhs: Card, rhs: Card) -> Bool {

@@ -628,6 +628,138 @@ body {
   box-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
+/* Rank-Only Keypad (A-K for 3 Cây & 2 Lá) */
+.deck-rank-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.deck-rank-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.rank-cell {
+  flex: 1;
+  min-width: 0;
+  height: 58px;
+  background: #FFF;
+  border: 1.5px solid var(--ios-border);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  font-size: 22px;
+  font-weight: 800;
+  color: #1C1C1E;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  transition: transform 0.08s, background 0.12s;
+}
+
+.rank-cell:active {
+  transform: scale(0.92);
+  background: #E5E5EA;
+}
+
+.rank-cell.face-card {
+  color: #007AFF;
+}
+
+.rank-cell.ace-card {
+  color: #E02020;
+}
+
+.mini-card.rank-only {
+  width: 32px;
+  height: 42px;
+  border: 1.5px solid var(--ios-border);
+  color: #1C1C1E;
+}
+
+.mini-card.rank-only .mini-card-rank {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* Switch control for settings */
+.checkbox-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  background: rgba(0, 122, 255, 0.08);
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.switch-control {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 26px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.switch-control input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #D1D1D6;
+  transition: 0.25s;
+  border-radius: 26px;
+}
+
+.switch-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.25s;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.switch-control input:checked + .switch-slider {
+  background-color: #34C759;
+}
+
+.switch-control input:checked + .switch-slider:before {
+  transform: translateX(18px);
+}
+
+.switch-label-wrap {
+  flex: 1;
+}
+
+.switch-label-wrap strong {
+  display: block;
+  font-size: 14px;
+  color: var(--ios-text-primary);
+}
+
+.switch-desc {
+  font-size: 11px;
+  color: var(--ios-text-secondary);
+  margin-top: 2px;
+  line-height: 1.35;
+}
+
 /* 4. MODALS */
 .modal-backdrop {
   position: fixed;

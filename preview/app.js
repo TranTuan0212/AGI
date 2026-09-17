@@ -661,6 +661,7 @@ class AppController {
     this.roundRobinPointer = 0;
     this.selectedPlayerIndex = 0;
     this.isSelectingCommunity = false;
+    this.isRankOnlyMode = localStorage.getItem('card_game_rank_only_mode') === 'true';
 
     this.players = [];
     this.communityCards = [];
@@ -677,6 +678,10 @@ class AppController {
     this.renderDeck();
     this.renderPlayers();
     this.updateUI();
+  }
+
+  isRankOnlyActive() {
+    return this.isRankOnlyMode && (this.currentGameType === 'lieng3' || this.currentGameType === 'xiDach2');
   }
 
   targetCards(playerIndex) {
@@ -718,6 +723,7 @@ class AppController {
     document.getElementById('selectGameType').addEventListener('change', (e) => {
       this.currentGameType = e.target.value;
       this.resetTable();
+      this.renderDeck();
       this.updateUI();
     });
 
@@ -839,6 +845,38 @@ class AppController {
     const grid = document.getElementById('deckGrid');
     if (!grid) return;
     grid.innerHTML = '';
+
+    if (this.isRankOnlyActive()) {
+      const rankGrid = document.createElement('div');
+      rankGrid.className = 'deck-rank-grid';
+
+      const row1 = ['A', '2', '3', '4', '5'];
+      const row2 = ['6', '7', '8', '9', '10'];
+      const row3 = ['J', 'Q', 'K'];
+
+      [row1, row2, row3].forEach(rowSyms => {
+        const row = document.createElement('div');
+        row.className = 'deck-rank-row';
+
+        rowSyms.forEach(sym => {
+          const rObj = RANKS.find(r => r.sym === sym);
+          const cell = document.createElement('div');
+          let cls = 'rank-cell';
+          if (sym === 'A') cls += ' ace-card';
+          else if (['J', 'Q', 'K'].includes(sym)) cls += ' face-card';
+          cell.className = cls;
+          cell.textContent = sym;
+          cell.addEventListener('click', () => this.onRankClick(rObj));
+          row.appendChild(cell);
+        });
+
+        rankGrid.appendChild(row);
+      });
+
+      grid.appendChild(rankGrid);
+      return;
+    }
+
     const deck = this.generateFullDeck();
 
     SUITS.forEach(suit => {
@@ -868,6 +906,58 @@ class AppController {
 
       grid.appendChild(row);
     });
+  }
+
+  onRankClick(rankItem) {
+    const cardId = `rank_${rankItem.sym}_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+    const card = {
+      id: cardId,
+      rank: rankItem.raw,
+      sym: rankItem.sym,
+      suit: 'spades',
+      suitIcon: '',
+      suitName: '',
+      isRed: rankItem.sym === 'A' || rankItem.sym === '10',
+      isRankOnly: true
+    };
+
+    if (this.inputMode === 'roundRobin') {
+      for (let i = 0; i < this.players.length; i++) {
+        const pIdx = (this.roundRobinPointer + i) % this.players.length;
+        const targetCards = this.targetCards(pIdx);
+        if (this.players[pIdx].cards.length < targetCards) {
+          this.players[pIdx].cards.push(card);
+          this.actionHistory.push({ cardId: card.id, target: pIdx });
+          this.roundRobinPointer = (pIdx + 1) % this.players.length;
+          this.selectedPlayerIndex = this.roundRobinPointer;
+          break;
+        }
+      }
+    } else {
+      const curP = this.players[this.selectedPlayerIndex];
+      const targetCards = this.targetCards(this.selectedPlayerIndex);
+      if (curP && curP.cards.length < targetCards) {
+        curP.cards.push(card);
+        this.actionHistory.push({ cardId: card.id, target: this.selectedPlayerIndex });
+        if (curP.cards.length === targetCards) {
+          let nextIdx = null;
+          for (let i = 0; i < this.players.length; i++) {
+            if (this.players[i].cards.length < this.targetCards(i)) {
+              nextIdx = i;
+              break;
+            }
+          }
+          if (nextIdx !== null) this.selectedPlayerIndex = nextIdx;
+        }
+      }
+    }
+
+    this.renderPlayers();
+    this.updateUI();
+
+    if (this.isReady()) {
+      this.calculate();
+    }
   }
 
   onCardClick(card) {
@@ -1214,12 +1304,20 @@ class AppController {
 
   createMiniCard(card) {
     const mini = document.createElement('div');
-    mini.className = `mini-card ${card.isRed ? 'red' : 'black'}`;
-    mini.innerHTML = `
-      <span class="mini-card-rank">${card.sym}</span>
-      <span class="mini-card-suit">${card.suitIcon}</span>
-    `;
-    mini.title = `${card.sym} ${card.suitName} (Bấm để gỡ)`;
+    if (card.isRankOnly) {
+      mini.className = `mini-card rank-only ${card.isRed ? 'red' : 'black'}`;
+      mini.innerHTML = `
+        <span class="mini-card-rank">${card.sym}</span>
+      `;
+      mini.title = `Lá ${card.sym} (Bấm để gỡ)`;
+    } else {
+      mini.className = `mini-card ${card.isRed ? 'red' : 'black'}`;
+      mini.innerHTML = `
+        <span class="mini-card-rank">${card.sym}</span>
+        <span class="mini-card-suit">${card.suitIcon}</span>
+      `;
+      mini.title = `${card.sym} ${card.suitName} (Bấm để gỡ)`;
+    }
     mini.addEventListener('click', (e) => {
       e.stopPropagation();
       this.removeCard(card.id);
@@ -1380,8 +1478,9 @@ class AppController {
 
 
   calcLieng() {
+    const preset = this.isRankOnlyActive() ? 'international' : this.suitPreset;
     const evaluated = this.players.map((p, idx) => {
-      const score = LiengEvaluator.evaluate(p.cards, this.suitPreset);
+      const score = LiengEvaluator.evaluate(p.cards, preset);
       p.resultTitle = score.desc;
       p.resultDetail = `Loại: ${score.typeName}`;
       return { idx, score };
@@ -1629,6 +1728,11 @@ class AppController {
       radio.checked = true;
     }
 
+    const chkRank = document.getElementById('chkRankOnlyMode');
+    if (chkRank) {
+      chkRank.checked = this.isRankOnlyMode;
+    }
+
     document.getElementById('modalSettings').style.display = 'flex';
   }
 
@@ -1640,13 +1744,20 @@ class AppController {
     const selected = document.querySelector('input[name="suitPreset"]:checked');
     if (selected) {
       this.suitPreset = selected.value;
-      // Re-calculate and re-render immediately if cards are present!
-      if (this.isReady()) {
-        this.calculate();
-      } else {
-        this.renderPlayers();
-        this.updateUI();
-      }
+    }
+
+    const chkRank = document.getElementById('chkRankOnlyMode');
+    if (chkRank) {
+      this.isRankOnlyMode = chkRank.checked;
+      localStorage.setItem('card_game_rank_only_mode', this.isRankOnlyMode ? 'true' : 'false');
+    }
+
+    this.renderDeck();
+    if (this.isReady()) {
+      this.calculate();
+    } else {
+      this.renderPlayers();
+      this.updateUI();
     }
     this.closeSettings();
   }
