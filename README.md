@@ -21,7 +21,7 @@ Nằm trong thư mục `CardGameEngine/`:
   - `LiengEvaluator.swift`: Sáp > Liêng > Đĩ (Ba Tây) > Điểm mod 10, tiebreak theo preset chất.
   - `Binh13Evaluator.swift`: Thứ tự ưu tiên thắng trắng (Rồng cuốn, Sảnh rồng, Đồng hoa 13 lá, 5 đôi 1 sám, Lục phé bôn), thuật toán tự động xếp 3 chi tối ưu không lủng, bắt sập hầm x2, đè hàng x2, phạt lủng x2.
   - `Binh9Evaluator.swift`: 3 chi 3 lá (Chi 1 $\ge$ Chi 2 $\ge$ Chi 3), Ba sám cô, Ba sảnh.
-  - `Binh6Evaluator.swift`: 2 chế độ (Thang Poker 6 lá và Xếp 2 chi 3-3).
+  - `Binh6Evaluator.swift`: Thang Poker 6 lá (chọn 5 lá tốt nhất từ 6 lá).
 - **ViewModels & Views**:
   - `GameViewModel.swift`: Quản lý state, Round-Robin queue, Undo, Deal ngẫu nhiên, Tính toán.
   - `Deck52GridView.swift`: Bàn chọn 52 lá bài tương tác trực quan.

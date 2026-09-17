@@ -37,20 +37,12 @@ const GAME_CONFIGS = {
     desc: "9 lá/người, xếp 3 chi (3-3-3), luật Chi 1 ≥ Chi 2 ≥ Chi 3 (Sám cô > Sảnh > Đôi > Mậu thầu), thưởng 3 sảnh, 3 sám, sập hầm x2."
   },
   binh6Poker: {
-    name: "Binh 6 lá (Thang Poker 6 lá)",
+    name: "Binh 6 lá",
     cardsPerPlayer: 6,
     community: 0,
     minPlayers: 2,
     maxPlayers: 8,
-    desc: "6 lá/người, so trọn gói theo thang Poker: Tứ quý > Thùng phá sảnh > Sảnh > Cù lũ > Sám cô > Đôi..."
-  },
-  binh6Split: {
-    name: "Binh 6 lá (Xếp 2 chi 3-3)",
-    cardsPerPlayer: 6,
-    community: 0,
-    minPlayers: 2,
-    maxPlayers: 8,
-    desc: "6 lá/người, chia thành 2 chi (mỗi chi 3 lá), Chi 1 ≥ Chi 2, so từng chi."
+    desc: "6 lá/người, so trọn gói theo thang Poker 5 lá mạnh nhất từ 6 lá: Thùng phá sảnh > Tứ quý > Cù lũ > Thùng > Sảnh > Sám cô > Đôi..."
   },
   lieng3: {
     name: "Liêng (3 Cây / Cào Tố)",
@@ -1379,8 +1371,8 @@ class AppController {
       const cardsContainer = document.createElement('div');
       cardsContainer.className = 'hand-cards-container';
 
-      if (this.currentGameType === 'binh9' || this.currentGameType === 'binh6Split') {
-        const chiCount = this.currentGameType === 'binh9' ? 3 : 2;
+      if (this.currentGameType === 'binh9') {
+        const chiCount = 3;
         const chiGroupsWrap = document.createElement('div');
         chiGroupsWrap.className = 'chi-groups-wrapper';
 
@@ -1529,9 +1521,6 @@ class AppController {
         break;
       case 'binh6Poker':
         this.calcBinh6Poker();
-        break;
-      case 'binh6Split':
-        this.calcBinh6Split();
         break;
     }
     this.recordMatchResult();
@@ -1832,10 +1821,6 @@ class AppController {
       `;
     }
     document.getElementById('matrixSection').style.display = 'none';
-  }
-
-  calcBinh6Split() {
-    this.calcBinh6Poker();
   }
 
   openResultModal() {

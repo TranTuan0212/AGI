@@ -165,8 +165,8 @@ public struct PlayerCardsView: View {
                         
                         // Cards display
                         ScrollView(.horizontal, showsIndicators: false) {
-                            if viewModel.gameType == .binh9 || viewModel.gameType == .binh6Split {
-                                let chiCount = viewModel.gameType == .binh9 ? 3 : 2
+                            if viewModel.gameType == .binh9 {
+                                let chiCount = 3
                                 HStack(spacing: 8) {
                                     ForEach(0..<chiCount, id: \.self) { chiIdx in
                                         let startIndex = chiIdx * 3

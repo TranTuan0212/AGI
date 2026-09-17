@@ -425,8 +425,6 @@ public class GameViewModel: ObservableObject {
             calculateBinh9()
         case .binh6Poker:
             calculateBinh6Poker()
-        case .binh6Split:
-            calculateBinh6Split()
         case .xiDach2:
             calculateXiDach()
         case .texasHoldem:
@@ -623,49 +621,6 @@ public class GameViewModel: ObservableObject {
             showdownSummary = "👑 Đồng Hạng 1: \(names) với \(rank1Players[0].resultTitle)!"
         } else if let winner = rank1Players.first {
             showdownSummary = "🏆 \(winner.name) Thắng Binh 6 lá với \(winner.resultTitle)!"
-        }
-    }
-    
-    private func calculateBinh6Split() {
-        var arrangements = [Binh6SplitArrangement]()
-        for i in 0..<players.count {
-            let arr = Binh6Evaluator.autoArrangeSplit(players[i].cards)
-            arrangements.append(arr)
-            players[i].cards = arr.chi1 + arr.chi2
-            players[i].isLung = arr.isLung
-            players[i].resultTitle = arr.isLung ? "⚠️ BỊ LỦNG" : "2 Chi (3-3)"
-            players[i].resultDetail = "Chi 1: \(arr.score1.descriptionVN), Chi 2: \(arr.score2.descriptionVN)"
-            players[i].score = 0
-        }
-        
-        for i in 0..<players.count {
-            for j in (i+1)..<players.count {
-                let res = Binh6Evaluator.compareSplit(a: arrangements[i], b: arrangements[j])
-                players[i].score += res.scoreA
-                players[j].score -= res.scoreA
-            }
-        }
-        
-        var sortedIndices = Array(0..<players.count)
-        sortedIndices.sort { players[$0].score > players[$1].score }
-        var currentRank = 1
-        for i in 0..<sortedIndices.count {
-            let idx = sortedIndices[i]
-            if i > 0 {
-                let prevIdx = sortedIndices[i - 1]
-                if players[idx].score < players[prevIdx].score {
-                    currentRank = i + 1
-                }
-            }
-            players[idx].rankOrder = currentRank
-        }
-        
-        let rank1Players = players.filter { $0.rankOrder == 1 }
-        if rank1Players.count > 1 {
-            let names = rank1Players.map { $0.name }.joined(separator: ", ")
-            showdownSummary = "👑 Đồng Hạng 1: \(names) (Cùng \(rank1Players[0].score > 0 ? "+\(rank1Players[0].score)" : "\(rank1Players[0].score)") chi)!"
-        } else if let winner = rank1Players.first {
-            showdownSummary = "🏆 \(winner.name) Thắng Binh 6 lá 2 Chi với \(winner.score > 0 ? "+\(winner.score)" : "\(winner.score)") chi!"
         }
     }
 }
