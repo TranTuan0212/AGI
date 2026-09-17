@@ -2,10 +2,11 @@ import Foundation
 
 public struct Binh9ChiScore: Comparable {
     public enum ChiType: Int, Comparable {
-        case highCard = 1
-        case onePair = 2
-        case straight = 3
-        case threeOfAKind = 4
+        case points = 1         // Điểm thường (0-9)
+        case pairPoints = 2     // Điểm có đôi (0-9)
+        case threeFaces = 3     // Ba Tây / Hình (J, Q, K)
+        case straight = 4       // Liêng / Sảnh
+        case threeOfAKind = 5   // Sáp
         
         public static func < (lhs: ChiType, rhs: ChiType) -> Bool {
             return lhs.rawValue < rhs.rawValue
@@ -13,31 +14,73 @@ public struct Binh9ChiScore: Comparable {
     }
     
     public let type: ChiType
-    public let primaryRank: Int
-    public let kickers: [Int]
+    public let points: Int           // 0 đến 9 điểm (cho points và pairPoints)
+    public let primaryRank: Int      // Sáp rank, Sảnh peak rank, hoặc Pair rank
+    public let kickers: [Int]        // Các lá còn lại
     public let cards: [Card]
     
     public var descriptionVN: String {
         let sym: (Int) -> String = { Rank(rawValue: $0)?.displaySymbol ?? "\($0)" }
         switch type {
         case .threeOfAKind:
-            return "Sám cô \(sym(primaryRank))"
+            return "Sáp \(sym(primaryRank))"
         case .straight:
-            return primaryRank == 3 ? "Sảnh bánh xe (A-2-3)" : "Sảnh đỉnh \(sym(primaryRank))"
-        case .onePair:
-            return "Đôi \(sym(primaryRank)) (Kicker \(sym(kickers.first ?? 0)))"
-        case .highCard:
-            return "Mậu thầu đỉnh \(sym(primaryRank))"
+            return primaryRank == 3 ? "Liêng A-2-3" : "Liêng đỉnh \(sym(primaryRank))"
+        case .threeFaces:
+            return "Ba Tây (Hình)"
+        case .pairPoints:
+            return "\(points) Điểm Đôi (Đôi \(sym(primaryRank)))"
+        case .points:
+            return points == 0 ? "Bù (0 Điểm)" : "\(points) Điểm"
         }
     }
     
     public static func < (lhs: Binh9ChiScore, rhs: Binh9ChiScore) -> Bool {
+        // 1. So sánh giữa các tầng đặc biệt (Sáp, Liêng, Ba Tây)
+        let lhsIsSpecial = lhs.type.rawValue >= ChiType.threeFaces.rawValue
+        let rhsIsSpecial = rhs.type.rawValue >= ChiType.threeFaces.rawValue
+        
+        if lhsIsSpecial || rhsIsSpecial {
+            if lhs.type != rhs.type {
+                return lhs.type < rhs.type
+            }
+            // Cùng loại đặc biệt
+            if lhs.primaryRank != rhs.primaryRank {
+                return lhs.primaryRank < rhs.primaryRank
+            }
+            for i in 0..<min(lhs.kickers.count, rhs.kickers.count) {
+                if lhs.kickers[i] != rhs.kickers[i] {
+                    return lhs.kickers[i] < rhs.kickers[i]
+                }
+            }
+            return false
+        }
+        
+        // 2. Cả hai đều thuộc tầng Điểm (points hoặc pairPoints)
+        // Điểm cao hơn luôn thắng (9 điểm > 8 điểm)
+        if lhs.points != rhs.points {
+            return lhs.points < rhs.points
+        }
+        
+        // Cùng điểm: Đôi ăn Thường (9 điểm đôi > 9 điểm thường)
         if lhs.type != rhs.type {
             return lhs.type < rhs.type
         }
-        if lhs.primaryRank != rhs.primaryRank {
-            return lhs.primaryRank < rhs.primaryRank
+        
+        // Cùng Điểm Đôi: So đôi lớn hơn (Đôi 8 > Đôi 7)
+        if lhs.type == .pairPoints {
+            if lhs.primaryRank != rhs.primaryRank {
+                return lhs.primaryRank < rhs.primaryRank
+            }
+            for i in 0..<min(lhs.kickers.count, rhs.kickers.count) {
+                if lhs.kickers[i] != rhs.kickers[i] {
+                    return lhs.kickers[i] < rhs.kickers[i]
+                }
+            }
+            return false
         }
+        
+        // Cùng Điểm Thường: So lá bài lớn nhất
         for i in 0..<min(lhs.kickers.count, rhs.kickers.count) {
             if lhs.kickers[i] != rhs.kickers[i] {
                 return lhs.kickers[i] < rhs.kickers[i]
@@ -57,41 +100,55 @@ public struct Binh9Arrangement {
     public let score3: Binh9ChiScore
     
     public let isLung: Bool
-    public let instantWin: String? // "Ba Sám Cô" hoặc "Ba Sảnh"
+    public let instantWin: String? // "Ba Sáp" hoặc "Ba Liêng"
 }
 
 public class Binh9Evaluator {
     
     public static func evaluateChi(_ cards: [Card]) -> Binh9ChiScore {
         guard cards.count == 3 else {
-            return Binh9ChiScore(type: .highCard, primaryRank: 0, kickers: [], cards: cards)
+            return Binh9ChiScore(type: .points, points: 0, primaryRank: 0, kickers: [], cards: cards)
         }
         let sorted = cards.sorted { $0.rank.rawValue > $1.rank.rawValue }
         let ranks = sorted.map { $0.rank.rawValue }
         
-        // 1. Sám cô
+        // 1. Sáp (3 of a kind)
         if ranks[0] == ranks[1] && ranks[1] == ranks[2] {
-            return Binh9ChiScore(type: .threeOfAKind, primaryRank: ranks[0], kickers: [], cards: sorted)
+            return Binh9ChiScore(type: .threeOfAKind, points: 0, primaryRank: ranks[0], kickers: [], cards: sorted)
         }
         
-        // 2. Sảnh
+        // 2. Liêng / Sảnh (Q-K-A, A-2-3 hoặc 3 số liên tiếp)
         if ranks[0] - ranks[1] == 1 && ranks[1] - ranks[2] == 1 {
-            return Binh9ChiScore(type: .straight, primaryRank: ranks[0], kickers: [], cards: sorted)
+            return Binh9ChiScore(type: .straight, points: 0, primaryRank: ranks[0], kickers: [], cards: sorted)
         }
         if ranks == [14, 3, 2] { // A-2-3
-            return Binh9ChiScore(type: .straight, primaryRank: 3, kickers: [], cards: sorted)
+            return Binh9ChiScore(type: .straight, points: 0, primaryRank: 3, kickers: [], cards: sorted)
         }
         
-        // 3. Đôi
+        // 3. Ba Tây / Hình (3 lá đều là J, Q, K)
+        let isAllFaces = ranks.allSatisfy { $0 >= 11 && $0 <= 13 }
+        if isAllFaces {
+            return Binh9ChiScore(type: .threeFaces, points: 0, primaryRank: ranks[0], kickers: Array(ranks.dropFirst()), cards: sorted)
+        }
+        
+        // 4. Tính Điểm (Mod 10): A = 1, 2-9 = raw, 10,J,Q,K = 0
+        let cardPoint: (Int) -> Int = { r in
+            if r == 14 { return 1 }
+            if r >= 10 { return 0 }
+            return r
+        }
+        let totalPts = (cardPoint(ranks[0]) + cardPoint(ranks[1]) + cardPoint(ranks[2])) % 10
+        
+        // Kiểm tra Đôi
         if ranks[0] == ranks[1] {
-            return Binh9ChiScore(type: .onePair, primaryRank: ranks[0], kickers: [ranks[2]], cards: sorted)
+            return Binh9ChiScore(type: .pairPoints, points: totalPts, primaryRank: ranks[0], kickers: [ranks[2]], cards: sorted)
         }
         if ranks[1] == ranks[2] {
-            return Binh9ChiScore(type: .onePair, primaryRank: ranks[1], kickers: [ranks[0]], cards: sorted)
+            return Binh9ChiScore(type: .pairPoints, points: totalPts, primaryRank: ranks[1], kickers: [ranks[0]], cards: sorted)
         }
         
-        // 4. Mậu thầu
-        return Binh9ChiScore(type: .highCard, primaryRank: ranks[0], kickers: [ranks[1], ranks[2]], cards: sorted)
+        // Điểm Thường
+        return Binh9ChiScore(type: .points, points: totalPts, primaryRank: 0, kickers: ranks, cards: sorted)
     }
     
     // Auto-arrange 9 cards: Chi 1 >= Chi 2 >= Chi 3
@@ -103,7 +160,22 @@ public class Binh9Evaluator {
         
         let all3Indices = PokerEvaluator.combinations(of: Array(0..<9), k: 3)
         var bestArrangement: Binh9Arrangement? = nil
-        var bestWeight = -999999
+        var bestWeight: Int64 = -999999999
+        
+        let chiScalar: (Binh9ChiScore) -> Int64 = { s in
+            switch s.type {
+            case .threeOfAKind:
+                return Int64(500000 + s.primaryRank * 100)
+            case .straight:
+                return Int64(400000 + s.primaryRank * 100)
+            case .threeFaces:
+                return Int64(300000 + s.primaryRank * 100 + (s.kickers.first ?? 0))
+            case .pairPoints:
+                return Int64(100000 + s.points * 10000 + s.primaryRank * 100 + (s.kickers.first ?? 0))
+            case .points:
+                return Int64(s.points * 10000 + (s.kickers.first ?? 0) * 100 + (s.kickers.count > 1 ? s.kickers[1] : 0))
+            }
+        }
         
         for c1Indices in all3Indices {
             let c1Cards = c1Indices.map { cards[$0] }
@@ -127,15 +199,13 @@ public class Binh9Evaluator {
                 // Check instant win
                 var instant: String? = nil
                 if s1.type == .threeOfAKind && s2.type == .threeOfAKind && s3.type == .threeOfAKind {
-                    instant = "Thắng trắng: Ba Sám Cô"
+                    instant = "Thắng trắng: Ba Sáp"
                 } else if s1.type == .straight && s2.type == .straight && s3.type == .straight {
-                    instant = "Thắng trắng: Ba Sảnh"
+                    instant = "Thắng trắng: Ba Liêng"
                 }
                 
-                var weight = s1.type.rawValue * 300 + s1.primaryRank * 10
-                weight += s2.type.rawValue * 200 + s2.primaryRank * 10
-                weight += s3.type.rawValue * 100 + s3.primaryRank * 10
-                if instant != nil { weight += 50000 }
+                var weight: Int64 = chiScalar(s1) * 10000 + chiScalar(s2) * 100 + chiScalar(s3)
+                if instant != nil { weight += 50000000000 }
                 
                 if weight > bestWeight {
                     bestWeight = weight

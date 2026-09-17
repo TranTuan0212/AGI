@@ -106,21 +106,21 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE (6 TRÒ CHƠI) =
   assert(LiengEvaluator.compare(s1, s2) > 0, 'Liêng: Cùng 9 điểm, cùng K cao nhất, K Rô thắng K Bích (theo preset Miền Bắc)');
 }
 
-// 5. Test Binh 9 lá: Auto-arrange 3 chi (3-3-3), Chi 1 >= Chi 2 >= Chi 3
+// 5. Test Binh 9 lá: Auto-arrange 3 chi (3-3-3), Chi 1 >= Chi 2 >= Chi 3 (Luật Cào / Liêng)
 {
   const hand = [
-    { rank: 14, suit: 'hearts' }, { rank: 14, suit: 'diamonds' }, { rank: 14, suit: 'clubs' }, // Sám cô A
-    { rank: 10, suit: 'hearts' }, { rank: 9, suit: 'diamonds' }, { rank: 8, suit: 'clubs' },   // Sảnh 8-9-10
-    { rank: 7, suit: 'hearts' }, { rank: 7, suit: 'diamonds' }, { rank: 2, suit: 'spades' }    // Đôi 7
+    { rank: 14, suit: 'hearts' }, { rank: 14, suit: 'diamonds' }, { rank: 14, suit: 'clubs' }, // Sáp A (type 5)
+    { rank: 10, suit: 'hearts' }, { rank: 9, suit: 'diamonds' }, { rank: 8, suit: 'clubs' },   // Liêng 8-9-10 (type 4)
+    { rank: 7, suit: 'hearts' }, { rank: 7, suit: 'diamonds' }, { rank: 2, suit: 'spades' }    // 6 Điểm Đôi 7 (type 2)
   ];
   const arr = Binh9Evaluator.autoArrange(hand);
   assert(!arr.isLung, 'Binh 9: Không bị lủng khi sắp xếp hợp lệ');
-  assert(arr.score1.type === 4, 'Binh 9: Chi 1 là Sám cô (type=4)');
-  assert(arr.score2.type === 3, 'Binh 9: Chi 2 là Sảnh (type=3)');
-  assert(arr.score3.type === 2, 'Binh 9: Chi 3 là Đôi (type=2)');
+  assert(arr.score1.type === 5, 'Binh 9: Chi 1 là Sáp A (type=5)');
+  assert(arr.score2.type === 4, 'Binh 9: Chi 2 là Liêng (type=4)');
+  assert(arr.score3.type === 2, 'Binh 9: Chi 3 là Điểm Đôi (type=2)');
 }
 
-// 6. Test Binh 9 lá: Thắng trắng Ba Sám Cô & Ba Sảnh
+// 6. Test Binh 9 lá: Thắng trắng Ba Sáp & Ba Liêng
 {
   const baSamCards = [
     { rank: 14, suit: 'hearts' }, { rank: 14, suit: 'diamonds' }, { rank: 14, suit: 'clubs' },
@@ -128,7 +128,7 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE (6 TRÒ CHƠI) =
     { rank: 5, suit: 'hearts' }, { rank: 5, suit: 'diamonds' }, { rank: 5, suit: 'clubs' }
   ];
   const arrBaSam = Binh9Evaluator.autoArrange(baSamCards);
-  assert(arrBaSam.instantWin && arrBaSam.instantWin.includes('Ba Sám Cô'), 'Binh 9: Nhận diện Thắng trắng Ba Sám Cô');
+  assert(arrBaSam.instantWin && (arrBaSam.instantWin.includes('Ba Sáp') || arrBaSam.instantWin.includes('Ba Sám Cô')), 'Binh 9: Nhận diện Thắng trắng Ba Sáp');
 
   const baSanhCards = [
     { rank: 14, suit: 'hearts' }, { rank: 13, suit: 'diamonds' }, { rank: 12, suit: 'clubs' },
@@ -136,22 +136,54 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE (6 TRÒ CHƠI) =
     { rank: 4, suit: 'hearts' }, { rank: 3, suit: 'diamonds' }, { rank: 2, suit: 'clubs' }
   ];
   const arrBaSanh = Binh9Evaluator.autoArrange(baSanhCards);
-  assert(arrBaSanh.instantWin && arrBaSanh.instantWin.includes('Ba Sảnh'), 'Binh 9: Nhận diện Thắng trắng Ba Sảnh');
+  assert(arrBaSanh.instantWin && (arrBaSanh.instantWin.includes('Ba Liêng') || arrBaSanh.instantWin.includes('Ba Sảnh')), 'Binh 9: Nhận diện Thắng trắng Ba Liêng');
+}
+
+// 6b. Test Chi tiết Luật Cào / Liêng trong Binh 9 lá (9 điểm đôi ăn 9 điểm thường, điểm cao hơn ăn điểm thấp hơn, Ba Tây)
+{
+  const c775 = [{ rank: 7 }, { rank: 7 }, { rank: 5 }]; // 7+7+5 = 19 -> 9 điểm đôi 7
+  const cK54 = [{ rank: 13 }, { rank: 5 }, { rank: 4 }]; // 0+5+4 = 9 điểm thường, kicker K
+  const c44K = [{ rank: 4 }, { rank: 4 }, { rank: 13 }]; // 4+4+0 = 8 điểm đôi 4
+  const cBaTay = [{ rank: 11 }, { rank: 12 }, { rank: 13 }]; // J, Q, K -> Ba Tây (hoặc Liêng, nếu Q-J-K là Liêng thì J-J-Q là Ba Tây)
+  const cJJQ = [{ rank: 11 }, { rank: 11 }, { rank: 12 }]; // J, J, Q -> Ba Tây
+  const cLieng = [{ rank: 11 }, { rank: 12 }, { rank: 13 }]; // J, Q, K -> Liêng
+  const cSap8 = [{ rank: 8 }, { rank: 8 }, { rank: 8 }]; // 8, 8, 8 -> Sáp 8
+
+  const s775 = Binh9Evaluator.evaluateChi(c775);
+  const sK54 = Binh9Evaluator.evaluateChi(cK54);
+  const s44K = Binh9Evaluator.evaluateChi(c44K);
+  const sJJQ = Binh9Evaluator.evaluateChi(cJJQ);
+  const sLieng = Binh9Evaluator.evaluateChi(cLieng);
+  const sSap8 = Binh9Evaluator.evaluateChi(cSap8);
+
+  assert(s775.type === 2 && s775.points === 9, 'Binh 9 Chi: 7-7-5 nhận diện đúng 9 Điểm Đôi');
+  assert(sK54.type === 1 && sK54.points === 9, 'Binh 9 Chi: K-5-4 nhận diện đúng 9 Điểm Thường');
+  assert(s44K.type === 2 && s44K.points === 8, 'Binh 9 Chi: 4-4-K nhận diện đúng 8 Điểm Đôi');
+  assert(sJJQ.type === 3, 'Binh 9 Chi: J-J-Q nhận diện đúng Ba Tây');
+  assert(sLieng.type === 4, 'Binh 9 Chi: J-Q-K nhận diện đúng Liêng');
+  assert(sSap8.type === 5, 'Binh 9 Chi: 8-8-8 nhận diện đúng Sáp');
+
+  // So sánh
+  assert(Binh9Evaluator.compareChi(s775, sK54) > 0, 'Binh 9 So sánh: 9 Điểm Đôi (7-7-5) ĂN 9 Điểm Thường (K-5-4)');
+  assert(Binh9Evaluator.compareChi(sK54, s44K) > 0, 'Binh 9 So sánh: 9 Điểm Thường (K-5-4) ĂN 8 Điểm Đôi (4-4-K)');
+  assert(Binh9Evaluator.compareChi(sJJQ, s775) > 0, 'Binh 9 So sánh: Ba Tây (J-J-Q) ĂN 9 Điểm Đôi (7-7-5)');
+  assert(Binh9Evaluator.compareChi(sLieng, sJJQ) > 0, 'Binh 9 So sánh: Liêng (J-Q-K) ĂN Ba Tây (J-J-Q)');
+  assert(Binh9Evaluator.compareChi(sSap8, sLieng) > 0, 'Binh 9 So sánh: Sáp 8 (8-8-8) ĂN Liêng (J-Q-K)');
 }
 
 // 7. Test Binh 9 lá: Bắt sập hầm x2 (thắng cả 3 chi = 6 chi)
 {
   const arrWinner = {
     isLung: false, instantWin: null,
-    score1: { type: 4, primaryRank: 14, kickers: [] },
-    score2: { type: 3, primaryRank: 10, kickers: [] },
-    score3: { type: 2, primaryRank: 7, kickers: [2] }
+    score1: { type: 5, primaryRank: 14, kickers: [] },
+    score2: { type: 4, primaryRank: 10, kickers: [] },
+    score3: { type: 2, points: 9, primaryRank: 7, kickers: [2] }
   };
   const arrLoser = {
     isLung: false, instantWin: null,
-    score1: { type: 3, primaryRank: 12, kickers: [] },
-    score2: { type: 2, primaryRank: 9, kickers: [4] },
-    score3: { type: 1, primaryRank: 8, kickers: [6, 3] }
+    score1: { type: 4, primaryRank: 12, kickers: [] },
+    score2: { type: 3, primaryRank: 12, kickers: [11] },
+    score3: { type: 1, points: 9, primaryRank: 0, kickers: [13, 5, 4] }
   };
   const match = Binh9Evaluator.compareMatch(arrWinner, arrLoser);
   assert(match.scoreA === 6, `Binh 9: Thắng cả 3 chi bắt sập hầm x2 = +6 chi (Thực tế: ${match.scoreA} chi)`);

@@ -466,81 +466,131 @@ class XiDachEvaluator {
 class Binh9Evaluator {
   static evaluateChi(cards) {
     if (!cards || cards.length !== 3) {
-      return { type: 1, primaryRank: 0, kickers: [], cards: cards || [], desc: "Không đủ bài" };
+      return { type: 1, points: 0, primaryRank: 0, kickers: [], cards: cards || [], desc: "Chưa đủ 3 lá" };
     }
+
     const sorted = [...cards].sort((a, b) => b.rank - a.rank);
     const ranks = sorted.map(c => c.rank);
-    const sym = r => {
-      const found = RANKS.find(x => x.raw === r);
-      return found ? found.sym : `${r}`;
-    };
+    const sym = (r) => RANKS.find(x => x.raw === r)?.sym || r;
 
-    // 1. Sám cô
+    // 1. Sáp (3 of a kind)
     if (ranks[0] === ranks[1] && ranks[1] === ranks[2]) {
       return {
-        type: 4,
+        type: 5,
+        points: 0,
         primaryRank: ranks[0],
         kickers: [],
         cards: sorted,
-        desc: `Sám cô ${sym(ranks[0])}`
+        desc: `Sáp ${sym(ranks[0])}`
       };
     }
 
-    // 2. Sảnh
+    // 2. Liêng / Sảnh (3 lá liên tiếp)
     if (ranks[0] - ranks[1] === 1 && ranks[1] - ranks[2] === 1) {
       return {
-        type: 3,
+        type: 4,
+        points: 0,
         primaryRank: ranks[0],
         kickers: [],
         cards: sorted,
-        desc: `Sảnh đỉnh ${sym(ranks[0])}`
+        desc: `Liêng đỉnh ${sym(ranks[0])}`
       };
     }
     if (ranks[0] === 14 && ranks[1] === 3 && ranks[2] === 2) {
       return {
-        type: 3,
+        type: 4,
+        points: 0,
         primaryRank: 3,
         kickers: [],
         cards: sorted,
-        desc: "Sảnh bánh xe (A-2-3)"
+        desc: "Liêng A-2-3"
       };
     }
 
-    // 3. Đôi
+    // 3. Ba Tây / Hình (3 lá đều là J, Q, K)
+    const isAllFaces = ranks.every(r => r >= 11 && r <= 13);
+    if (isAllFaces) {
+      return {
+        type: 3,
+        points: 0,
+        primaryRank: ranks[0],
+        kickers: ranks.slice(1),
+        cards: sorted,
+        desc: "Ba Tây (Hình)"
+      };
+    }
+
+    // 4. Tính Điểm (Mod 10): A = 1, 2-9 = raw, 10,J,Q,K = 0
+    const cardPoint = (r) => {
+      if (r === 14) return 1;
+      if (r >= 10) return 0;
+      return r;
+    };
+    const totalPts = (cardPoint(ranks[0]) + cardPoint(ranks[1]) + cardPoint(ranks[2])) % 10;
+
+    // Kiểm tra Đôi
     if (ranks[0] === ranks[1]) {
       return {
         type: 2,
+        points: totalPts,
         primaryRank: ranks[0],
         kickers: [ranks[2]],
         cards: sorted,
-        desc: `Đôi ${sym(ranks[0])} (Kicker ${sym(ranks[2])})`
+        desc: `${totalPts} Điểm Đôi (Đôi ${sym(ranks[0])})`
       };
     }
     if (ranks[1] === ranks[2]) {
       return {
         type: 2,
+        points: totalPts,
         primaryRank: ranks[1],
         kickers: [ranks[0]],
         cards: sorted,
-        desc: `Đôi ${sym(ranks[1])} (Kicker ${sym(ranks[0])})`
+        desc: `${totalPts} Điểm Đôi (Đôi ${sym(ranks[1])})`
       };
     }
 
-    // 4. Mậu thầu
+    // Điểm thường
+    const ptDesc = totalPts === 0 ? "Bù (0 Điểm)" : `${totalPts} Điểm`;
     return {
       type: 1,
-      primaryRank: ranks[0],
-      kickers: [ranks[1], ranks[2]],
+      points: totalPts,
+      primaryRank: 0,
+      kickers: ranks,
       cards: sorted,
-      desc: `Mậu thầu đỉnh ${sym(ranks[0])}`
+      desc: ptDesc
     };
   }
 
   static compareChi(s1, s2) {
+    const s1Special = s1.type >= 3;
+    const s2Special = s2.type >= 3;
+
+    if (s1Special || s2Special) {
+      if (s1.type !== s2.type) return s1.type - s2.type;
+      if (s1.primaryRank !== s2.primaryRank) return s1.primaryRank - s2.primaryRank;
+      const len = Math.min(s1.kickers.length, s2.kickers.length);
+      for (let i = 0; i < len; i++) {
+        if (s1.kickers[i] !== s2.kickers[i]) return s1.kickers[i] - s2.kickers[i];
+      }
+      return 0;
+    }
+
+    // Cả hai đều thuộc tầng Điểm
+    if (s1.points !== s2.points) return s1.points - s2.points;
+
+    // Cùng điểm: Đôi ăn Thường (type 2 > type 1)
     if (s1.type !== s2.type) return s1.type - s2.type;
-    if (s1.primaryRank !== s2.primaryRank) return s1.primaryRank - s2.primaryRank;
-    const len = Math.min(s1.kickers.length, s2.kickers.length);
-    for (let i = 0; i < len; i++) {
+
+    // Cùng Điểm Đôi: so đôi
+    if (s1.type === 2) {
+      if (s1.primaryRank !== s2.primaryRank) return s1.primaryRank - s2.primaryRank;
+      if (s1.kickers[0] !== s2.kickers[0]) return s1.kickers[0] - s2.kickers[0];
+      return 0;
+    }
+
+    // Cùng Điểm Thường: so lá bài lớn nhất
+    for (let i = 0; i < s1.kickers.length; i++) {
       if (s1.kickers[i] !== s2.kickers[i]) return s1.kickers[i] - s2.kickers[i];
     }
     return 0;
@@ -555,7 +605,15 @@ class Binh9Evaluator {
     const indices = [0, 1, 2, 3, 4, 5, 6, 7, 8];
     const all3Indices = getCombinations(indices, 3);
     let bestArrangement = null;
-    let bestWeight = -999999;
+    let bestWeight = -999999999999;
+
+    const chiScalar = (s) => {
+      if (s.type === 5) return 500000 + s.primaryRank * 100;
+      if (s.type === 4) return 400000 + s.primaryRank * 100;
+      if (s.type === 3) return 300000 + s.primaryRank * 100 + (s.kickers[0] || 0);
+      if (s.type === 2) return 100000 + s.points * 10000 + s.primaryRank * 100 + (s.kickers[0] || 0);
+      return s.points * 10000 + (s.kickers[0] || 0) * 100 + (s.kickers[1] || 0);
+    };
 
     for (const c1Indices of all3Indices) {
       const c1Cards = c1Indices.map(i => cards[i]);
@@ -577,16 +635,14 @@ class Binh9Evaluator {
         if (this.compareChi(s2, s3) < 0) continue; // Chi 2 >= Chi 3
 
         let instant = null;
-        if (s1.type === 4 && s2.type === 4 && s3.type === 4) {
-          instant = "Thắng trắng: Ba Sám Cô";
-        } else if (s1.type === 3 && s2.type === 3 && s3.type === 3) {
-          instant = "Thắng trắng: Ba Sảnh";
+        if (s1.type === 5 && s2.type === 5 && s3.type === 5) {
+          instant = "Thắng trắng: Ba Sáp";
+        } else if (s1.type === 4 && s2.type === 4 && s3.type === 4) {
+          instant = "Thắng trắng: Ba Liêng";
         }
 
-        let weight = s1.type * 300 + s1.primaryRank * 10;
-        weight += s2.type * 200 + s2.primaryRank * 10;
-        weight += s3.type * 100 + s3.primaryRank * 10;
-        if (instant) weight += 50000;
+        let weight = chiScalar(s1) * 10000 + chiScalar(s2) * 100 + chiScalar(s3);
+        if (instant) weight += 50000000000;
 
         if (weight > bestWeight) {
           bestWeight = weight;
