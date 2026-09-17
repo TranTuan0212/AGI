@@ -554,24 +554,37 @@ public class GameViewModel: ObservableObject {
             arrangements.append(arr)
             players[i].cards = arr.chi1 + arr.chi2 + arr.chi3
             players[i].isLung = arr.isLung
-            if let win = arr.instantWin {
-                players[i].resultTitle = win
-                players[i].resultDetail = "Thắng trắng!"
-            } else if arr.isLung {
-                players[i].resultTitle = "⚠️ BỊ LỦNG"
-                players[i].resultDetail = "Chi trước yếu hơn chi sau!"
-            } else {
-                players[i].resultTitle = "Xếp 3 chi (3-3-3)"
-                players[i].resultDetail = "Chi 1: \(arr.score1.descriptionVN)\nChi 2: \(arr.score2.descriptionVN)\nChi 3: \(arr.score3.descriptionVN)"
-            }
             players[i].score = 0
         }
         
+        // So chéo từng cặp: Thắng >= 2 chi là Thắng luôn ván đối đầu (+1 trận thắng)
         for i in 0..<players.count {
             for j in (i+1)..<players.count {
                 let res = Binh9Evaluator.compareMatch(a: arrangements[i], b: arrangements[j])
-                players[i].score += res.scoreA
-                players[j].score -= res.scoreA
+                if res.scoreA > 0 {
+                    players[i].score += 1
+                } else if res.scoreA < 0 {
+                    players[j].score += 1
+                }
+            }
+        }
+        
+        let totalOpponents = max(1, players.count - 1)
+        for i in 0..<players.count {
+            let arr = arrangements[i]
+            if let win = arr.instantWin {
+                players[i].resultTitle = win
+                players[i].resultDetail = "Thắng trắng toàn bàn!"
+            } else if arr.isLung {
+                players[i].resultTitle = "⚠️ BỊ LỦNG"
+                players[i].resultDetail = "Chi trước yếu hơn chi sau (Xử thua)!"
+            } else {
+                if totalOpponents == 1 {
+                    players[i].resultTitle = players[i].score > 0 ? "🏆 THẮNG ĐỐI ĐẦU" : (arrangements[0].score1 == arrangements[1].score1 && arrangements[0].score2 == arrangements[1].score2 && arrangements[0].score3 == arrangements[1].score3 ? "HÒA ĐỐI ĐẦU" : "THUA ĐỐI ĐẦU")
+                } else {
+                    players[i].resultTitle = "Thắng \(players[i].score)/\(totalOpponents) nhà"
+                }
+                players[i].resultDetail = "Chi 1: \(arr.score1.descriptionVN) | Chi 2: \(arr.score2.descriptionVN) | Chi 3: \(arr.score3.descriptionVN)"
             }
         }
         
@@ -592,9 +605,13 @@ public class GameViewModel: ObservableObject {
         let rank1Players = players.filter { $0.rankOrder == 1 }
         if rank1Players.count > 1 {
             let names = rank1Players.map { $0.name }.joined(separator: ", ")
-            showdownSummary = "👑 Đồng Hạng 1: \(names) (Cùng \(rank1Players[0].score > 0 ? "+\(rank1Players[0].score)" : "\(rank1Players[0].score)") chi)!"
+            showdownSummary = "👑 Đồng Hạng 1: \(names) (Cùng thắng \(rank1Players[0].score) nhà)!"
         } else if let winner = rank1Players.first {
-            showdownSummary = "🏆 \(winner.name) Về Nhất Binh 9 lá với \(winner.score > 0 ? "+\(winner.score)" : "\(winner.score)") chi!"
+            if totalOpponents == 1 {
+                showdownSummary = "🏆 \(winner.name) Thắng ván đấu (Ăn ít nhất 2 chi)!"
+            } else {
+                showdownSummary = "🏆 \(winner.name) Về Nhất Binh 9 lá (Thắng \(winner.score)/\(totalOpponents) nhà)!"
+            }
         }
     }
     

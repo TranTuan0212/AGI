@@ -234,38 +234,62 @@ public class Binh9Evaluator {
         )
     }
     
-    // Compare two players A and B in Binh 9
+    // Compare two players A and B in Binh 9: Thắng >= 2 chi là Thắng luôn ván đối đầu
     public static func compareMatch(a: Binh9Arrangement, b: Binh9Arrangement) -> (scoreA: Int, detail: String) {
         if let winA = a.instantWin, let winB = b.instantWin {
             return (0, "Hòa Thắng Trắng: \(winA) vs \(winB)")
         }
-        if let winA = a.instantWin { return (6, "\(winA) (+6 chi)") }
-        if let winB = b.instantWin { return (-6, "Đối thủ \(winB) (-6 chi)") }
+        if let winA = a.instantWin { return (1, "\(winA) (Thắng trắng)") }
+        if let winB = b.instantWin { return (-1, "Đối thủ \(winB) (Thua trắng)") }
         
         if a.isLung && b.isLung { return (0, "Cả hai đều bị Lủng") }
-        if a.isLung { return (-6, "Bị Lủng (phạt -6 chi)") }
-        if b.isLung { return (6, "Đối thủ bị Lủng (+6 chi)") }
+        if a.isLung { return (-1, "Bị Lủng (Xử thua)") }
+        if b.isLung { return (1, "Đối thủ bị Lủng (Xử thắng)") }
         
-        var chi1 = 0
-        if a.score1 > b.score1 { chi1 = 1 } else if a.score1 < b.score1 { chi1 = -1 }
+        var aWins = 0
+        var bWins = 0
         
-        var chi2 = 0
-        if a.score2 > b.score2 { chi2 = 1 } else if a.score2 < b.score2 { chi2 = -1 }
-        
-        var chi3 = 0
-        if a.score3 > b.score3 { chi3 = 1 } else if a.score3 < b.score3 { chi3 = -1 }
-        
-        var total = chi1 + chi2 + chi3
-        var sapHamText = ""
-        if chi1 > 0 && chi2 > 0 && chi3 > 0 {
-            total = 6
-            sapHamText = " (Bắt sập hầm x2 = +6 chi)"
-        } else if chi1 < 0 && chi2 < 0 && chi3 < 0 {
-            total = -6
-            sapHamText = " (Bị sập hầm x2 = -6 chi)"
+        var c1Text = "Hòa"
+        if a.score1 > b.score1 {
+            aWins += 1
+            c1Text = "Ăn"
+        } else if a.score1 < b.score1 {
+            bWins += 1
+            c1Text = "Thua"
         }
         
-        let detail = "Chi 1: \(chi1 > 0 ? "+1" : "\(chi1)"), Chi 2: \(chi2 > 0 ? "+1" : "\(chi2)"), Chi 3: \(chi3 > 0 ? "+1" : "\(chi3)")\(sapHamText) -> Tổng: \(total > 0 ? "+\(total)" : "\(total)") chi"
-        return (total, detail)
+        var c2Text = "Hòa"
+        if a.score2 > b.score2 {
+            aWins += 1
+            c2Text = "Ăn"
+        } else if a.score2 < b.score2 {
+            bWins += 1
+            c2Text = "Thua"
+        }
+        
+        var c3Text = "Hòa"
+        if a.score3 > b.score3 {
+            aWins += 1
+            c3Text = "Ăn"
+        } else if a.score3 < b.score3 {
+            bWins += 1
+            c3Text = "Thua"
+        }
+        
+        let scoreA: Int
+        let resultText: String
+        if aWins >= 2 {
+            scoreA = 1
+            resultText = "THẮNG (\(aWins)/3 chi)"
+        } else if bWins >= 2 {
+            scoreA = -1
+            resultText = "THUA (\(bWins)/3 chi)"
+        } else {
+            scoreA = 0
+            resultText = "HÒA (Mỗi bên \(aWins) chi)"
+        }
+        
+        let detail = "Chi 1: \(c1Text), Chi 2: \(c2Text), Chi 3: \(c3Text) -> \(resultText)"
+        return (scoreA, detail)
     }
 }

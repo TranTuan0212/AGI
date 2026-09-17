@@ -138,12 +138,6 @@ public struct PlayerCardsView: View {
                                             .foregroundColor(isWinner ? .orange : .primary)
                                             .lineLimit(1)
                                     }
-                                    
-                                    if player.score != 0 {
-                                        Text("\(player.score >= 0 ? "+" : "")\(player.score) chi")
-                                            .font(.system(size: 10, weight: .bold))
-                                            .foregroundColor(player.score > 0 ? .green : (player.score < 0 ? .red : .secondary))
-                                    }
                                 }
                             } else if isHighlight {
                                 Text(viewModel.inputMode == .roundRobin ? "▶ Lượt" : "▶ Đang chọn")

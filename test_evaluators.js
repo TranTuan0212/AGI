@@ -171,7 +171,7 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE (6 TRÒ CHƠI) =
   assert(Binh9Evaluator.compareChi(sSap8, sLieng) > 0, 'Binh 9 So sánh: Sáp 8 (8-8-8) ĂN Liêng (J-Q-K)');
 }
 
-// 7. Test Binh 9 lá: Bắt sập hầm x2 (thắng cả 3 chi = 6 chi)
+// 7. Test Binh 9 lá: Thắng >= 2 chi là Thắng luôn ván đối đầu (score = 1)
 {
   const arrWinner = {
     isLung: false, instantWin: null,
@@ -186,7 +186,23 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE (6 TRÒ CHƠI) =
     score3: { type: 1, points: 9, primaryRank: 0, kickers: [13, 5, 4] }
   };
   const match = Binh9Evaluator.compareMatch(arrWinner, arrLoser);
-  assert(match.scoreA === 6, `Binh 9: Thắng cả 3 chi bắt sập hầm x2 = +6 chi (Thực tế: ${match.scoreA} chi)`);
+  assert(match.scoreA === 1, `Binh 9: Thắng cả 3 chi = Thắng đối đầu (scoreA = 1, Thực tế: ${match.scoreA})`);
+
+  // Test Thắng 2 chi, thua 1 chi -> Vẫn Thắng luôn đối đầu (scoreA = 1)
+  const arr2ChiWin = {
+    isLung: false, instantWin: null,
+    score1: { type: 5, primaryRank: 14, kickers: [] }, // Thắng Chi 1
+    score2: { type: 4, primaryRank: 10, kickers: [] }, // Thắng Chi 2
+    score3: { type: 1, points: 2, primaryRank: 0, kickers: [7, 3, 2] } // Thua Chi 3
+  };
+  const arr2ChiLose = {
+    isLung: false, instantWin: null,
+    score1: { type: 4, primaryRank: 12, kickers: [] }, // Thua Chi 1
+    score2: { type: 3, primaryRank: 12, kickers: [11] }, // Thua Chi 2
+    score3: { type: 5, primaryRank: 8, kickers: [] } // Ăn Chi 3 (Sáp 8)
+  };
+  const match2 = Binh9Evaluator.compareMatch(arr2ChiWin, arr2ChiLose);
+  assert(match2.scoreA === 1, `Binh 9: Thắng 2 chi thua 1 chi = Thắng luôn đối đầu (scoreA = 1, Thực tế: ${match2.scoreA})`);
 }
 
 // 8. Test Binh 6 lá (Thang Poker 6 lá): Chọn 5 lá mạnh nhất từ 6 lá

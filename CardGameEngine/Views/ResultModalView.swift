@@ -84,12 +84,6 @@ public struct ResultModalView: View {
                                         }
                                         
                                         Spacer()
-                                        
-                                        if viewModel.gameType.category == .binh {
-                                            Text("\(player.score > 0 ? "+\(player.score)" : "\(player.score)") chi")
-                                                .font(.headline)
-                                                .foregroundColor(player.score > 0 ? .green : (player.score < 0 ? .red : .primary))
-                                        }
                                     }
                                     
                                     Text(player.resultTitle)

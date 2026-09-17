@@ -663,37 +663,40 @@ class Binh9Evaluator {
 
   static compareMatch(a, b) {
     if (a.instantWin && b.instantWin) return { scoreA: 0, detail: `Hòa Thắng Trắng: ${a.instantWin} vs ${b.instantWin}` };
-    if (a.instantWin) return { scoreA: 6, detail: `${a.instantWin} (+6 chi)` };
-    if (b.instantWin) return { scoreA: -6, detail: `Đối thủ ${b.instantWin} (-6 chi)` };
+    if (a.instantWin) return { scoreA: 1, detail: `${a.instantWin} (Thắng trắng)` };
+    if (b.instantWin) return { scoreA: -1, detail: `Đối thủ ${b.instantWin} (Thua trắng)` };
 
     if (a.isLung && b.isLung) return { scoreA: 0, detail: "Cả hai đều bị Lủng" };
-    if (a.isLung) return { scoreA: -6, detail: "Bị Lủng (phạt -6 chi)" };
-    if (b.isLung) return { scoreA: 6, detail: "Đối thủ bị Lủng (+6 chi)" };
+    if (a.isLung) return { scoreA: -1, detail: "Bị Lủng (Xử thua)" };
+    if (b.isLung) return { scoreA: 1, detail: "Đối thủ bị Lủng (Xử thắng)" };
 
-    let c1 = 0;
+    let aWins = 0;
+    let bWins = 0;
+
+    let c1 = "Hòa";
     const cmp1 = this.compareChi(a.score1, b.score1);
-    if (cmp1 > 0) c1 = 1; else if (cmp1 < 0) c1 = -1;
+    if (cmp1 > 0) { aWins++; c1 = "Ăn"; } else if (cmp1 < 0) { bWins++; c1 = "Thua"; }
 
-    let c2 = 0;
+    let c2 = "Hòa";
     const cmp2 = this.compareChi(a.score2, b.score2);
-    if (cmp2 > 0) c2 = 1; else if (cmp2 < 0) c2 = -1;
+    if (cmp2 > 0) { aWins++; c2 = "Ăn"; } else if (cmp2 < 0) { bWins++; c2 = "Thua"; }
 
-    let c3 = 0;
+    let c3 = "Hòa";
     const cmp3 = this.compareChi(a.score3, b.score3);
-    if (cmp3 > 0) c3 = 1; else if (cmp3 < 0) c3 = -1;
+    if (cmp3 > 0) { aWins++; c3 = "Ăn"; } else if (cmp3 < 0) { bWins++; c3 = "Thua"; }
 
-    let total = c1 + c2 + c3;
-    let sapHamText = "";
-    if (c1 > 0 && c2 > 0 && c3 > 0) {
-      total = 6;
-      sapHamText = " (Bắt sập hầm x2 = +6 chi)";
-    } else if (c1 < 0 && c2 < 0 && c3 < 0) {
-      total = -6;
-      sapHamText = " (Bị sập hầm x2 = -6 chi)";
+    let scoreA = 0;
+    let resultText = `HÒA (Mỗi bên ${aWins} chi)`;
+    if (aWins >= 2) {
+      scoreA = 1;
+      resultText = `THẮNG (${aWins}/3 chi)`;
+    } else if (bWins >= 2) {
+      scoreA = -1;
+      resultText = `THUA (${bWins}/3 chi)`;
     }
 
-    const detail = `Chi 1: ${c1 > 0 ? '+1' : c1}, Chi 2: ${c2 > 0 ? '+1' : c2}, Chi 3: ${c3 > 0 ? '+1' : c3}${sapHamText} ➔ Tổng: ${total > 0 ? '+' : ''}${total} chi`;
-    return { scoreA: total, detail };
+    const detail = `Chi 1: ${c1}, Chi 2: ${c2}, Chi 3: ${c3} ➔ ${resultText}`;
+    return { scoreA, detail };
   }
 }
 
@@ -1335,9 +1338,8 @@ class AppController {
                          (p.rankOrder === 3 ? (isTie ? '🥉 Đ.Hạng 3' : '🥉 Ba') :
                          (isTie ? `Đ.Hạng ${p.rankOrder}` : `Hạng ${p.rankOrder}`)));
         const badgeClass = p.rankOrder === 1 ? 'rank-1' : (p.rankOrder === 2 ? 'rank-2' : 'rank-other');
-        const scoreStr = p.score !== 0 ? `<span class="p-score-tag ${p.score > 0 ? 'score-pos' : 'score-neg'}">${p.score > 0 ? '+' : ''}${p.score} chi</span>` : '';
         const titleHtml = p.resultTitle ? `<span class="p-hand-title-inline">${p.resultTitle}</span>` : '';
-        rankBadgeHtml = `<span class="p-rank-badge ${badgeClass}">${rankText}</span> ${titleHtml} ${scoreStr}`;
+        rankBadgeHtml = `<span class="p-rank-badge ${badgeClass}">${rankText}</span> ${titleHtml}`;
       }
 
 
@@ -1723,16 +1725,6 @@ class AppController {
       p.cards = [...arr.chi1, ...arr.chi2, ...arr.chi3];
       p.isLung = arr.isLung;
       p.score = 0;
-      if (arr.instantWin) {
-        p.resultTitle = arr.instantWin;
-        p.resultDetail = "Tự động Thắng Trắng mà không cần so từng chi!";
-      } else if (arr.isLung) {
-        p.resultTitle = "⚠️ BỊ LỦNG (Thua phạt -6 chi)";
-        p.resultDetail = "Chi dưới yếu hơn chi trên!";
-      } else {
-        p.resultTitle = "Đã xếp 3 chi tối ưu";
-        p.resultDetail = `Chi 1 (3 lá): ${arr.score1.desc}\nChi 2 (3 lá): ${arr.score2.desc}\nChi 3 (3 lá): ${arr.score3.desc}`;
-      }
       return arr;
     });
 
@@ -1742,12 +1734,39 @@ class AppController {
     for (let i = 0; i < N; i++) {
       for (let j = i + 1; j < N; j++) {
         const match = Binh9Evaluator.compareMatch(arrangements[i], arrangements[j]);
-        this.players[i].score += match.scoreA;
-        this.players[j].score -= match.scoreA;
-        matrix[i][j] = (match.scoreA > 0 ? `+${match.scoreA}` : `${match.scoreA}`) + " chi";
-        matrix[j][i] = (-match.scoreA > 0 ? `+${-match.scoreA}` : `${-match.scoreA}`) + " chi";
+        if (match.scoreA > 0) {
+          this.players[i].score += 1;
+          matrix[i][j] = "Thắng";
+          matrix[j][i] = "Thua";
+        } else if (match.scoreA < 0) {
+          this.players[j].score += 1;
+          matrix[i][j] = "Thua";
+          matrix[j][i] = "Thắng";
+        } else {
+          matrix[i][j] = "Hòa";
+          matrix[j][i] = "Hòa";
+        }
       }
     }
+
+    const totalOpponents = Math.max(1, N - 1);
+    this.players.forEach((p, idx) => {
+      const arr = arrangements[idx];
+      if (arr.instantWin) {
+        p.resultTitle = arr.instantWin;
+        p.resultDetail = "Thắng Trắng toàn bàn!";
+      } else if (arr.isLung) {
+        p.resultTitle = "⚠️ BỊ LỦNG";
+        p.resultDetail = "Chi trước yếu hơn chi sau (Xử thua)!";
+      } else {
+        if (totalOpponents === 1) {
+          p.resultTitle = p.score > 0 ? "🏆 THẮNG ĐỐI ĐẦU" : (matrix[0][1] === "Hòa" ? "HÒA ĐỐI ĐẦU" : "THUA ĐỐI ĐẦU");
+        } else {
+          p.resultTitle = `Thắng ${p.score}/${totalOpponents} nhà`;
+        }
+        p.resultDetail = `Chi 1: ${arr.score1.desc}\nChi 2: ${arr.score2.desc}\nChi 3: ${arr.score3.desc}`;
+      }
+    });
 
     const sortedIdx = Array.from({ length: N }, (_, i) => i).sort((a, b) => this.players[b].score - this.players[a].score);
     let currentRank = 1;
@@ -1761,13 +1780,19 @@ class AppController {
     const winners = this.players.filter(p => p.rankOrder === 1);
     if (winners.length > 1) {
       document.getElementById('bannerWinner').innerHTML = `
-        👑 <strong>Đồng Hạng 1</strong>: ${winners.map(w => w.name).join(', ')} (Cùng <strong>${winners[0].score > 0 ? '+' : ''}${winners[0].score} chi</strong>)!
+        👑 <strong>Đồng Hạng 1</strong>: ${winners.map(w => w.name).join(', ')} (Cùng thắng <strong>${winners[0].score} nhà</strong>)!
       `;
     } else {
       const winner = winners[0];
-      document.getElementById('bannerWinner').innerHTML = `
-        🏆 <strong>${winner ? winner.name : '—'}</strong> Dẫn đầu với tổng điểm: <strong>${winner ? (winner.score > 0 ? '+' : '') + winner.score : 0} chi</strong>!
-      `;
+      if (totalOpponents === 1) {
+        document.getElementById('bannerWinner').innerHTML = `
+          🏆 <strong>${winner ? winner.name : '—'}</strong> Thắng ván đối đầu (Ăn ít nhất 2 chi)!
+        `;
+      } else {
+        document.getElementById('bannerWinner').innerHTML = `
+          🏆 <strong>${winner ? winner.name : '—'}</strong> Về Nhất Binh 9 lá (Thắng <strong>${winner ? winner.score : 0}/${totalOpponents} nhà</strong>)!
+        `;
+      }
     }
 
     const matSection = document.getElementById('matrixSection');
@@ -1783,7 +1808,7 @@ class AppController {
       tblHtml += `<tr><td><strong>${this.players[i].name.replace("Nhóm ", "")}</strong></td>`;
       for (let j = 0; j < N; j++) {
         const val = matrix[i][j];
-        const color = val.includes('+') ? '#34C759' : (val.includes('-') ? '#FF3B30' : '#8E8E93');
+        const color = val === 'Thắng' ? '#34C759' : (val === 'Thua' ? '#FF3B30' : '#8E8E93');
         tblHtml += `<td style="color: ${color}; font-weight: bold;">${val}</td>`;
       }
       tblHtml += `</tr>`;
@@ -1844,7 +1869,6 @@ class AppController {
               ${isTie ? '<span class="tie-tag" style="font-size:10px;font-weight:700;color:#f59e0b;background:rgba(245,158,11,0.15);padding:2px 5px;border-radius:4px;margin-left:4px;">ĐỒNG HẠNG</span>' : ''}
               ${p.isLung ? '<span class="lung-tag">LỦNG</span>' : ''}
             </div>
-            ${p.score !== 0 ? `<span class="rank-score ${p.score > 0 ? 'positive' : 'negative'}">${p.score > 0 ? '+' : ''}${p.score} chi</span>` : ''}
           </div>
           <div class="rank-hand-title">${p.resultTitle}</div>
           <div class="rank-hand-detail">${p.resultDetail}</div>
