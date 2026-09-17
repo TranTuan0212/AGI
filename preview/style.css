@@ -339,23 +339,29 @@ body {
 }
 
 .p-rank-badge {
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 800;
-  padding: 1px 5px;
+  padding: 2px 6px;
   border-radius: 4px;
   white-space: nowrap;
+  color: #FFF;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.15);
 }
 .p-rank-badge.rank-1 {
-  background: #FEF3C7;
-  color: #B45309;
+  background: #FF3B30;
+  color: #FFF;
 }
 .p-rank-badge.rank-2 {
-  background: #DBEAFE;
-  color: #1D4ED8;
+  background: #007AFF;
+  color: #FFF;
+}
+.p-rank-badge.rank-3 {
+  background: #FF9500;
+  color: #FFF;
 }
 .p-rank-badge.rank-other {
-  background: #F3F4F6;
-  color: #4B5563;
+  background: #48484A;
+  color: #FFF;
 }
 
 .p-score-tag {
@@ -474,10 +480,15 @@ body {
   z-index: 30;
 }
 
-.deck-action-bar {
+.deck-action-bar-top {
   display: flex;
   align-items: center;
   gap: 6px;
+  width: 100%;
+}
+
+.deck-action-bar-main {
+  width: 100%;
 }
 
 .mini-action-btn {
@@ -485,8 +496,8 @@ body {
   background: var(--ios-bg);
   border: 1px solid var(--ios-border);
   border-radius: var(--radius-sm);
-  padding: 6px 2px;
-  font-size: 11px;
+  padding: 7px 4px;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--ios-text);
   cursor: pointer;
@@ -494,7 +505,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 4px;
   transition: background 0.1s;
 }
 
@@ -515,33 +526,32 @@ body {
   font-weight: 700;
 }
 
-
-.btn-showdown-compact {
-  flex: 1;
+.btn-showdown-full {
+  width: 100%;
   background: linear-gradient(135deg, #FF9500, #FF3B30);
   color: white;
   border: none;
   border-radius: var(--radius-sm);
-  padding: 6px 2px;
-  font-size: 11px;
-  font-weight: 700;
+  padding: 8px 6px;
+  font-size: 13px;
+  font-weight: 800;
   cursor: pointer;
   white-space: nowrap;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  box-shadow: 0 2px 6px rgba(255, 149, 0, 0.3);
+  gap: 6px;
+  box-shadow: 0 2px 6px rgba(255, 149, 0, 0.35);
   transition: all 0.15s;
 }
 
-.btn-showdown-compact.btn-new-round {
+.btn-showdown-full.btn-new-round {
   background: linear-gradient(135deg, #34C759, #30B0C7);
   box-shadow: 0 2px 6px rgba(52, 199, 89, 0.4);
 }
 
-.btn-showdown-compact:not(:disabled):active {
-  transform: scale(0.96);
+.btn-showdown-full:not(:disabled):active {
+  transform: scale(0.98);
 }
 
 /* Chi Group Layout for Binh 9 & Binh 6 */
@@ -576,22 +586,24 @@ body {
   gap: 3px;
 }
 
-/* Hidden Card (Không thấy - ?) */
+/* Hidden Card (Không thấy - ?) on White Background */
 .mini-card.hidden-card {
-  background: #F2F2F7;
-  border: 1.2px dashed #8E8E93;
-  color: #8E8E93;
+  background: #FFF;
+  border: 1.5px dashed #AF52DE;
+  color: #AF52DE;
+  box-shadow: -1px 0 2px rgba(0,0,0,0.1);
 }
 
 .mini-card.hidden-card .mini-card-rank {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 900;
+  color: #AF52DE;
 }
 
 .mini-card.hidden-card .mini-card-suit {
-  font-size: 8px;
-  font-weight: 700;
-  color: #8E8E93;
+  font-size: 8.5px;
+  font-weight: 800;
+  color: #AF52DE;
 }
 
 /* 52-Card Keypad Grid */

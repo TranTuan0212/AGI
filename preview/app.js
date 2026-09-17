@@ -1435,12 +1435,12 @@ class AppController {
     const btnCalc = document.getElementById('btnCalculate');
     if (hasResults) {
       btnCalc.disabled = false;
-      btnCalc.className = 'btn-showdown-compact btn-new-round';
+      btnCalc.className = 'btn-showdown-full btn-new-round';
       btnCalc.innerHTML = `<span>🔄 VÁN MỚI</span>`;
     } else {
       btnCalc.disabled = false;
-      btnCalc.className = 'btn-showdown-compact';
-      btnCalc.innerHTML = `<span>❓ Không thấy</span>`;
+      btnCalc.className = 'btn-showdown-full';
+      btnCalc.innerHTML = `<span>❓ KHÔNG THẤY (BÀI ẨN)</span>`;
     }
 
     // Turn indicator
@@ -1675,6 +1675,7 @@ class AppController {
   calcBinh9() {
     const arrangements = this.players.map(p => {
       const arr = Binh9Evaluator.autoArrange(p.cards);
+      p.cards = [...arr.chi1, ...arr.chi2, ...arr.chi3];
       p.isLung = arr.isLung;
       p.score = 0;
       if (arr.instantWin) {

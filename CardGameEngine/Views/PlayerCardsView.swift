@@ -114,14 +114,23 @@ public struct PlayerCardsView: View {
                                                 (rank == 2 ? (isTie ? "🥈 Đ.Hạng 2" : "🥈 Nhì") :
                                                 (rank == 3 ? (isTie ? "🥉 Đ.Hạng 3" : "🥉 Ba") :
                                                 (isTie ? "Đ.Hạng \(rank)" : "Hạng \(rank)")))
+                                let badgeBgColor: Color = {
+                                    switch rank {
+                                    case 1: return Color(red: 0.95, green: 0.2, blue: 0.2) // Đỏ tươi nổi bật
+                                    case 2: return Color(red: 0.0, green: 0.48, blue: 1.0) // Xanh dương đậm
+                                    case 3: return Color(red: 1.0, green: 0.58, blue: 0.0) // Cam hổ phách
+                                    default: return Color(white: 0.35) // Xám đen đậm
+                                    }
+                                }()
                                 HStack(spacing: 5) {
                                     Text(badgeText)
-                                        .font(.system(size: 10, weight: .bold))
-                                        .foregroundColor(rank == 1 ? .yellow : (rank == 2 ? .blue : .secondary))
-                                        .padding(.horizontal, 5)
-                                        .padding(.vertical, 1.5)
-                                        .background(rank == 1 ? Color.yellow.opacity(0.25) : Color.gray.opacity(0.18))
-                                        .cornerRadius(4)
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 7)
+                                        .padding(.vertical, 2.5)
+                                        .background(badgeBgColor)
+                                        .cornerRadius(5)
+                                        .shadow(color: Color.black.opacity(0.18), radius: 1.5, x: 0, y: 1)
                                     
                                     if !player.resultTitle.isEmpty {
                                         Text(player.resultTitle)
@@ -256,20 +265,20 @@ struct MiniCardView: View {
                 VStack(spacing: 0) {
                     Text("?")
                         .font(.system(size: 16, weight: .black))
-                        .foregroundColor(.gray)
+                        .foregroundColor(.purple)
                     Text("Ẩn")
                         .font(.system(size: 8, weight: .bold))
-                        .foregroundColor(.gray.opacity(0.8))
+                        .foregroundColor(.purple.opacity(0.85))
                 }
-                .frame(width: 30, height: 38)
-                .background(Color(.systemGray6))
-                .cornerRadius(4)
+                .frame(width: 32, height: 40)
+                .background(Color.white)
+                .cornerRadius(5)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 4)
-                        .stroke(style: StrokeStyle(lineWidth: 1, dash: [2]))
-                        .foregroundColor(Color.gray.opacity(0.4))
+                    RoundedRectangle(cornerRadius: 5)
+                        .stroke(style: StrokeStyle(lineWidth: 1.2, dash: [3]))
+                        .foregroundColor(Color.purple.opacity(0.6))
                 )
-                .shadow(color: Color.black.opacity(0.04), radius: 1, x: 0, y: 1)
+                .shadow(color: Color.black.opacity(0.08), radius: 1, x: 0, y: 1)
             } else if card.isRankOnly {
                 Text(card.rank.displaySymbol)
                     .font(.system(size: 16, weight: .bold))

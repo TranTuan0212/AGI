@@ -113,16 +113,16 @@ public struct ContentView: View {
                 
                 // 3. LOWER: Pinned 52-Card Deck & Actions (Nhập ở dưới)
                 VStack(spacing: 6) {
-                    // Action Buttons Row
-                    HStack(spacing: 6) {
+                    // Action Buttons: Row 1 (Utility buttons)
+                    HStack(spacing: 8) {
                         Button(action: { viewModel.undoLastAction() }) {
                             Label("Hoàn tác", systemImage: "arrow.uturn.backward")
                                 .font(.caption)
                                 .fontWeight(.medium)
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 6)
+                                .padding(.vertical, 7)
                                 .background(Color(.secondarySystemBackground))
-                                .cornerRadius(6)
+                                .cornerRadius(7)
                         }
                         
                         Button(action: { viewModel.isShowingHistory = true }) {
@@ -131,9 +131,9 @@ public struct ContentView: View {
                                 .fontWeight(.medium)
                                 .foregroundColor(.purple)
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 6)
+                                .padding(.vertical, 7)
                                 .background(Color.purple.opacity(0.1))
-                                .cornerRadius(6)
+                                .cornerRadius(7)
                         }
                         
                         Button(action: { viewModel.resetTable() }) {
@@ -142,36 +142,48 @@ public struct ContentView: View {
                                 .fontWeight(.medium)
                                 .foregroundColor(.red)
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 6)
+                                .padding(.vertical, 7)
                                 .background(Color.red.opacity(0.1))
-                                .cornerRadius(6)
+                                .cornerRadius(7)
                         }
-                        
+                    }
+                    .padding(.horizontal)
+                    
+                    // Action Buttons: Row 2 (Primary Horizontal Full-Width Bar)
+                    Group {
                         if viewModel.hasCalculatedResults {
                             Button(action: { viewModel.startNewRound() }) {
-                                Label("Ván Mới", systemImage: "arrow.clockwise.circle.fill")
-                                    .font(.caption)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 6)
-                                    .background(
-                                        LinearGradient(colors: [Color.green, Color.teal], startPoint: .leading, endPoint: .trailing)
-                                    )
-                                    .cornerRadius(6)
+                                HStack(spacing: 6) {
+                                    Image(systemName: "arrow.clockwise.circle.fill")
+                                        .font(.system(size: 15, weight: .bold))
+                                    Text("VÁN MỚI")
+                                        .font(.system(size: 14, weight: .bold))
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .background(
+                                    LinearGradient(colors: [Color.green, Color.teal], startPoint: .leading, endPoint: .trailing)
+                                )
+                                .cornerRadius(8)
+                                .shadow(color: Color.green.opacity(0.3), radius: 2, x: 0, y: 1)
                             }
                         } else {
                             Button(action: { viewModel.onHiddenCardTapped() }) {
-                                Label("Không thấy", systemImage: "questionmark.circle.fill")
-                                    .font(.caption)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 6)
-                                    .background(
-                                        LinearGradient(colors: [Color.orange, Color.red], startPoint: .leading, endPoint: .trailing)
-                                    )
-                                    .cornerRadius(6)
+                                HStack(spacing: 6) {
+                                    Image(systemName: "questionmark.circle.fill")
+                                        .font(.system(size: 15, weight: .bold))
+                                    Text("KHÔNG THẤY (BÀI ẨN)")
+                                        .font(.system(size: 14, weight: .bold))
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .background(
+                                    LinearGradient(colors: [Color.orange, Color.red], startPoint: .leading, endPoint: .trailing)
+                                )
+                                .cornerRadius(8)
+                                .shadow(color: Color.orange.opacity(0.3), radius: 2, x: 0, y: 1)
                             }
                         }
                     }

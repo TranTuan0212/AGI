@@ -554,6 +554,7 @@ public class GameViewModel: ObservableObject {
         for i in 0..<players.count {
             let arr = Binh9Evaluator.autoArrange(cards: players[i].cards)
             arrangements.append(arr)
+            players[i].cards = arr.chi1 + arr.chi2 + arr.chi3
             players[i].isLung = arr.isLung
             if let win = arr.instantWin {
                 players[i].resultTitle = win
@@ -630,6 +631,7 @@ public class GameViewModel: ObservableObject {
         for i in 0..<players.count {
             let arr = Binh6Evaluator.autoArrangeSplit(players[i].cards)
             arrangements.append(arr)
+            players[i].cards = arr.chi1 + arr.chi2
             players[i].isLung = arr.isLung
             players[i].resultTitle = arr.isLung ? "⚠️ BỊ LỦNG" : "2 Chi (3-3)"
             players[i].resultDetail = "Chi 1: \(arr.score1.descriptionVN), Chi 2: \(arr.score2.descriptionVN)"
