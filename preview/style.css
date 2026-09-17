@@ -541,6 +541,11 @@ body {
   cursor: not-allowed;
 }
 
+.btn-showdown-compact.btn-new-round {
+  background: linear-gradient(135deg, #34C759, #30B0C7);
+  box-shadow: 0 2px 6px rgba(52, 199, 89, 0.4);
+}
+
 .btn-showdown-compact:not(:disabled):active {
   transform: scale(0.96);
 }

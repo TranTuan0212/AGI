@@ -44,6 +44,9 @@ public class GameViewModel: ObservableObject {
     @Published public var isSelectingCommunity: Bool = false
     @Published public var roundRobinPointer: Int = 0
     
+    @Published public var phomTenCardPlayerIndex: Int? = nil
+    public var lastPhomWinnerIndex: Int? = nil
+    
     // Result State
     @Published public var hasCalculatedResults: Bool = false
     @Published public var isShowResultModal: Bool = false
@@ -56,6 +59,33 @@ public class GameViewModel: ObservableObject {
     
     // Action History for Undo
     private var actionHistory: [(card: Card, target: String)] = []
+    
+    public func targetCards(for playerIndex: Int) -> Int {
+        if gameType == .phom9 {
+            return (phomTenCardPlayerIndex == playerIndex) ? 10 : 9
+        }
+        return gameType.cardsPerPlayer
+    }
+    
+    public func togglePhomTenCard(for index: Int) {
+        guard gameType == .phom9 else { return }
+        if phomTenCardPlayerIndex == index {
+            if players[index].cards.count > 9 {
+                if let last = players[index].cards.last {
+                    removeCard(last)
+                }
+            }
+            phomTenCardPlayerIndex = nil
+        } else {
+            if let oldIdx = phomTenCardPlayerIndex, oldIdx < players.count, players[oldIdx].cards.count > 9 {
+                if let last = players[oldIdx].cards.last {
+                    removeCard(last)
+                }
+            }
+            phomTenCardPlayerIndex = index
+        }
+        clearResultsState()
+    }
     
     public func renamePlayer(at index: Int, to newName: String) {
         guard index >= 0 && index < players.count else { return }
@@ -92,6 +122,8 @@ public class GameViewModel: ObservableObject {
             players[i].clearCards()
         }
         communityCards.removeAll()
+        phomTenCardPlayerIndex = nil
+        lastPhomWinnerIndex = nil
         roundRobinPointer = 0
         selectedPlayerIndex = 0
         isSelectingCommunity = false
@@ -100,6 +132,29 @@ public class GameViewModel: ObservableObject {
         showdownSummary = ""
         confrontationMatrix.removeAll()
         actionHistory.removeAll()
+    }
+    
+    public func startNewRound() {
+        for i in 0..<players.count {
+            players[i].clearCards()
+        }
+        communityCards.removeAll()
+        actionHistory.removeAll()
+        isSelectingCommunity = false
+        hasCalculatedResults = false
+        isShowResultModal = false
+        showdownSummary = ""
+        confrontationMatrix.removeAll()
+        
+        if gameType == .phom9, let winnerIdx = lastPhomWinnerIndex, winnerIdx < players.count {
+            phomTenCardPlayerIndex = winnerIdx
+            roundRobinPointer = winnerIdx
+            selectedPlayerIndex = winnerIdx
+        } else {
+            phomTenCardPlayerIndex = nil
+            roundRobinPointer = 0
+            selectedPlayerIndex = 0
+        }
     }
     
     // Check if a card is currently assigned
@@ -122,7 +177,6 @@ public class GameViewModel: ObservableObject {
             return
         }
         
-        let targetCount = gameType.cardsPerPlayer
         let commTargetCount = gameType.communityCardsCount
         
         if inputMode == .roundRobin {
@@ -131,6 +185,7 @@ public class GameViewModel: ObservableObject {
             var attempts = 0
             while attempts < players.count {
                 let idx = (roundRobinPointer + attempts) % players.count
+                let targetCount = targetCards(for: idx)
                 if players[idx].cards.count < targetCount {
                     players[idx].cards.append(card)
                     actionHistory.append((card: card, target: players[idx].id))
@@ -139,7 +194,7 @@ public class GameViewModel: ObservableObject {
                     var nextNeedingIdx: Int? = nil
                     for offset in 1...players.count {
                         let checkIdx = (idx + offset) % players.count
-                        if players[checkIdx].cards.count < targetCount {
+                        if players[checkIdx].cards.count < targetCards(for: checkIdx) {
                             nextNeedingIdx = checkIdx
                             break
                         }
@@ -173,16 +228,17 @@ public class GameViewModel: ObservableObject {
                     actionHistory.append((card: card, target: "COMMUNITY"))
                 }
             } else if selectedPlayerIndex < players.count {
+                let targetCount = targetCards(for: selectedPlayerIndex)
                 if players[selectedPlayerIndex].cards.count < targetCount {
                     players[selectedPlayerIndex].cards.append(card)
                     actionHistory.append((card: card, target: players[selectedPlayerIndex].id))
                     
                     // Auto-advance to next player who still needs cards if current player is full
-                    if players[selectedPlayerIndex].cards.count == targetCount {
+                    if players[selectedPlayerIndex].cards.count == targetCards(for: selectedPlayerIndex) {
                         var nextNeedingIdx: Int? = nil
                         for offset in 1..<players.count {
                             let checkIdx = (selectedPlayerIndex + offset) % players.count
-                            if players[checkIdx].cards.count < targetCount {
+                            if players[checkIdx].cards.count < targetCards(for: checkIdx) {
                                 nextNeedingIdx = checkIdx
                                 break
                             }
@@ -194,6 +250,11 @@ public class GameViewModel: ObservableObject {
                             isSelectingCommunity = true
                         }
                     }
+                } else if gameType == .phom9 && phomTenCardPlayerIndex == nil && players[selectedPlayerIndex].cards.count == 9 {
+                    // Allow 10th card dynamically if no other player has 10 cards
+                    phomTenCardPlayerIndex = selectedPlayerIndex
+                    players[selectedPlayerIndex].cards.append(card)
+                    actionHistory.append((card: card, target: players[selectedPlayerIndex].id))
                 } else if commTargetCount > 0 && communityCards.count < commTargetCount {
                     communityCards.append(card)
                     actionHistory.append((card: card, target: "COMMUNITY"))
@@ -233,39 +294,36 @@ public class GameViewModel: ObservableObject {
                 selectedPlayerIndex = i
                 roundRobinPointer = i
                 isSelectingCommunity = false
-                
-                clearResultsState()
-                return
+                break
             }
         }
-        if let idx = communityCards.firstIndex(of: card) {
-            communityCards.remove(at: idx)
+        if let cIdx = communityCards.firstIndex(of: card) {
+            communityCards.remove(at: cIdx)
             actionHistory.removeAll { $0.card == card }
             isSelectingCommunity = true
-            clearResultsState()
         }
+        clearResultsState()
     }
     
-    // Undo last card tap
+    // Undo last card
     public func undoLastAction() {
         guard let last = actionHistory.popLast() else { return }
         removeCard(last.card)
     }
     
-    // Auto Deal Random Cards for testing
+    // Random Deal for Testing
     public func autoDealRandom() {
         resetTable()
         var deck = Card.fullDeck52.shuffled()
-        let targetCount = gameType.cardsPerPlayer
-        let commTargetCount = gameType.communityCardsCount
         
+        let targetCount = gameType.cardsPerPlayer
         for i in 0..<players.count {
-            let dealt = Array(deck.prefix(targetCount))
-            players[i].cards = dealt
+            players[i].cards = Array(deck.prefix(targetCount))
             deck.removeFirst(targetCount)
         }
         
-        if commTargetCount > 0 {
+        let commTargetCount = gameType.communityCardsCount
+        if commTargetCount > 0 && deck.count >= commTargetCount {
             let commDealt = Array(deck.prefix(commTargetCount))
             communityCards = commDealt
             deck.removeFirst(commTargetCount)
@@ -278,6 +336,12 @@ public class GameViewModel: ObservableObject {
     
     // Check if table is ready for calculation
     public var isReadyToCalculate: Bool {
+        if gameType == .phom9 {
+            let allFull = players.indices.allSatisfy { players[$0].cards.count >= 9 }
+            let valid10Count = players.filter { $0.cards.count == 10 }.count <= 1
+            let noOver = players.allSatisfy { $0.cards.count <= 10 }
+            return allFull && valid10Count && noOver
+        }
         let allPlayersFull = players.allSatisfy { $0.cards.count == gameType.cardsPerPlayer }
         let commFull = communityCards.count == gameType.communityCardsCount
         return allPlayersFull && commFull
@@ -345,7 +409,17 @@ public class GameViewModel: ObservableObject {
             let idx = item.index
             players[idx].rankOrder = item.rank
             players[idx].score = item.scoreDelta
-            players[idx].resultTitle = item.result.isU ? "🎉 Ù (0 điểm)" : (item.result.isMom ? "💀 Móm / Cháy (\(item.result.deadwoodScore)đ)" : "\(item.result.deadwoodScore) điểm rác (\(item.result.phoms.count) phỏm)")
+            if item.result.isUTron {
+                players[idx].resultTitle = "🎉 Ù Tròn (0 điểm)"
+            } else if item.result.isUKhan {
+                players[idx].resultTitle = "🎉 Ù Khan (Không cạ)"
+            } else if item.result.isU {
+                players[idx].resultTitle = "🎉 Ù (0 điểm)"
+            } else if item.result.isMom {
+                players[idx].resultTitle = "💀 Móm / Cháy (\(item.result.deadwoodScore)đ)"
+            } else {
+                players[idx].resultTitle = "\(item.result.deadwoodScore) điểm rác (\(item.result.phoms.count) phỏm)"
+            }
             players[idx].resultDetail = item.result.summary
         }
         
@@ -353,8 +427,10 @@ public class GameViewModel: ObservableObject {
         if rank1Players.count > 1 {
             let names = rank1Players.map { $0.name }.joined(separator: ", ")
             showdownSummary = "👑 Đồng Hạng 1: \(names) (Hòa ván Phỏm với \(rank1Players[0].resultTitle))!"
+            lastPhomWinnerIndex = rank1Players.first.flatMap { p in players.firstIndex(where: { $0.id == p.id }) }
         } else if let winner = rank1Players.first {
             showdownSummary = "🏆 \(winner.name) Thắng ván Phỏm với \(winner.resultTitle)!"
+            lastPhomWinnerIndex = players.firstIndex(where: { $0.id == winner.id })
         }
     }
     

@@ -826,11 +826,132 @@ class PhomEvaluator {
     return card.rank; // 2..13 (J=11, Q=12, K=13)
   }
 
+  static hasCa(c1, c2) {
+    if (c1.rank === c2.rank) return true;
+    if (c1.suit === c2.suit) {
+      const diff = Math.abs(c1.rank - c2.rank);
+      if (diff <= 2) return true;
+      // Ace as 1
+      const a1 = c1.rank === 14 ? 1 : c1.rank;
+      const a2 = c2.rank === 14 ? 1 : c2.rank;
+      if (Math.abs(a1 - a2) <= 2) return true;
+    }
+    return false;
+  }
+
+  static checkUKhan(cards) {
+    if (cards.length !== 9) return false;
+    for (let i = 0; i < cards.length; i++) {
+      for (let j = i + 1; j < cards.length; j++) {
+        if (this.hasCa(cards[i], cards[j])) return false;
+      }
+    }
+    return true;
+  }
+
   static evaluate(cards) {
     if (!cards || cards.length === 0) {
-      return { isU: false, isMom: true, phoms: [], deadwood: [], deadwoodScore: 0, summary: "Không có bài" };
+      return { isU: false, isMom: true, isUKhan: false, isUTron: false, phoms: [], deadwood: [], deadwoodScore: 0, summary: "Không có bài" };
     }
 
+    // Check Ù Khan (9 cards with no cạ)
+    if (cards.length === 9 && this.checkUKhan(cards)) {
+      return {
+        isU: true,
+        isMom: false,
+        isUKhan: true,
+        isUTron: false,
+        phoms: [],
+        deadwood: [...cards],
+        deadwoodScore: 0,
+        summary: "🎉 Ù KHAN (Không có cạ, thắng tuyệt đối)"
+      };
+    }
+
+    // 10-card hand evaluation
+    if (cards.length === 10) {
+      const all10Phoms = this.findAllCandidatePhoms(cards);
+      let uTronPhoms = [];
+      const search10 = (startIndex, currentPhoms, usedCardIds) => {
+        const rem = cards.filter(c => !usedCardIds.has(c.id));
+        if (rem.length === 0 && currentPhoms.length > 0) {
+          uTronPhoms = [...currentPhoms];
+          return;
+        }
+        for (let i = startIndex; i < all10Phoms.length; i++) {
+          if (uTronPhoms.length > 0) return;
+          const cand = all10Phoms[i];
+          const candIds = new Set(cand.cards.map(c => c.id));
+          let disjoint = true;
+          for (const id of candIds) {
+            if (usedCardIds.has(id)) { disjoint = false; break; }
+          }
+          if (disjoint) {
+            const nextUsed = new Set(usedCardIds);
+            candIds.forEach(id => nextUsed.add(id));
+            search10(i + 1, [...currentPhoms, cand], nextUsed);
+          }
+        }
+      };
+      search10(0, [], new Set());
+
+      if (uTronPhoms.length > 0) {
+        const desc = uTronPhoms.map(p => p.description).join(" + ");
+        return {
+          isU: true,
+          isMom: false,
+          isUKhan: false,
+          isUTron: true,
+          phoms: uTronPhoms,
+          deadwood: [],
+          deadwoodScore: 0,
+          summary: `🎉 Ù TRÒN 10 LÁ (Thắng x2) [${desc}]`
+        };
+      }
+
+      // Not Ù Tròn: pick optimal 9-card subset (discarding 1 card)
+      let bestSub = null;
+      let bestDiscard = null;
+      for (let i = 0; i < cards.length; i++) {
+        const sub = cards.filter((_, idx) => idx !== i);
+        const subRes = this.evaluate(sub);
+        if (!bestSub) {
+          bestSub = subRes;
+          bestDiscard = cards[i];
+        } else {
+          if (subRes.isU && !bestSub.isU) {
+            bestSub = subRes;
+            bestDiscard = cards[i];
+          } else if (subRes.isU === bestSub.isU) {
+            if (!subRes.isMom && bestSub.isMom) {
+              bestSub = subRes;
+              bestDiscard = cards[i];
+            } else if (subRes.isMom === bestSub.isMom) {
+              if (subRes.deadwoodScore < bestSub.deadwoodScore) {
+                bestSub = subRes;
+                bestDiscard = cards[i];
+              }
+            }
+          }
+        }
+      }
+
+      if (bestSub && bestDiscard) {
+        const discardNote = ` (Đã bỏ rác: ${bestDiscard.sym}${bestDiscard.suitIcon})`;
+        return {
+          isU: bestSub.isU,
+          isMom: bestSub.isMom,
+          isUKhan: bestSub.isUKhan,
+          isUTron: false,
+          phoms: bestSub.phoms,
+          deadwood: bestSub.deadwood,
+          deadwoodScore: bestSub.deadwoodScore,
+          summary: bestSub.summary + discardNote
+        };
+      }
+    }
+
+    // Standard 9-card evaluation
     const allPhoms = this.findAllCandidatePhoms(cards);
     let bestPhoms = [];
     let bestDeadwood = [...cards];
@@ -899,6 +1020,8 @@ class PhomEvaluator {
     return {
       isU,
       isMom,
+      isUKhan: false,
+      isUTron: false,
       phoms: bestPhoms,
       deadwood: bestDeadwood,
       deadwoodScore: minDeadwoodScore,
@@ -956,7 +1079,7 @@ class PhomEvaluator {
       const sorted = [...grp].sort((a, b) => getVal(a, false) - getVal(b, false));
 
       const n = sorted.length;
-      for (let i = 0; i < n; i++) {
+      for (let i = 0; i < n - 2; i++) {
         for (let j = i + 2; j < n; j++) {
           const sub = sorted.slice(i, j + 1);
           let consec = true;
@@ -1008,8 +1131,13 @@ class PhomEvaluator {
     }));
 
     evaluated.sort((a, b) => {
+      // 1. Ù Tròn is supreme
+      if (a.result.isUTron !== b.result.isUTron) return a.result.isUTron ? -1 : 1;
+      // 2. Ù or Ù Khan
       if (a.result.isU !== b.result.isU) return a.result.isU ? -1 : 1;
+      // 3. Móm loses to non-móm
       if (a.result.isMom !== b.result.isMom) return a.result.isMom ? 1 : -1;
+      // 4. Deadwood points (lower is better)
       if (a.result.deadwoodScore !== b.result.deadwoodScore) return a.result.deadwoodScore - b.result.deadwoodScore;
       return a.index - b.index;
     });
@@ -1021,7 +1149,8 @@ class PhomEvaluator {
       if (i > 0) {
         const prev = evaluated[i - 1];
         const curr = evaluated[i];
-        const isSame = (prev.result.isU === curr.result.isU) &&
+        const isSame = (prev.result.isUTron === curr.result.isUTron) &&
+                       (prev.result.isU === curr.result.isU) &&
                        (prev.result.isMom === curr.result.isMom) &&
                        (prev.result.deadwoodScore === curr.result.deadwoodScore);
         if (!isSame) {
@@ -1032,36 +1161,52 @@ class PhomEvaluator {
     }
 
     const hasU = evaluated.some(e => e.result.isU);
-    const rank1Count = ranks.filter(r => r === 1).length;
     const deltas = new Array(n).fill(0);
 
     if (hasU) {
-      const uCount = evaluated.filter(e => e.result.isU).length;
-      const nonUCount = n - uCount;
-      const totalPool = nonUCount * 6;
-      const winPerU = uCount > 0 ? Math.floor(totalPool / uCount) : 0;
-      let remainder = uCount > 0 ? totalPool % uCount : 0;
+      const uWinners = evaluated.filter(e => e.result.isU);
+      const isAnyUTron = uWinners.some(e => e.result.isUTron);
+      const chipPenalty = isAnyUTron ? 12 : 6;
 
+      let totalPool = 0;
       for (let i = 0; i < n; i++) {
-        if (evaluated[i].result.isU) {
-          deltas[i] = winPerU + (remainder > 0 ? 1 : 0);
-          if (remainder > 0) remainder--;
-        } else {
-          deltas[i] = -6;
+        if (!evaluated[i].result.isU) {
+          deltas[i] = -chipPenalty;
+          totalPool += chipPenalty;
+        }
+      }
+
+      const uCount = uWinners.length;
+      if (uCount > 0) {
+        const winPerU = Math.floor(totalPool / uCount);
+        let remainder = totalPool % uCount;
+        for (let i = 0; i < n; i++) {
+          if (evaluated[i].result.isU) {
+            deltas[i] = winPerU + (remainder > 0 ? 1 : 0);
+            if (remainder > 0) remainder--;
+          }
         }
       }
     } else {
+      // Southern scoring: Nhì -1, Ba -2, Bét -3, Móm -4
       let totalPool = 0;
       for (let i = 0; i < n; i++) {
         if (ranks[i] > 1) {
-          let penalty = i;
-          if (evaluated[i].result.isMom) penalty += 1;
-          if (penalty < 1) penalty = 1;
+          let penalty = 0;
+          if (evaluated[i].result.isMom) {
+            penalty = 4;
+          } else {
+            const rankPos = ranks[i];
+            if (rankPos === 2) penalty = 1;
+            else if (rankPos === 3) penalty = 2;
+            else penalty = 3;
+          }
           deltas[i] = -penalty;
           totalPool += penalty;
         }
       }
 
+      const rank1Count = ranks.filter(r => r === 1).length;
       if (rank1Count > 0) {
         const winPerWinner = Math.floor(totalPool / rank1Count);
         let remainder = totalPool % rank1Count;
@@ -1096,6 +1241,8 @@ class AppController {
     this.roundRobinPointer = 0;
     this.selectedPlayerIndex = 0;
     this.isSelectingCommunity = false;
+    this.phomTenCardPlayerIndex = null;
+    this.lastPhomWinnerIndex = null;
 
     this.players = [];
     this.communityCards = [];
@@ -1114,7 +1261,60 @@ class AppController {
     this.updateUI();
   }
 
+  targetCards(playerIndex) {
+    const cfg = GAME_CONFIGS[this.currentGameType];
+    if (this.currentGameType === 'phom9') {
+      return (this.phomTenCardPlayerIndex === playerIndex) ? 10 : 9;
+    }
+    return cfg.cardsPerPlayer;
+  }
+
+  togglePhomTenCard(index) {
+    if (this.currentGameType !== 'phom9') return;
+    if (this.phomTenCardPlayerIndex === index) {
+      if (this.players[index].cards.length > 9) {
+        const removed = this.players[index].cards.pop();
+        this.actionHistory = this.actionHistory.filter(h => h.cardId !== removed.id);
+      }
+      this.phomTenCardPlayerIndex = null;
+    } else {
+      if (this.phomTenCardPlayerIndex !== null && this.players[this.phomTenCardPlayerIndex]?.cards.length > 9) {
+        const removed = this.players[this.phomTenCardPlayerIndex].cards.pop();
+        this.actionHistory = this.actionHistory.filter(h => h.cardId !== removed.id);
+      }
+      this.phomTenCardPlayerIndex = index;
+    }
+    this.clearResultsState();
+    this.renderDeck();
+    this.renderPlayers();
+    this.updateUI();
+  }
+
+  startNewRound() {
+    this.clearResultsState();
+    this.players.forEach(p => { p.cards = []; });
+    this.communityCards = [];
+    this.actionHistory = [];
+    this.isSelectingCommunity = false;
+
+    if (this.currentGameType === 'phom9' && this.lastPhomWinnerIndex !== null && this.lastPhomWinnerIndex < this.players.length) {
+      this.phomTenCardPlayerIndex = this.lastPhomWinnerIndex;
+      this.roundRobinPointer = this.lastPhomWinnerIndex;
+      this.selectedPlayerIndex = this.lastPhomWinnerIndex;
+    } else {
+      this.phomTenCardPlayerIndex = null;
+      this.roundRobinPointer = 0;
+      this.selectedPlayerIndex = 0;
+    }
+
+    this.renderDeck();
+    this.renderPlayers();
+    this.updateUI();
+  }
+
   initPlayers() {
+    this.phomTenCardPlayerIndex = null;
+    this.lastPhomWinnerIndex = null;
     this.players = [];
     for (let i = 0; i < this.playerCount; i++) {
       this.players.push({
@@ -1185,7 +1385,7 @@ class AppController {
     document.getElementById('btnCalculate').addEventListener('click', () => {
       const hasResults = this.players.some(p => p.rankOrder != null);
       if (hasResults) {
-        this.openResultModal();
+        this.startNewRound();
       } else {
         this.calculate();
       }
@@ -1293,7 +1493,6 @@ class AppController {
     }
 
     const cfg = GAME_CONFIGS[this.currentGameType];
-    const targetCards = cfg.cardsPerPlayer;
     const commTarget = cfg.community;
 
     if (this.inputMode === 'roundRobin') {
@@ -1301,6 +1500,7 @@ class AppController {
       let found = false;
       for (let i = 0; i < this.players.length; i++) {
         const pIdx = (this.roundRobinPointer + i) % this.players.length;
+        const targetCards = this.targetCards(pIdx);
         if (this.players[pIdx].cards.length < targetCards) {
           this.players[pIdx].cards.push(card);
           this.actionHistory.push({ cardId: card.id, target: pIdx });
@@ -1309,7 +1509,7 @@ class AppController {
           let nextNeedingIdx = null;
           for (let offset = 1; offset <= this.players.length; offset++) {
             const checkIdx = (pIdx + offset) % this.players.length;
-            if (this.players[checkIdx].cards.length < targetCards) {
+            if (this.players[checkIdx].cards.length < this.targetCards(checkIdx)) {
               nextNeedingIdx = checkIdx;
               break;
             }
@@ -1330,6 +1530,9 @@ class AppController {
       if (!found && this.communityCards.length < commTarget) {
         this.communityCards.push(card);
         this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
+        if (this.communityCards.length < commTarget) {
+          this.isSelectingCommunity = true;
+        }
       }
     } else {
       // Manual selection
@@ -1340,6 +1543,7 @@ class AppController {
         }
       } else {
         const curr = this.players[this.selectedPlayerIndex];
+        const targetCards = this.targetCards(this.selectedPlayerIndex);
         if (curr && curr.cards.length < targetCards) {
           curr.cards.push(card);
           this.actionHistory.push({ cardId: card.id, target: this.selectedPlayerIndex });
@@ -1349,7 +1553,7 @@ class AppController {
             let nextNeedingIdx = null;
             for (let offset = 1; offset < this.players.length; offset++) {
               const checkIdx = (this.selectedPlayerIndex + offset) % this.players.length;
-              if (this.players[checkIdx].cards.length < targetCards) {
+              if (this.players[checkIdx].cards.length < this.targetCards(checkIdx)) {
                 nextNeedingIdx = checkIdx;
                 break;
               }
@@ -1360,9 +1564,14 @@ class AppController {
               this.isSelectingCommunity = true;
             }
           }
+        } else if (this.currentGameType === 'phom9' && this.phomTenCardPlayerIndex === null && curr && curr.cards.length === 9) {
+          this.phomTenCardPlayerIndex = this.selectedPlayerIndex;
+          curr.cards.push(card);
+          this.actionHistory.push({ cardId: card.id, target: this.selectedPlayerIndex });
         } else if (commTarget > 0 && this.communityCards.length < commTarget) {
           this.communityCards.push(card);
           this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
+          this.isSelectingCommunity = true;
         }
       }
     }
@@ -1379,8 +1588,13 @@ class AppController {
 
   isReady() {
     const cfg = GAME_CONFIGS[this.currentGameType];
-    const allFull = this.players.every(p => p.cards.length === cfg.cardsPerPlayer);
     const commFull = this.communityCards.length === cfg.community;
+    if (this.currentGameType === 'phom9') {
+      const allValid = this.players.every(p => p.cards.length >= 9 && p.cards.length <= 10);
+      const tenCount = this.players.filter(p => p.cards.length === 10).length;
+      return allValid && tenCount <= 1;
+    }
+    const allFull = this.players.every((p, i) => p.cards.length >= this.targetCards(i));
     return allFull && commFull;
   }
 
@@ -1429,6 +1643,8 @@ class AppController {
   }
 
   resetTable() {
+    this.phomTenCardPlayerIndex = null;
+    this.lastPhomWinnerIndex = null;
     this.players.forEach(p => {
       p.cards = [];
       p.score = 0;
@@ -1488,9 +1704,12 @@ class AppController {
     const commContainer = document.getElementById('communityCardsContainer');
     const txtCommCount = document.getElementById('txtCommunityCount');
 
+    const allPlayersFull = this.players.every((p, i) => p.cards.length >= this.targetCards(i));
+    const commNeedsCards = cfg.community > 0 && this.communityCards.length < cfg.community;
+    const isCommSelected = commNeedsCards && !this.players.some(p => p.rankOrder != null) && (this.isSelectingCommunity || (this.inputMode === 'roundRobin' && allPlayersFull) || (this.inputMode === 'manual' && allPlayersFull));
+
     if (cfg.community > 0) {
       commSection.style.display = 'block';
-      const isCommSelected = this.inputMode === 'manual' && this.isSelectingCommunity && !this.players.some(p => p.rankOrder != null);
       if (isCommSelected) {
         commSection.classList.add('active');
       } else {
@@ -1503,7 +1722,7 @@ class AppController {
         const mini = this.createMiniCard(c);
         commContainer.appendChild(mini);
       });
-      const rem = cfg.community - this.communityCards.length;
+      const rem = Math.max(0, cfg.community - this.communityCards.length);
       for (let i = 0; i < rem; i++) {
         const ph = document.createElement('div');
         ph.className = 'placeholder-card';
@@ -1526,8 +1745,9 @@ class AppController {
     list.innerHTML = '';
 
     this.players.forEach((p, idx) => {
-      const isRR = this.inputMode === 'roundRobin' && this.roundRobinPointer === idx;
-      const isManual = this.inputMode === 'manual' && this.selectedPlayerIndex === idx && !this.isSelectingCommunity;
+      const target = this.targetCards(idx);
+      const isRR = this.inputMode === 'roundRobin' && this.roundRobinPointer === idx && !allPlayersFull;
+      const isManual = this.inputMode === 'manual' && this.selectedPlayerIndex === idx && !this.isSelectingCommunity && !isCommSelected;
       const hasResult = p.rankOrder != null;
       const isWinner = p.rankOrder === 1;
       const isActive = isRR || isManual;
@@ -1556,7 +1776,13 @@ class AppController {
         rankBadgeHtml = `<span class="p-rank-badge ${badgeClass}">${rankText}</span> ${titleHtml} ${scoreStr}`;
       }
 
-      const counterHtml = `<span class="p-count ${p.cards.length === cfg.cardsPerPlayer ? 'full' : ''}">${p.cards.length}/${cfg.cardsPerPlayer} lá</span>`;
+      let phomBtnHtml = '';
+      if (this.currentGameType === 'phom9' && !hasResult) {
+        const is10 = target === 10;
+        phomBtnHtml = `<button type="button" class="btn-phom-10" style="font-size: 10px; font-weight: bold; padding: 2px 6px; margin-left: 6px; border-radius: 4px; border: 1px solid ${is10 ? '#f59e0b' : '#8e8e93'}; background: ${is10 ? '#f59e0b' : 'transparent'}; color: ${is10 ? '#fff' : 'inherit'}; cursor: pointer;">${is10 ? '🎴 10 lá' : '9 lá'}</button>`;
+      }
+
+      const counterHtml = `<span class="p-count ${p.cards.length === target ? 'full' : ''}">${p.cards.length}/${target} lá</span>`;
 
       const header = document.createElement('div');
       header.className = 'player-card-header';
@@ -1567,6 +1793,7 @@ class AppController {
             <span class="p-name" style="${isWinner ? 'color:#f59e0b;font-weight:700;' : ''}">${p.name}</span>
             <span class="p-edit-icon">✏️</span>
           </div>
+          ${phomBtnHtml}
           ${rankBadgeHtml ? rankBadgeHtml : (isActive ? `<span class="p-tag">${this.inputMode === 'roundRobin' ? '▶ Lượt nhận' : '▶ Đang chọn'}</span>` : '')}
         </div>
         ${counterHtml}
@@ -1577,9 +1804,16 @@ class AppController {
         e.stopPropagation();
         this.renamePlayer(idx);
       });
+
+      const btnP10 = header.querySelector('.btn-phom-10');
+      if (btnP10) {
+        btnP10.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.togglePhomTenCard(idx);
+        });
+      }
       
       mat.appendChild(header);
-
 
       const cardsContainer = document.createElement('div');
       cardsContainer.className = 'hand-cards-container';
@@ -1592,8 +1826,8 @@ class AppController {
         overlapWrap.appendChild(mini);
       });
 
-      const missing = cfg.cardsPerPlayer - p.cards.length;
-      // Show up to 5 placeholders to avoid taking too much horizontal space
+      const missing = Math.max(0, target - p.cards.length);
+      // Show up to 6 placeholders to avoid taking too much horizontal space
       const showPlaceholders = Math.min(missing, 6);
       for (let i = 0; i < showPlaceholders; i++) {
         const ph = document.createElement('div');
@@ -1634,17 +1868,18 @@ class AppController {
     const cfg = GAME_CONFIGS[this.currentGameType];
     document.getElementById('txtPlayerCount').textContent = `${this.playerCount} Nhóm`;
 
-    const allFull = this.players.every(p => p.cards.length === cfg.cardsPerPlayer);
-    const commFull = this.communityCards.length === cfg.community;
-    const isReady = allFull && commFull;
+    const isReady = this.isReady();
     const hasResults = this.players.some(p => p.rankOrder != null);
 
     const btnCalc = document.getElementById('btnCalculate');
-    btnCalc.disabled = !isReady && !hasResults;
     if (hasResults) {
-      btnCalc.innerHTML = `<span>👑 XEM KẾT QUẢ</span>`;
+      btnCalc.disabled = false;
+      btnCalc.className = 'btn-showdown-compact btn-new-round';
+      btnCalc.innerHTML = `<span>🔄 VÁN MỚI</span>`;
     } else {
-      btnCalc.innerHTML = isReady ? `<span>👑 SO BÀI NGAY</span>` : `<span>👑 Chưa đủ lá</span>`;
+      btnCalc.className = 'btn-showdown-compact';
+      btnCalc.disabled = !isReady;
+      btnCalc.innerHTML = isReady ? `<span>👑 SO BÀI</span>` : `<span>👑 Chưa đủ lá</span>`;
     }
 
     // Turn indicator
@@ -1893,11 +2128,27 @@ class AppController {
       const p = this.players[item.index];
       p.rankOrder = item.rank;
       p.score = item.scoreDelta;
-      p.resultTitle = item.result.isU ? "🎉 Ù (0 điểm)" : (item.result.isMom ? `💀 Móm / Cháy (${item.result.deadwoodScore}đ)` : `${item.result.deadwoodScore} điểm rác (${item.result.phoms.length} phỏm)`);
+      if (item.result.isUTron) {
+        p.resultTitle = "🎉 Ù TRÒN 10 LÁ";
+      } else if (item.result.isUKhan) {
+        p.resultTitle = "🎉 Ù KHAN";
+      } else if (item.result.isU) {
+        p.resultTitle = "🎉 Ù (0 điểm rác)";
+      } else if (item.result.isMom) {
+        p.resultTitle = `💀 Móm / Cháy (${item.result.deadwoodScore}đ)`;
+      } else {
+        p.resultTitle = `${item.result.deadwoodScore} điểm rác (${item.result.phoms.length} phỏm)`;
+      }
       p.resultDetail = item.result.summary;
     });
 
     const winners = this.players.filter(p => p.rankOrder === 1);
+    if (winners.length > 0) {
+      const wIdx = this.players.findIndex(p => p.rankOrder === 1);
+      if (wIdx !== -1) {
+        this.lastPhomWinnerIndex = wIdx;
+      }
+    }
     if (winners.length > 1) {
       document.getElementById('bannerWinner').innerHTML = `
         👑 <strong>Đồng Hạng 1</strong>: ${winners.map(w => w.name).join(', ')} (Hòa điểm với ${winners[0].resultTitle})!

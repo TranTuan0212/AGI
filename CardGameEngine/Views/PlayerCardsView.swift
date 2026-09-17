@@ -11,7 +11,10 @@ public struct PlayerCardsView: View {
         VStack(alignment: .leading, spacing: 6) {
             // Community Cards (If applicable)
             if viewModel.gameType.communityCardsCount > 0 {
-                let isCommSelected = viewModel.inputMode == .manual && viewModel.isSelectingCommunity && !viewModel.hasCalculatedResults
+                let allPlayersFull = viewModel.players.indices.allSatisfy { viewModel.players[$0].cards.count >= viewModel.targetCards(for: $0) }
+                let commNeedsCards = viewModel.communityCards.count < viewModel.gameType.communityCardsCount
+                let isCommSelected = commNeedsCards && !viewModel.hasCalculatedResults && (viewModel.isSelectingCommunity || allPlayersFull)
+                
                 VStack(alignment: .leading, spacing: 3) {
                     HStack {
                         Label("Bài Chung", systemImage: "rectangle.stack.fill")
@@ -44,7 +47,7 @@ public struct PlayerCardsView: View {
                             }
                             
                             // Placeholders
-                            let remaining = viewModel.gameType.communityCardsCount - viewModel.communityCards.count
+                            let remaining = max(0, viewModel.gameType.communityCardsCount - viewModel.communityCards.count)
                             if remaining > 0 {
                                 ForEach(0..<remaining, id: \.self) { _ in
                                     CardPlaceholderView()
@@ -70,12 +73,17 @@ public struct PlayerCardsView: View {
             }
             
             // Player mats
+            let allPlayersFull = viewModel.players.indices.allSatisfy { viewModel.players[$0].cards.count >= viewModel.targetCards(for: $0) }
+            let commNeedsCards = viewModel.gameType.communityCardsCount > 0 && viewModel.communityCards.count < viewModel.gameType.communityCardsCount
+            let isCommActive = commNeedsCards && !viewModel.hasCalculatedResults && (viewModel.isSelectingCommunity || allPlayersFull)
+
             VStack(spacing: 5) {
                 ForEach(0..<viewModel.players.count, id: \.self) { idx in
                     let player = viewModel.players[idx]
+                    let target = viewModel.targetCards(for: idx)
                     let isWinner = viewModel.hasCalculatedResults && player.rankOrder == 1
-                    let isCurrentRoundRobin = viewModel.inputMode == .roundRobin && viewModel.roundRobinPointer == idx && !viewModel.hasCalculatedResults
-                    let isManualSelected = viewModel.inputMode == .manual && viewModel.selectedPlayerIndex == idx && !viewModel.hasCalculatedResults
+                    let isCurrentRoundRobin = viewModel.inputMode == .roundRobin && viewModel.roundRobinPointer == idx && !viewModel.hasCalculatedResults && !allPlayersFull
+                    let isManualSelected = viewModel.inputMode == .manual && viewModel.selectedPlayerIndex == idx && !viewModel.isSelectingCommunity && !viewModel.hasCalculatedResults && !isCommActive
                     let isHighlight = isCurrentRoundRobin || isManualSelected || isWinner
                     
                     VStack(alignment: .leading, spacing: 3) {
@@ -99,6 +107,22 @@ public struct PlayerCardsView: View {
                                 }
                             }
                             .buttonStyle(PlainButtonStyle())
+
+                            if viewModel.gameType == .phom9 && !viewModel.hasCalculatedResults {
+                                let is10 = target == 10
+                                Button(action: {
+                                    viewModel.togglePhomTenCard(for: idx)
+                                }) {
+                                    Text(is10 ? "🎴 10 lá" : "9 lá")
+                                        .font(.system(size: 9, weight: .bold))
+                                        .foregroundColor(is10 ? .white : .secondary)
+                                        .padding(.horizontal, 5)
+                                        .padding(.vertical, 2)
+                                        .background(is10 ? Color.orange : Color.gray.opacity(0.18))
+                                        .cornerRadius(4)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
 
                             if let rank = player.rankOrder {
                                 let isTie = viewModel.players.filter({ $0.rankOrder == rank }).count > 1
@@ -141,9 +165,9 @@ public struct PlayerCardsView: View {
                             Spacer()
                             
                             // Card counter
-                            Text("\(player.cards.count)/\(viewModel.gameType.cardsPerPlayer)")
+                            Text("\(player.cards.count)/\(target)")
                                 .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(player.cards.count == viewModel.gameType.cardsPerPlayer ? .blue : .secondary)
+                                .foregroundColor(player.cards.count == target ? .blue : .secondary)
                         }
                         
                         // Cards display
@@ -156,8 +180,8 @@ public struct PlayerCardsView: View {
                                 }
                                 
                                 // Placeholders (show up to 6 placeholders to save space)
-                                let missing = viewModel.gameType.cardsPerPlayer - player.cards.count
-                                let showCount = min(missing, 6)
+                                let missing = target - player.cards.count
+                                let showCount = max(0, min(missing, 6))
                                 if showCount > 0 {
                                     ForEach(0..<showCount, id: \.self) { _ in
                                         CardPlaceholderView()

@@ -487,6 +487,239 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE ===\n');
   assert(app.isReady() === true, 'Con trỏ: Toàn bộ các tụ đã đủ bài và sẵn sàng so bài');
 }
 
+// 14. Test Phỏm: Ù Khan (9 lá không có cạ) & Luật Miền Nam (Móm -4 chi)
+{
+  // Bài Ù Khan: 9 lá hoàn toàn không cạ (không cùng số, không cùng chất gần nhau)
+  const uKhanCards = [
+    { id: '2h', rank: 2, suit: 'hearts', sym: '2', suitIcon: '♥' },
+    { id: '5h', rank: 5, suit: 'hearts', sym: '5', suitIcon: '♥' },
+    { id: '8h', rank: 8, suit: 'hearts', sym: '8', suitIcon: '♥' },
+    { id: '3d', rank: 3, suit: 'diamonds', sym: '3', suitIcon: '♦' },
+    { id: '6d', rank: 6, suit: 'diamonds', sym: '6', suitIcon: '♦' },
+    { id: '9d', rank: 9, suit: 'diamonds', sym: '9', suitIcon: '♦' },
+    { id: '4c', rank: 4, suit: 'clubs', sym: '4', suitIcon: '♣' },
+    { id: '7c', rank: 7, suit: 'clubs', sym: '7', suitIcon: '♣' },
+    { id: '10s', rank: 10, suit: 'spades', sym: '10', suitIcon: '♠' }
+  ];
+  const resUKhan = PhomEvaluator.evaluate(uKhanCards);
+  assert(resUKhan.isU === true && resUKhan.isUKhan === true, 'Phỏm: Nhận diện chính xác Ù Khan (9 lá không cạ)');
+
+  // So sánh Ù Khan thắng người có điểm
+  const normalCards = [
+    { id: '2h', rank: 2, suit: 'hearts', sym: '2', suitIcon: '♥' },
+    { id: '3h', rank: 3, suit: 'hearts', sym: '3', suitIcon: '♥' },
+    { id: '4h', rank: 4, suit: 'hearts', sym: '4', suitIcon: '♥' },
+    { id: '5c', rank: 5, suit: 'clubs', sym: '5', suitIcon: '♣' },
+    { id: '6d', rank: 6, suit: 'diamonds', sym: '6', suitIcon: '♦' },
+    { id: '7s', rank: 7, suit: 'spades', sym: '7', suitIcon: '♠' },
+    { id: '8c', rank: 8, suit: 'clubs', sym: '8', suitIcon: '♣' },
+    { id: '9d', rank: 9, suit: 'diamonds', sym: '9', suitIcon: '♦' },
+    { id: '10s', rank: 10, suit: 'spades', sym: '10', suitIcon: '♠' }
+  ];
+  const momCards = [
+    { id: '2h', rank: 2, suit: 'hearts', sym: '2', suitIcon: '♥' },
+    { id: '3h', rank: 3, suit: 'hearts', sym: '3', suitIcon: '♥' }, // Có cạ 2-3♥ -> không phải Ù Khan
+    { id: '5d', rank: 5, suit: 'diamonds', sym: '5', suitIcon: '♦' },
+    { id: '7c', rank: 7, suit: 'clubs', sym: '7', suitIcon: '♣' },
+    { id: '9s', rank: 9, suit: 'spades', sym: '9', suitIcon: '♠' },
+    { id: 'Jc', rank: 11, suit: 'clubs', sym: 'J', suitIcon: '♣' },
+    { id: 'Qd', rank: 12, suit: 'diamonds', sym: 'Q', suitIcon: '♦' },
+    { id: 'Kh', rank: 13, suit: 'hearts', sym: 'K', suitIcon: '♥' },
+    { id: 'As', rank: 14, suit: 'spades', sym: 'A', suitIcon: '♠' }
+  ];
+
+  const ranked = PhomEvaluator.rankPlayers([
+    { name: 'Tụ 1', cards: uKhanCards },
+    { name: 'Tụ 2', cards: normalCards },
+    { name: 'Tụ 3', cards: momCards }
+  ]);
+
+  assert(ranked[0].name === 'Tụ 1' && ranked[0].rank === 1, 'Phỏm: Tụ Ù Khan đạt Hạng 1');
+  assert(ranked[0].scoreDelta === 12, 'Phỏm: Ù Khan nhận +6 chi từ mỗi người thua (2 người = +12 chi)');
+  assert(ranked[1].scoreDelta === -6 && ranked[2].scoreDelta === -6, 'Phỏm: Người thua đền 6 chi khi có Ù');
+}
+
+// 15. Test Phỏm: Ù Tròn 10 Lá (Thắng x2 = 12 chi) & Đánh 10 lá tự bỏ rác
+{
+  // 10 lá tạo 3 phỏm hoàn chỉnh (3-3-4 lá = 10 lá, 0 rác) -> Ù Tròn
+  const uTronCards = [
+    // Phỏm 1: 2♥ 3♥ 4♥
+    { id: '2h', rank: 2, suit: 'hearts', sym: '2', suitIcon: '♥' },
+    { id: '3h', rank: 3, suit: 'hearts', sym: '3', suitIcon: '♥' },
+    { id: '4h', rank: 4, suit: 'hearts', sym: '4', suitIcon: '♥' },
+    // Phỏm 2: 7♣ 7♦ 7♠
+    { id: '7c', rank: 7, suit: 'clubs', sym: '7', suitIcon: '♣' },
+    { id: '7d', rank: 7, suit: 'diamonds', sym: '7', suitIcon: '♦' },
+    { id: '7s', rank: 7, suit: 'spades', sym: '7', suitIcon: '♠' },
+    // Phỏm 3: 10♠ J♠ Q♠ K♠
+    { id: '10s', rank: 10, suit: 'spades', sym: '10', suitIcon: '♠' },
+    { id: '11s', rank: 11, suit: 'spades', sym: 'J', suitIcon: '♠' },
+    { id: '12s', rank: 12, suit: 'spades', sym: 'Q', suitIcon: '♠' },
+    { id: '13s', rank: 13, suit: 'spades', sym: 'K', suitIcon: '♠' }
+  ];
+
+  const resUTron = PhomEvaluator.evaluate(uTronCards);
+  assert(resUTron.isU === true && resUTron.isUTron === true, 'Phỏm: Nhận diện chính xác Ù Tròn 10 lá (0 rác)');
+
+  const otherCards = [
+    { id: '2c', rank: 2, suit: 'clubs', sym: '2', suitIcon: '♣' },
+    { id: '3c', rank: 3, suit: 'clubs', sym: '3', suitIcon: '♣' },
+    { id: '4c', rank: 4, suit: 'clubs', sym: '4', suitIcon: '♣' },
+    { id: '5h', rank: 5, suit: 'hearts', sym: '5', suitIcon: '♥' },
+    { id: '6d', rank: 6, suit: 'diamonds', sym: '6', suitIcon: '♦' },
+    { id: '8s', rank: 8, suit: 'spades', sym: '8', suitIcon: '♠' },
+    { id: '9c', rank: 9, suit: 'clubs', sym: '9', suitIcon: '♣' },
+    { id: '10d', rank: 10, suit: 'diamonds', sym: '10', suitIcon: '♦' },
+    { id: 'As', rank: 14, suit: 'spades', sym: 'A', suitIcon: '♠' }
+  ];
+
+  const rankedTron = PhomEvaluator.rankPlayers([
+    { name: 'Tụ Ù Tròn', cards: uTronCards },
+    { name: 'Tụ 2', cards: otherCards }
+  ]);
+  assert(rankedTron[0].scoreDelta === 12, 'Phỏm: Ù Tròn phạt x2 (thắng 12 chi/người)');
+  assert(rankedTron[1].scoreDelta === -12, 'Phỏm: Người thua bị phạt -12 chi khi đối thủ Ù Tròn');
+
+  // Test 10 lá không Ù tròn -> tự động bỏ 1 lá rác tối ưu
+  const tenCardsWithTrash = [
+    // Phỏm 2♥ 3♥ 4♥
+    { id: '2h', rank: 2, suit: 'hearts', sym: '2', suitIcon: '♥' },
+    { id: '3h', rank: 3, suit: 'hearts', sym: '3', suitIcon: '♥' },
+    { id: '4h', rank: 4, suit: 'hearts', sym: '4', suitIcon: '♥' },
+    // Phỏm 7♣ 7♦ 7♠
+    { id: '7c', rank: 7, suit: 'clubs', sym: '7', suitIcon: '♣' },
+    { id: '7d', rank: 7, suit: 'diamonds', sym: '7', suitIcon: '♦' },
+    { id: '7s', rank: 7, suit: 'spades', sym: '7', suitIcon: '♠' },
+    // Rác: 2 lá 2♣ (2đ) và K♠ (13đ) + 2 lá khác
+    { id: '2c', rank: 2, suit: 'clubs', sym: '2', suitIcon: '♣' },
+    { id: '3d', rank: 3, suit: 'diamonds', sym: '3', suitIcon: '♦' },
+    { id: '5s', rank: 5, suit: 'spades', sym: '5', suitIcon: '♠' },
+    { id: '13s', rank: 13, suit: 'spades', sym: 'K', suitIcon: '♠' } // Lá rác to nhất 13đ
+  ];
+  const res10Sub = PhomEvaluator.evaluate(tenCardsWithTrash);
+  assert(res10Sub.summary.includes('K♠'), 'Phỏm: Tự động bỏ lá rác tối ưu K♠ khi cầm 10 lá');
+}
+
+// 16. Test Poker: Tự Động Nhảy Lên Bài Chung khi Các Tụ Đủ 2 Lá
+{
+  const sandbox = {
+    window: { addEventListener: () => {} },
+    document: {
+      getElementById: () => ({ style: {}, innerHTML: '', appendChild: () => {}, classList: { add: () => {}, remove: () => {} }, querySelector: () => ({ addEventListener: () => {} }), addEventListener: () => {} }),
+      querySelectorAll: () => [],
+      createElement: () => ({ style: {}, dataset: {}, appendChild: () => {}, addEventListener: () => {}, querySelector: () => ({ addEventListener: () => {} }), setAttribute: () => {} })
+    },
+    localStorage: { getItem: () => null, setItem: () => {} },
+    console: console,
+    setTimeout: setTimeout
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(appCode, sandbox);
+  const AppCtrl = vm.runInContext('AppController', sandbox);
+  const appPoker = new AppCtrl();
+  appPoker.currentGameType = 'texasHoldem';
+  appPoker.initPlayers(); // 3 players, 2 cards each, 5 community
+
+  // Chia lần lượt 6 lá cho 3 tụ
+  const cards6 = [
+    { id: 'Ah', rank: 14, suit: 'hearts', sym: 'A', suitIcon: '♥' },
+    { id: 'Kh', rank: 13, suit: 'hearts', sym: 'K', suitIcon: '♥' },
+    { id: 'Qh', rank: 12, suit: 'hearts', sym: 'Q', suitIcon: '♥' },
+    { id: 'Jh', rank: 11, suit: 'hearts', sym: 'J', suitIcon: '♥' },
+    { id: '10h', rank: 10, suit: 'hearts', sym: '10', suitIcon: '♥' },
+    { id: '9h', rank: 9, suit: 'hearts', sym: '9', suitIcon: '♥' }
+  ];
+  cards6.forEach(c => appPoker.onCardClick(c));
+
+  assert(appPoker.players[0].cards.length === 2 && appPoker.players[1].cards.length === 2 && appPoker.players[2].cards.length === 2, 'Poker: Cả 3 tụ đã đủ 2 lá bài tẩy');
+  assert(appPoker.isSelectingCommunity === true, 'Poker: Tự động chuyển trạng thái isSelectingCommunity sang true');
+
+  // Nhập lá thứ 7 -> Tự động rơi vào Bài Chung
+  appPoker.onCardClick({ id: '2c', rank: 2, suit: 'clubs', sym: '2', suitIcon: '♣' });
+  assert(appPoker.communityCards.length === 1 && appPoker.communityCards[0].id === '2c', 'Poker: Lá thứ 7 tự động vào Bài Chung');
+}
+
+// 17. Test Phỏm: Bấm 'Ván Mới' tự động gán 10 lá và lượt đi đầu cho người về Nhất ván trước
+{
+  const sandbox = {
+    window: { addEventListener: () => {} },
+    document: {
+      getElementById: () => ({ style: {}, innerHTML: '', appendChild: () => {}, classList: { add: () => {}, remove: () => {} }, querySelector: () => ({ addEventListener: () => {} }), addEventListener: () => {} }),
+      querySelectorAll: () => [],
+      createElement: () => ({ style: {}, dataset: {}, appendChild: () => {}, addEventListener: () => {}, querySelector: () => ({ addEventListener: () => {} }), setAttribute: () => {} })
+    },
+    localStorage: { getItem: () => null, setItem: () => {} },
+    console: console,
+    setTimeout: setTimeout
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(appCode, sandbox);
+  const AppCtrl = vm.runInContext('AppController', sandbox);
+  const app = new AppCtrl();
+  app.currentGameType = 'phom9';
+  app.playerCount = 3;
+  app.initPlayers();
+
+  // Giả lập kết quả ván 1: Tụ 2 (index 1) về Nhất (Ù)
+  app.players[0].cards = [
+    { id: '2h', rank: 2, suit: 'hearts', sym: '2', suitIcon: '♥' },
+    { id: '3h', rank: 3, suit: 'hearts', sym: '3', suitIcon: '♥' },
+    { id: '4h', rank: 4, suit: 'hearts', sym: '4', suitIcon: '♥' },
+    { id: '5c', rank: 5, suit: 'clubs', sym: '5', suitIcon: '♣' },
+    { id: '6d', rank: 6, suit: 'diamonds', sym: '6', suitIcon: '♦' },
+    { id: '7s', rank: 7, suit: 'spades', sym: '7', suitIcon: '♠' },
+    { id: '8c', rank: 8, suit: 'clubs', sym: '8', suitIcon: '♣' },
+    { id: '9d', rank: 9, suit: 'diamonds', sym: '9', suitIcon: '♦' },
+    { id: '10s', rank: 10, suit: 'spades', sym: '10', suitIcon: '♠' }
+  ];
+  // Tụ 2 Ù Tròn 10 lá
+  app.players[1].cards = [
+    { id: '2c', rank: 2, suit: 'clubs', sym: '2', suitIcon: '♣' },
+    { id: '3c', rank: 3, suit: 'clubs', sym: '3', suitIcon: '♣' },
+    { id: '4c', rank: 4, suit: 'clubs', sym: '4', suitIcon: '♣' },
+    { id: '7h', rank: 7, suit: 'hearts', sym: '7', suitIcon: '♥' },
+    { id: '7d', rank: 7, suit: 'diamonds', sym: '7', suitIcon: '♦' },
+    { id: '7s', rank: 7, suit: 'spades', sym: '7', suitIcon: '♠' },
+    { id: '10c', rank: 10, suit: 'clubs', sym: '10', suitIcon: '♣' },
+    { id: 'Jc', rank: 11, suit: 'clubs', sym: 'J', suitIcon: '♣' },
+    { id: 'Qc', rank: 12, suit: 'clubs', sym: 'Q', suitIcon: '♣' },
+    { id: 'Kc', rank: 13, suit: 'clubs', sym: 'K', suitIcon: '♣' }
+  ];
+  app.players[2].cards = [
+    { id: '5h', rank: 5, suit: 'hearts', sym: '5', suitIcon: '♥' },
+    { id: '6h', rank: 6, suit: 'hearts', sym: '6', suitIcon: '♥' },
+    { id: '7h', rank: 7, suit: 'hearts', sym: '7', suitIcon: '♥' },
+    { id: '8d', rank: 8, suit: 'diamonds', sym: '8', suitIcon: '♦' },
+    { id: '9s', rank: 9, suit: 'spades', sym: '9', suitIcon: '♠' },
+    { id: '10h', rank: 10, suit: 'hearts', sym: '10', suitIcon: '♥' },
+    { id: 'Jh', rank: 11, suit: 'hearts', sym: 'J', suitIcon: '♥' },
+    { id: 'Qh', rank: 12, suit: 'hearts', sym: 'Q', suitIcon: '♥' },
+    { id: 'Kh', rank: 13, suit: 'hearts', sym: 'K', suitIcon: '♥' }
+  ];
+
+  // Tính kết quả ván 1
+  app.calculate();
+
+  assert(app.players[1].rankOrder === 1, 'Ván Mới: Tụ 2 đạt Hạng 1 (Nhất ván 1)');
+  assert(app.lastPhomWinnerIndex === 1, 'Ván Mới: Hệ thống ghi nhận Tụ 2 (index 1) là người chiến thắng');
+
+  // Bấm nút "Ván Mới"
+  app.startNewRound();
+
+  // Kiểm tra trạng thái ván 2
+  assert(app.players.every(p => p.cards.length === 0), 'Ván Mới: Tất cả bài trên bàn đã được thu hồi');
+  assert(app.players.every(p => p.rankOrder === null), 'Ván Mới: Kết quả ván cũ đã được xóa sạch');
+  assert(app.phomTenCardPlayerIndex === 1, 'Ván Mới: Tụ 2 (người thắng ván trước) TỰ ĐỘNG LÀ 10 LÁ');
+  assert(app.targetCards(1) === 10, 'Ván Mới: targetCards(1) của Tụ 2 là 10 lá');
+  assert(app.targetCards(0) === 9 && app.targetCards(2) === 9, 'Ván Mới: Các tụ còn lại target là 9 lá');
+  assert(app.roundRobinPointer === 1, 'Ván Mới: Con trỏ chia bài TỰ ĐỘNG CHUYỂN VỀ TỤ 2 để nhận lá đi đầu tiên');
+
+  // Bấm nút Xóa thùng rác (reset sạch)
+  app.resetTable();
+  assert(app.phomTenCardPlayerIndex === null, 'Nút Xóa: Reset hoàn toàn cả tụ 10 lá về mặc định');
+  assert(app.roundRobinPointer === 0, 'Nút Xóa: Con trỏ chia bài quay về Tụ 1');
+}
+
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);
 
 
