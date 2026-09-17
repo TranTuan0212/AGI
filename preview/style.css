@@ -682,6 +682,18 @@ body {
   color: #1C1C1E;
 }
 
+.mini-card.rank-only.red {
+  color: #E02020;
+}
+
+.mini-card.rank-only.blue {
+  color: #007AFF;
+}
+
+.mini-card.rank-only.black {
+  color: #1C1C1E;
+}
+
 .mini-card.rank-only .mini-card-rank {
   font-size: 16px;
   font-weight: 800;

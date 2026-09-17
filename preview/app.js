@@ -1305,7 +1305,8 @@ class AppController {
   createMiniCard(card) {
     const mini = document.createElement('div');
     if (card.isRankOnly) {
-      mini.className = `mini-card rank-only ${card.isRed ? 'red' : 'black'}`;
+      let colorCls = card.sym === 'A' ? 'red' : (['J', 'Q', 'K'].includes(card.sym) ? 'blue' : 'black');
+      mini.className = `mini-card rank-only ${colorCls}`;
       mini.innerHTML = `
         <span class="mini-card-rank">${card.sym}</span>
       `;

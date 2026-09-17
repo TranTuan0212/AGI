@@ -216,7 +216,7 @@ struct MiniCardView: View {
             if card.isRankOnly {
                 Text(card.rank.displaySymbol)
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(card.rank == .ace ? .red : (card.rank == .jack || card.rank == .queen || card.rank == .king ? .blue : .primary))
+                    .foregroundColor(card.rank == .ace ? .red : (card.rank == .jack || card.rank == .queen || card.rank == .king ? .blue : .black))
                     .frame(width: 32, height: 40)
                     .background(Color.white)
                     .cornerRadius(5)
