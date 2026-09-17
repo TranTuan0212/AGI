@@ -1485,11 +1485,11 @@ class AppController {
     const btnCalc = document.getElementById('btnCalculate');
     if (hasResults) {
       btnCalc.disabled = false;
-      btnCalc.className = 'btn-showdown-full btn-new-round';
+      btnCalc.className = 'btn-showdown-main btn-new-round';
       btnCalc.innerHTML = `<span>🔄 VÁN MỚI</span>`;
     } else {
       btnCalc.disabled = false;
-      btnCalc.className = 'btn-showdown-full';
+      btnCalc.className = 'btn-showdown-main';
       btnCalc.innerHTML = `<span>❓ KHÔNG THẤY (BÀI ẨN)</span>`;
     }
 

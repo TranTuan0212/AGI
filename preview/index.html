@@ -71,16 +71,13 @@
 
     <!-- LOWER SECTION: Fixed 52-Card Keypad & Actions (Nhập ở dưới) -->
     <section class="lower-deck-panel">
-      <!-- Action Toolbar right above 52 cards: 2 Rows -->
-      <div class="deck-action-bar-top">
-        <button id="btnUndo" class="mini-action-btn">↩️ Hoàn tác</button>
-        <button id="btnHistory" class="mini-action-btn highlight">📊 Lịch sử</button>
-        <button id="btnReset" class="mini-action-btn danger">🗑️ Làm mới</button>
-      </div>
-      <div class="deck-action-bar-main">
-        <button id="btnCalculate" class="btn-showdown-full">
+      <!-- Action Toolbar right above 52 cards: 1 Balanced Row -->
+      <div class="deck-action-bar-row">
+        <button id="btnUndo" class="btn-tool-side">↩️ Hoàn tác</button>
+        <button id="btnCalculate" class="btn-showdown-main">
           <span>❓ KHÔNG THẤY (BÀI ẨN)</span>
         </button>
+        <button id="btnReset" class="btn-tool-side danger">🗑️ Làm mới</button>
       </div>
 
       <!-- 52-Card Deck Grid (Fixed at the bottom like a card keyboard) -->
