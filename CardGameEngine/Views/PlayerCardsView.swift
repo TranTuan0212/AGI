@@ -108,22 +108,6 @@ public struct PlayerCardsView: View {
                             }
                             .buttonStyle(PlainButtonStyle())
 
-                            if viewModel.gameType == .phom9 && !viewModel.hasCalculatedResults {
-                                let is10 = target == 10
-                                Button(action: {
-                                    viewModel.togglePhomTenCard(for: idx)
-                                }) {
-                                    Text(is10 ? "🎴 10 lá" : "9 lá")
-                                        .font(.system(size: 9, weight: .bold))
-                                        .foregroundColor(is10 ? .white : .secondary)
-                                        .padding(.horizontal, 5)
-                                        .padding(.vertical, 2)
-                                        .background(is10 ? Color.orange : Color.gray.opacity(0.18))
-                                        .cornerRadius(4)
-                                }
-                                .buttonStyle(PlainButtonStyle())
-                            }
-
                             if let rank = player.rankOrder {
                                 let isTie = viewModel.players.filter({ $0.rankOrder == rank }).count > 1
                                 let badgeText = rank == 1 ? (isTie ? "👑 Đ.Hạng 1" : "👑 Nhất") :

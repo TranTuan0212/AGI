@@ -28,22 +28,6 @@ const RANKS = [
 ];
 
 const GAME_CONFIGS = {
-  phom9: {
-    name: "Phỏm 9 lá (Tá Lả)",
-    cardsPerPlayer: 9,
-    community: 0,
-    minPlayers: 2,
-    maxPlayers: 4,
-    desc: "9 lá/người (2-4 người). Ghép các phỏm dọc (sảnh cùng chất) hoặc phỏm ngang (3-4 lá cùng số). Ai Ù (0 lá rác) thắng tuyệt đối. Tính điểm các lá rác còn lại (A=1, J=11, Q=12, K=13), ít điểm nhất thắng; không có phỏm bị Móm (Cháy)."
-  },
-  binh13: {
-    name: "Binh 13 lá (Mậu Binh / Chợ Lớn)",
-    cardsPerPlayer: 13,
-    community: 0,
-    minPlayers: 2,
-    maxPlayers: 4,
-    desc: "13 lá/người, xếp 3 chi (3-5-5), luật Chi 3 ≥ Chi 2 ≥ Chi 1 (sai bị lủng x2), tính điểm từng chi + thưởng hàng, đè hàng x2, sập hầm x2, thắng trắng (Sảnh rồng, Đồng hoa, 6 đôi...)."
-  },
   binh9: {
     name: "Binh 9 lá (3 chi x 3 lá)",
     cardsPerPlayer: 9,
@@ -478,754 +462,190 @@ class XiDachEvaluator {
   }
 }
 
-class Binh13Evaluator {
-  static checkInstantWin(cards) {
-    if (!cards || cards.length !== 13) return null;
-    const sorted = [...cards].sort((a, b) => a.rank - b.rank);
-    const ranks = sorted.map(c => c.rank);
-    const suits = sorted.map(c => c.suit);
-
-    const isDragon = ranks.every((r, idx) => r === idx + 2);
-    // 1. Rồng cuốn: 2->A cùng chất
-    if (isDragon && suits.every(s => s === suits[0])) {
-      return { name: "Thắng trắng: Rồng Cuốn (24 chi)", bonus: 24, rank: 7 };
+// MARK: - Binh 9 Lá Evaluator
+class Binh9Evaluator {
+  static evaluateChi(cards) {
+    if (!cards || cards.length !== 3) {
+      return { type: 1, primaryRank: 0, kickers: [], cards: cards || [], desc: "Không đủ bài" };
     }
-    // 2. Sảnh rồng: 2->A khác chất
-    if (isDragon) {
-      return { name: "Thắng trắng: Sảnh Rồng (12 chi)", bonus: 12, rank: 6 };
-    }
-    // 3. Đồng hoa 13 lá (toàn đỏ hoặc toàn đen)
-    const allRed = suits.every(s => s === 'hearts' || s === 'diamonds');
-    const allBlack = suits.every(s => s === 'spades' || s === 'clubs');
-    if (allRed || allBlack) {
-      return { name: "Thắng trắng: Đồng Hoa 13 Lá (8 chi)", bonus: 8, rank: 5 };
-    }
-
-    const counts = {};
-    ranks.forEach(r => { counts[r] = (counts[r] || 0) + 1; });
-    const cVals = Object.values(counts);
-    const triples = cVals.filter(v => v >= 3).length;
-    const pairs = cVals.reduce((acc, v) => acc + Math.floor(v / 2), 0);
-
-    // 4. 5 đôi 1 sám
-    if (triples === 1 && cVals.filter(v => v === 2).length === 5) {
-      return { name: "Thắng trắng: 5 Đôi 1 Sám (6 chi)", bonus: 6, rank: 4 };
-    }
-    // 5. Lục phé bôn (6 đôi)
-    if (pairs === 6) {
-      return { name: "Thắng trắng: Lục Phé Bôn (6 Đôi) (6 chi)", bonus: 6, rank: 3 };
-    }
-
-    return null;
-  }
-
-  static evaluateFront(cards) {
     const sorted = [...cards].sort((a, b) => b.rank - a.rank);
     const ranks = sorted.map(c => c.rank);
-    const sym = r => RANKS.find(x => x.raw === r)?.sym || r;
+    const sym = r => {
+      const found = RANKS.find(x => x.raw === r);
+      return found ? found.sym : `${r}`;
+    };
 
+    // 1. Sám cô
     if (ranks[0] === ranks[1] && ranks[1] === ranks[2]) {
-      return { type: 3, primary: ranks[0], kickers: [], desc: `Sám cô ${sym(ranks[0])} (+3 chi)` };
+      return {
+        type: 4,
+        primaryRank: ranks[0],
+        kickers: [],
+        cards: sorted,
+        desc: `Sám cô ${sym(ranks[0])}`
+      };
     }
+
+    // 2. Sảnh
+    if (ranks[0] - ranks[1] === 1 && ranks[1] - ranks[2] === 1) {
+      return {
+        type: 3,
+        primaryRank: ranks[0],
+        kickers: [],
+        cards: sorted,
+        desc: `Sảnh đỉnh ${sym(ranks[0])}`
+      };
+    }
+    if (ranks[0] === 14 && ranks[1] === 3 && ranks[2] === 2) {
+      return {
+        type: 3,
+        primaryRank: 3,
+        kickers: [],
+        cards: sorted,
+        desc: "Sảnh bánh xe (A-2-3)"
+      };
+    }
+
+    // 3. Đôi
     if (ranks[0] === ranks[1]) {
-      return { type: 2, primary: ranks[0], kickers: [ranks[2]], desc: `Đôi ${sym(ranks[0])} (Kicker ${sym(ranks[2])})` };
+      return {
+        type: 2,
+        primaryRank: ranks[0],
+        kickers: [ranks[2]],
+        cards: sorted,
+        desc: `Đôi ${sym(ranks[0])} (Kicker ${sym(ranks[2])})`
+      };
     }
     if (ranks[1] === ranks[2]) {
-      return { type: 2, primary: ranks[1], kickers: [ranks[0]], desc: `Đôi ${sym(ranks[1])} (Kicker ${sym(ranks[0])})` };
+      return {
+        type: 2,
+        primaryRank: ranks[1],
+        kickers: [ranks[0]],
+        cards: sorted,
+        desc: `Đôi ${sym(ranks[1])} (Kicker ${sym(ranks[0])})`
+      };
     }
-    return { type: 1, primary: ranks[0], kickers: [ranks[1], ranks[2]], desc: `Mậu thầu đỉnh ${sym(ranks[0])}` };
+
+    // 4. Mậu thầu
+    return {
+      type: 1,
+      primaryRank: ranks[0],
+      kickers: [ranks[1], ranks[2]],
+      cards: sorted,
+      desc: `Mậu thầu đỉnh ${sym(ranks[0])}`
+    };
   }
 
-  static compareFront(a, b) {
-    if (a.type !== b.type) return a.type - b.type;
-    if (a.primary !== b.primary) return a.primary - b.primary;
-    for (let i = 0; i < Math.min(a.kickers.length, b.kickers.length); i++) {
-      if (a.kickers[i] !== b.kickers[i]) return a.kickers[i] - b.kickers[i];
+  static compareChi(s1, s2) {
+    if (s1.type !== s2.type) return s1.type - s2.type;
+    if (s1.primaryRank !== s2.primaryRank) return s1.primaryRank - s2.primaryRank;
+    const len = Math.min(s1.kickers.length, s2.kickers.length);
+    for (let i = 0; i < len; i++) {
+      if (s1.kickers[i] !== s2.kickers[i]) return s1.kickers[i] - s2.kickers[i];
     }
     return 0;
   }
 
-  static isMiddleGTEFront(middle, front) {
-    if (front.type === 3) {
-      if (middle.type < 4) return false;
-      if (middle.type === 4) return middle.tieBreakers[0] >= front.primary;
-      return true;
-    }
-    if (front.type === 2) {
-      if (middle.type < 2) return false;
-      if (middle.type === 2) {
-        if (middle.tieBreakers[0] > front.primary) return true;
-        if (middle.tieBreakers[0] < front.primary) return false;
-        return middle.tieBreakers[1] >= (front.kickers[0] || 0);
-      }
-      return true;
-    }
-    if (middle.type > 1) return true;
-    return middle.tieBreakers[0] >= front.primary;
-  }
-
   static autoArrange(cards) {
-    // Nhóm A: Instant-check trực tiếp từ 13 lá thô (không cần xếp chi)
-    const instant = this.checkInstantWin(cards);
-    if (instant) {
-      const sorted = [...cards].sort((a, b) => b.rank - a.rank);
-      return {
-        front: sorted.slice(0, 3),
-        middle: sorted.slice(3, 8),
-        back: sorted.slice(8, 13),
-        frontScore: this.evaluateFront(sorted.slice(0, 3)),
-        middleScore: PokerEvaluator.evaluate5(sorted.slice(3, 8)),
-        backScore: PokerEvaluator.evaluate5(sorted.slice(8, 13)),
-        isLung: false,
-        instantWin: instant
-      };
+    if (!cards || cards.length !== 9) {
+      const empty = this.evaluateChi([]);
+      return { chi1: [], chi2: [], chi3: [], score1: empty, score2: empty, score3: empty, isLung: true, instantWin: null };
     }
 
-    const indices = Array.from({ length: 13 }, (_, i) => i);
-    const back5Indices = getCombinations(indices, 5);
-    let best = null;
+    const indices = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+    const all3Indices = getCombinations(indices, 3);
+    let bestArrangement = null;
     let bestWeight = -999999;
-    let foundGroupBInstant = null;
 
-    for (const bIdx of back5Indices) {
-      const backCards = bIdx.map(i => cards[i]);
-      const backScore = PokerEvaluator.evaluate5(backCards);
+    for (const c1Indices of all3Indices) {
+      const c1Cards = c1Indices.map(i => cards[i]);
+      const s1 = this.evaluateChi(c1Cards);
 
-      const rem1 = indices.filter(i => !bIdx.includes(i));
-      const mid5Indices = getCombinations(rem1, 5);
+      const rem1 = indices.filter(i => !c1Indices.includes(i));
+      const remCombos = getCombinations(rem1, 3);
 
-      for (const mIdx of mid5Indices) {
-        const midCards = mIdx.map(i => cards[i]);
-        const midScore = PokerEvaluator.evaluate5(midCards);
+      for (const c2Indices of remCombos) {
+        const c2Cards = c2Indices.map(i => cards[i]);
+        const s2 = this.evaluateChi(c2Cards);
 
-        // Back >= Middle
-        if (PokerEvaluator.compareScores(backScore, midScore) < 0) continue;
+        if (this.compareChi(s1, s2) < 0) continue; // Chi 1 >= Chi 2
 
-        const fIdx = rem1.filter(i => !mIdx.includes(i));
-        const frontCards = fIdx.map(i => cards[i]);
-        const frontScore = this.evaluateFront(frontCards);
+        const c3Indices = rem1.filter(i => !c2Indices.includes(i));
+        const c3Cards = c3Indices.map(i => cards[i]);
+        const s3 = this.evaluateChi(c3Cards);
 
-        // Middle >= Front
-        if (!this.isMiddleGTEFront(midScore, frontScore)) continue;
+        if (this.compareChi(s2, s3) < 0) continue; // Chi 2 >= Chi 3
 
-        // Nhóm B: Kiểm tra Ba Cái Thùng / Ba Cái Sảnh phụ thuộc vào cách xếp chi hợp lệ
-        const isFrontFlush = (frontCards[0].suit === frontCards[1].suit && frontCards[1].suit === frontCards[2].suit);
-        const isMidFlush = (midScore.type === 6 || midScore.type >= 9);
-        const isBackFlush = (backScore.type === 6 || backScore.type >= 9);
-
-        const sortedF = [...frontCards].sort((a, b) => b.rank - a.rank);
-        const rf = sortedF.map(c => c.rank);
-        const isFrontStraight = (rf[0] - rf[1] === 1 && rf[1] - rf[2] === 1) || (rf[0] === 14 && rf[1] === 3 && rf[2] === 2);
-        const isMidStraight = (midScore.type === 5 || midScore.type >= 9);
-        const isBackStraight = (backScore.type === 5 || backScore.type >= 9);
-
-        let groupBWin = null;
-        if (isBackFlush && isMidFlush && isFrontFlush) {
-          groupBWin = { name: "Thắng trắng: Ba Cái Thùng (3 chi)", bonus: 3, rank: 2 };
-        } else if (isBackStraight && isMidStraight && isFrontStraight) {
-          groupBWin = { name: "Thắng trắng: Ba Cái Sảnh (3 chi)", bonus: 3, rank: 1 };
+        let instant = null;
+        if (s1.type === 4 && s2.type === 4 && s3.type === 4) {
+          instant = "Thắng trắng: Ba Sám Cô";
+        } else if (s1.type === 3 && s2.type === 3 && s3.type === 3) {
+          instant = "Thắng trắng: Ba Sảnh";
         }
 
-        if (groupBWin) {
-          const arrGB = {
-            front: frontCards,
-            middle: midCards,
-            back: backCards,
-            frontScore,
-            middleScore: midScore,
-            backScore,
-            isLung: false,
-            instantWin: groupBWin
-          };
-          if (!foundGroupBInstant || groupBWin.rank > foundGroupBInstant.instantWin.rank) {
-            foundGroupBInstant = arrGB;
-          }
-        }
-
-        let weight = backScore.type * 1000 + (backScore.tieBreakers[0] || 0) * 10;
-        weight += midScore.type * 1500 + (midScore.tieBreakers[0] || 0) * 15;
-        weight += frontScore.type * 2000 + frontScore.primary * 20;
-
-        if (frontScore.type === 3) weight += 5000;
-        if (midScore.type === 7) weight += 4000;
-        if (midScore.type === 8) weight += 15000;
-        if (backScore.type === 8) weight += 8000;
-        if (backScore.type >= 9) weight += 10000;
+        let weight = s1.type * 300 + s1.primaryRank * 10;
+        weight += s2.type * 200 + s2.primaryRank * 10;
+        weight += s3.type * 100 + s3.primaryRank * 10;
+        if (instant) weight += 50000;
 
         if (weight > bestWeight) {
           bestWeight = weight;
-          best = {
-            front: frontCards,
-            middle: midCards,
-            back: backCards,
-            frontScore,
-            middleScore: midScore,
-            backScore,
-            isLung: false,
-            instantWin: null
+          bestArrangement = {
+            chi1: c1Cards, chi2: c2Cards, chi3: c3Cards,
+            score1: s1, score2: s2, score3: s3,
+            isLung: false, instantWin: instant
           };
         }
       }
     }
 
-    if (foundGroupBInstant) return foundGroupBInstant;
-    if (best) return best;
+    if (bestArrangement) return bestArrangement;
 
-    // Fallback: Lung
+    // Fallback lung
     const sorted = [...cards].sort((a, b) => b.rank - a.rank);
+    const c1 = sorted.slice(0, 3);
+    const c2 = sorted.slice(3, 6);
+    const c3 = sorted.slice(6, 9);
     return {
-      front: sorted.slice(0, 3),
-      middle: sorted.slice(3, 8),
-      back: sorted.slice(8, 13),
-      frontScore: this.evaluateFront(sorted.slice(0, 3)),
-      middleScore: PokerEvaluator.evaluate5(sorted.slice(3, 8)),
-      backScore: PokerEvaluator.evaluate5(sorted.slice(8, 13)),
-      isLung: true,
-      instantWin: null
+      chi1: c1, chi2: c2, chi3: c3,
+      score1: this.evaluateChi(c1), score2: this.evaluateChi(c2), score3: this.evaluateChi(c3),
+      isLung: true, instantWin: null
     };
-  }
-
-  static calculateInherentBonus(arr) {
-    if (arr.isLung || arr.instantWin) return { total: 0, detail: "" };
-    let bonus = 0;
-    const parts = [];
-    if (arr.frontScore.type === 3) {
-      bonus += 3;
-      parts.push("Sám chi đầu (+3 chi)");
-    }
-    if (arr.middleScore.type === 7) {
-      bonus += 2;
-      parts.push("Cù lũ chi 2 (+2 chi)");
-    } else if (arr.middleScore.type === 8) {
-      bonus += 8;
-      parts.push("Tứ quý chi 2 (+8 chi)");
-    } else if (arr.middleScore.type >= 9) {
-      bonus += 10;
-      parts.push("Thùng phá sảnh chi 2 (+10 chi)");
-    }
-    if (arr.backScore.type === 8) {
-      bonus += 4;
-      parts.push("Tứ quý chi 3 (+4 chi)");
-    } else if (arr.backScore.type >= 9) {
-      bonus += 5;
-      parts.push("Thùng phá sảnh chi 3 (+5 chi)");
-    }
-    return { total: bonus, detail: parts.join(", ") };
   }
 
   static compareMatch(a, b) {
-    // 1. Thắng Trắng vs Thắng Trắng
-    if (a.instantWin && b.instantWin) {
-      if (a.instantWin.rank > b.instantWin.rank) {
-        return { scoreA: a.instantWin.bonus, detail: `${a.instantWin.name} thắng ${b.instantWin.name} (+${a.instantWin.bonus} chi)` };
-      } else if (a.instantWin.rank < b.instantWin.rank) {
-        return { scoreA: -b.instantWin.bonus, detail: `Thua đối thủ ${b.instantWin.name} (-${b.instantWin.bonus} chi)` };
-      }
-      return { scoreA: 0, detail: `Cùng Thắng Trắng: Hòa` };
-    }
-    // 2. Thắng Trắng vs Bài thường
-    if (a.instantWin) return { scoreA: a.instantWin.bonus, detail: `${a.instantWin.name} thắng tuyệt đối bài thường (+${a.instantWin.bonus} chi)` };
-    if (b.instantWin) return { scoreA: -b.instantWin.bonus, detail: `Đối thủ có ${b.instantWin.name} thắng tuyệt đối (-${b.instantWin.bonus} chi)` };
+    if (a.instantWin && b.instantWin) return { scoreA: 0, detail: `Hòa Thắng Trắng: ${a.instantWin} vs ${b.instantWin}` };
+    if (a.instantWin) return { scoreA: 6, detail: `${a.instantWin} (+6 chi)` };
+    if (b.instantWin) return { scoreA: -6, detail: `Đối thủ ${b.instantWin} (-6 chi)` };
 
-    // 3. Xử lý Lủng
-    if (a.isLung && b.isLung) return { scoreA: 0, detail: "Cả hai đều bị Lủng (0 chi)" };
-    if (a.isLung) {
-      const bH = this.calculateInherentBonus(b);
-      const totalLoss = -(6 + bH.total);
-      const detailStr = bH.total > 0 ? `Bị Lủng (phạt 6 chi + đền hàng đối thủ [${bH.detail}]: ${totalLoss} chi)` : "Bị Lủng (phạt thua 3 chi x2 = -6 chi)";
-      return { scoreA: totalLoss, detail: detailStr };
-    }
-    if (b.isLung) {
-      const aH = this.calculateInherentBonus(a);
-      const totalWin = 6 + aH.total;
-      const detailStr = aH.total > 0 ? `Đối thủ bị Lủng (thắng 6 chi + nhận hàng [${aH.detail}]: +${totalWin} chi)` : "Đối thủ bị Lủng (thắng 3 chi x2 = +6 chi)";
-      return { scoreA: totalWin, detail: detailStr };
-    }
+    if (a.isLung && b.isLung) return { scoreA: 0, detail: "Cả hai đều bị Lủng" };
+    if (a.isLung) return { scoreA: -6, detail: "Bị Lủng (phạt -6 chi)" };
+    if (b.isLung) return { scoreA: 6, detail: "Đối thủ bị Lủng (+6 chi)" };
 
-    // 4. So chi bài thường
-    // Chi 1
-    let c1 = 0, c1Bonus = 0;
-    const cmp1 = this.compareFront(a.frontScore, b.frontScore);
-    if (cmp1 > 0) {
-      c1 = 1;
-      if (a.frontScore.type === 3) {
-        c1Bonus = (b.frontScore.type === 3) ? 6 : 3; // Đè hàng sám chi đầu
-      }
-    } else if (cmp1 < 0) {
-      c1 = -1;
-      if (b.frontScore.type === 3) {
-        c1Bonus = (a.frontScore.type === 3) ? -6 : -3;
-      }
-    }
+    let c1 = 0;
+    const cmp1 = this.compareChi(a.score1, b.score1);
+    if (cmp1 > 0) c1 = 1; else if (cmp1 < 0) c1 = -1;
 
-    // Chi 2
-    let c2 = 0, c2Bonus = 0;
-    const cmp2 = PokerEvaluator.compareScores(a.middleScore, b.middleScore);
-    if (cmp2 > 0) {
-      c2 = 1;
-      if (a.middleScore.type === 7) {
-        c2Bonus = (b.middleScore.type === 7) ? 4 : 2; // Cù lũ
-      } else if (a.middleScore.type === 8) {
-        c2Bonus = (b.middleScore.type === 8) ? 16 : 8; // Đè hàng tứ quý cùng loại
-      } else if (a.middleScore.type >= 9) {
-        c2Bonus = (b.middleScore.type >= 9) ? 20 : 10; // Đè hàng thùng phá sảnh cùng loại
-      }
-    } else if (cmp2 < 0) {
-      c2 = -1;
-      if (b.middleScore.type === 7) {
-        c2Bonus = (a.middleScore.type === 7) ? -4 : -2;
-      } else if (b.middleScore.type === 8) {
-        c2Bonus = (a.middleScore.type === 8) ? -16 : -8;
-      } else if (b.middleScore.type >= 9) {
-        c2Bonus = (a.middleScore.type >= 9) ? -20 : -10;
-      }
-    }
+    let c2 = 0;
+    const cmp2 = this.compareChi(a.score2, b.score2);
+    if (cmp2 > 0) c2 = 1; else if (cmp2 < 0) c2 = -1;
 
-    // Chi 3
-    let c3 = 0, c3Bonus = 0;
-    const cmp3 = PokerEvaluator.compareScores(a.backScore, b.backScore);
-    if (cmp3 > 0) {
-      c3 = 1;
-      if (a.backScore.type === 8) {
-        c3Bonus = (b.backScore.type === 8) ? 8 : 4; // Đè hàng tứ quý chi cuối
-      } else if (a.backScore.type >= 9) {
-        c3Bonus = (b.backScore.type >= 9) ? 10 : 5;
-      }
-    } else if (cmp3 < 0) {
-      c3 = -1;
-      if (b.backScore.type === 8) {
-        c3Bonus = (a.backScore.type === 8) ? -8 : -4;
-      } else if (b.backScore.type >= 9) {
-        c3Bonus = (a.backScore.type >= 9) ? -10 : -5;
-      }
-    }
+    let c3 = 0;
+    const cmp3 = this.compareChi(a.score3, b.score3);
+    if (cmp3 > 0) c3 = 1; else if (cmp3 < 0) c3 = -1;
 
-    let base = c1 + c2 + c3;
-    let sapText = "";
+    let total = c1 + c2 + c3;
+    let sapHamText = "";
     if (c1 > 0 && c2 > 0 && c3 > 0) {
-      base = 6;
-      sapText = " (Bắt sập hầm x2 = +6 chi)";
+      total = 6;
+      sapHamText = " (Bắt sập hầm x2 = +6 chi)";
     } else if (c1 < 0 && c2 < 0 && c3 < 0) {
-      base = -6;
-      sapText = " (Bị sập hầm x2 = -6 chi)";
+      total = -6;
+      sapHamText = " (Bị sập hầm x2 = -6 chi)";
     }
 
-    const bonus = c1Bonus + c2Bonus + c3Bonus;
-    const total = base + bonus;
-    return {
-      scoreA: total,
-      detail: `Chi 1: ${c1 > 0 ? '+1' : c1}, Chi 2: ${c2 > 0 ? '+1' : c2}, Chi 3: ${c3 > 0 ? '+1' : c3}${sapText}${bonus !== 0 ? `, Hàng: ${bonus > 0 ? '+' : ''}${bonus}` : ''} ➔ Tổng: ${total > 0 ? '+' : ''}${total} chi`
-    };
-  }
-}
-
-// MARK: - Phom (Tá Lả) Evaluator
-class PhomEvaluator {
-  static cardPoint(card) {
-    if (card.rank === 14) return 1; // A = 1
-    return card.rank; // 2..13 (J=11, Q=12, K=13)
-  }
-
-  static hasCa(c1, c2) {
-    if (c1.rank === c2.rank) return true;
-    if (c1.suit === c2.suit) {
-      const diff = Math.abs(c1.rank - c2.rank);
-      if (diff <= 2) return true;
-      // Ace as 1
-      const a1 = c1.rank === 14 ? 1 : c1.rank;
-      const a2 = c2.rank === 14 ? 1 : c2.rank;
-      if (Math.abs(a1 - a2) <= 2) return true;
-    }
-    return false;
-  }
-
-  static checkUKhan(cards) {
-    if (cards.length !== 9) return false;
-    for (let i = 0; i < cards.length; i++) {
-      for (let j = i + 1; j < cards.length; j++) {
-        if (this.hasCa(cards[i], cards[j])) return false;
-      }
-    }
-    return true;
-  }
-
-  static evaluate(cards) {
-    if (!cards || cards.length === 0) {
-      return { isU: false, isMom: true, isUKhan: false, isUTron: false, phoms: [], deadwood: [], deadwoodScore: 0, summary: "Không có bài" };
-    }
-
-    // Check Ù Khan (9 cards with no cạ)
-    if (cards.length === 9 && this.checkUKhan(cards)) {
-      return {
-        isU: true,
-        isMom: false,
-        isUKhan: true,
-        isUTron: false,
-        phoms: [],
-        deadwood: [...cards],
-        deadwoodScore: 0,
-        summary: "🎉 Ù KHAN (Không có cạ, thắng tuyệt đối)"
-      };
-    }
-
-    // 10-card hand evaluation
-    if (cards.length === 10) {
-      const all10Phoms = this.findAllCandidatePhoms(cards);
-      let uTronPhoms = [];
-      const search10 = (startIndex, currentPhoms, usedCardIds) => {
-        const rem = cards.filter(c => !usedCardIds.has(c.id));
-        if (rem.length === 0 && currentPhoms.length > 0) {
-          uTronPhoms = [...currentPhoms];
-          return;
-        }
-        for (let i = startIndex; i < all10Phoms.length; i++) {
-          if (uTronPhoms.length > 0) return;
-          const cand = all10Phoms[i];
-          const candIds = new Set(cand.cards.map(c => c.id));
-          let disjoint = true;
-          for (const id of candIds) {
-            if (usedCardIds.has(id)) { disjoint = false; break; }
-          }
-          if (disjoint) {
-            const nextUsed = new Set(usedCardIds);
-            candIds.forEach(id => nextUsed.add(id));
-            search10(i + 1, [...currentPhoms, cand], nextUsed);
-          }
-        }
-      };
-      search10(0, [], new Set());
-
-      if (uTronPhoms.length > 0) {
-        const desc = uTronPhoms.map(p => p.description).join(" + ");
-        return {
-          isU: true,
-          isMom: false,
-          isUKhan: false,
-          isUTron: true,
-          phoms: uTronPhoms,
-          deadwood: [],
-          deadwoodScore: 0,
-          summary: `🎉 Ù TRÒN 10 LÁ (Thắng x2) [${desc}]`
-        };
-      }
-
-      // Not Ù Tròn: pick optimal 9-card subset (discarding 1 card)
-      let bestSub = null;
-      let bestDiscard = null;
-      for (let i = 0; i < cards.length; i++) {
-        const sub = cards.filter((_, idx) => idx !== i);
-        const subRes = this.evaluate(sub);
-        if (!bestSub) {
-          bestSub = subRes;
-          bestDiscard = cards[i];
-        } else {
-          if (subRes.isU && !bestSub.isU) {
-            bestSub = subRes;
-            bestDiscard = cards[i];
-          } else if (subRes.isU === bestSub.isU) {
-            if (!subRes.isMom && bestSub.isMom) {
-              bestSub = subRes;
-              bestDiscard = cards[i];
-            } else if (subRes.isMom === bestSub.isMom) {
-              if (subRes.deadwoodScore < bestSub.deadwoodScore) {
-                bestSub = subRes;
-                bestDiscard = cards[i];
-              }
-            }
-          }
-        }
-      }
-
-      if (bestSub && bestDiscard) {
-        const discardNote = ` (Đã bỏ rác: ${bestDiscard.sym}${bestDiscard.suitIcon})`;
-        return {
-          isU: bestSub.isU,
-          isMom: bestSub.isMom,
-          isUKhan: bestSub.isUKhan,
-          isUTron: false,
-          phoms: bestSub.phoms,
-          deadwood: bestSub.deadwood,
-          deadwoodScore: bestSub.deadwoodScore,
-          summary: bestSub.summary + discardNote
-        };
-      }
-    }
-
-    // Standard 9-card evaluation
-    const allPhoms = this.findAllCandidatePhoms(cards);
-    let bestPhoms = [];
-    let bestDeadwood = [...cards];
-    let minDeadwoodScore = cards.reduce((sum, c) => sum + this.cardPoint(c), 0);
-    let isU = false;
-
-    const search = (startIndex, currentPhoms, usedCardIds) => {
-      const currentDeadwood = cards.filter(c => !usedCardIds.has(c.id));
-      const currentScore = currentDeadwood.reduce((sum, c) => sum + this.cardPoint(c), 0);
-
-      if (currentDeadwood.length === 0 && currentPhoms.length > 0) {
-        isU = true;
-        bestPhoms = [...currentPhoms];
-        bestDeadwood = [];
-        minDeadwoodScore = 0;
-        return;
-      }
-
-      if (currentPhoms.length > 0) {
-        if (bestPhoms.length === 0 || currentScore < minDeadwoodScore) {
-          minDeadwoodScore = currentScore;
-          bestPhoms = [...currentPhoms];
-          bestDeadwood = currentDeadwood;
-        }
-      }
-
-      for (let i = startIndex; i < allPhoms.length; i++) {
-        if (isU) return;
-        const candidate = allPhoms[i];
-        const candIds = new Set(candidate.cards.map(c => c.id));
-        let disjoint = true;
-        for (const id of candIds) {
-          if (usedCardIds.has(id)) {
-            disjoint = false;
-            break;
-          }
-        }
-        if (disjoint) {
-          const nextUsed = new Set(usedCardIds);
-          candIds.forEach(id => nextUsed.add(id));
-          search(i + 1, [...currentPhoms, candidate], nextUsed);
-        }
-      }
-    };
-
-    search(0, [], new Set());
-
-    const isMom = bestPhoms.length === 0;
-    if (isMom) {
-      bestDeadwood = [...cards];
-      minDeadwoodScore = cards.reduce((sum, c) => sum + this.cardPoint(c), 0);
-    }
-
-    let summary = "";
-    if (isU) {
-      const phomDesc = bestPhoms.map(p => p.description).join(" + ");
-      summary = `🎉 Ù (0 điểm rác) [${phomDesc}]`;
-    } else if (isMom) {
-      summary = `💀 Móm / Cháy (Không có phỏm, ${minDeadwoodScore} điểm rác)`;
-    } else {
-      const phomDesc = bestPhoms.map(p => p.description).join(" + ");
-      const deadwoodDesc = bestDeadwood.map(c => `${c.sym}${c.suitIcon}`).join(" ");
-      summary = `${bestPhoms.length} Phỏm [${phomDesc}] | Rác (${deadwoodDesc}): ${minDeadwoodScore} điểm`;
-    }
-
-    return {
-      isU,
-      isMom,
-      isUKhan: false,
-      isUTron: false,
-      phoms: bestPhoms,
-      deadwood: bestDeadwood,
-      deadwoodScore: minDeadwoodScore,
-      summary
-    };
-  }
-
-  static findAllCandidatePhoms(cards) {
-    const candidates = [];
-
-    // A. Phỏm ngang (3-4 lá cùng số)
-    const rankGroups = {};
-    cards.forEach(c => {
-      rankGroups[c.rank] = rankGroups[c.rank] || [];
-      rankGroups[c.rank].push(c);
-    });
-
-    for (const rank in rankGroups) {
-      const grp = rankGroups[rank];
-      if (grp.length === 3) {
-        candidates.push({
-          cards: grp,
-          isVertical: false,
-          description: `Phỏm ngang (${grp.map(c => c.sym + c.suitIcon).join(" ")})`
-        });
-      } else if (grp.length === 4) {
-        candidates.push({
-          cards: grp,
-          isVertical: false,
-          description: `Phỏm ngang 4 lá (${grp.map(c => c.sym + c.suitIcon).join(" ")})`
-        });
-        for (let i = 0; i < 4; i++) {
-          const sub = grp.filter((_, idx) => idx !== i);
-          candidates.push({
-            cards: sub,
-            isVertical: false,
-            description: `Phỏm ngang (${sub.map(c => c.sym + c.suitIcon).join(" ")})`
-          });
-        }
-      }
-    }
-
-    // B. Phỏm dọc (Cùng chất, liên tiếp >= 3 lá)
-    const suitGroups = {};
-    cards.forEach(c => {
-      suitGroups[c.suit] = suitGroups[c.suit] || [];
-      suitGroups[c.suit].push(c);
-    });
-
-    for (const suit in suitGroups) {
-      const grp = suitGroups[suit];
-      if (grp.length < 3) continue;
-
-      const getVal = (c, aceHigh) => (c.rank === 14 ? (aceHigh ? 14 : 1) : c.rank);
-      const sorted = [...grp].sort((a, b) => getVal(a, false) - getVal(b, false));
-
-      const n = sorted.length;
-      for (let i = 0; i < n - 2; i++) {
-        for (let j = i + 2; j < n; j++) {
-          const sub = sorted.slice(i, j + 1);
-          let consec = true;
-          for (let k = 0; k < sub.length - 1; k++) {
-            if (getVal(sub[k + 1], false) !== getVal(sub[k], false) + 1) {
-              consec = false;
-              break;
-            }
-          }
-          if (consec) {
-            candidates.push({
-              cards: sub,
-              isVertical: true,
-              description: `Phỏm dọc (${sub.map(c => c.sym + c.suitIcon).join(" ")})`
-            });
-          }
-        }
-      }
-
-      // Ace High: Q-K-A
-      const hasA = grp.find(c => c.rank === 14);
-      const hasK = grp.find(c => c.rank === 13);
-      const hasQ = grp.find(c => c.rank === 12);
-      if (hasA && hasK && hasQ) {
-        candidates.push({
-          cards: [hasQ, hasK, hasA],
-          isVertical: true,
-          description: `Phỏm dọc (${hasQ.sym}${hasQ.suitIcon} ${hasK.sym}${hasK.suitIcon} ${hasA.sym}${hasA.suitIcon})`
-        });
-        const hasJ = grp.find(c => c.rank === 11);
-        if (hasJ) {
-          candidates.push({
-            cards: [hasJ, hasQ, hasK, hasA],
-            isVertical: true,
-            description: `Phỏm dọc (${hasJ.sym}${hasJ.suitIcon} ${hasQ.sym}${hasQ.suitIcon} ${hasK.sym}${hasK.suitIcon} ${hasA.sym}${hasA.suitIcon})`
-          });
-        }
-      }
-    }
-
-    return candidates;
-  }
-
-  static rankPlayers(players) {
-    const evaluated = players.map((p, idx) => ({
-      index: idx,
-      name: p.name,
-      result: this.evaluate(p.cards)
-    }));
-
-    evaluated.sort((a, b) => {
-      // 1. Ù Tròn is supreme
-      if (a.result.isUTron !== b.result.isUTron) return a.result.isUTron ? -1 : 1;
-      // 2. Ù or Ù Khan
-      if (a.result.isU !== b.result.isU) return a.result.isU ? -1 : 1;
-      // 3. Móm loses to non-móm
-      if (a.result.isMom !== b.result.isMom) return a.result.isMom ? 1 : -1;
-      // 4. Deadwood points (lower is better)
-      if (a.result.deadwoodScore !== b.result.deadwoodScore) return a.result.deadwoodScore - b.result.deadwoodScore;
-      return a.index - b.index;
-    });
-
-    const n = evaluated.length;
-    const ranks = new Array(n).fill(1);
-    let currentRank = 1;
-    for (let i = 0; i < n; i++) {
-      if (i > 0) {
-        const prev = evaluated[i - 1];
-        const curr = evaluated[i];
-        const isSame = (prev.result.isUTron === curr.result.isUTron) &&
-                       (prev.result.isU === curr.result.isU) &&
-                       (prev.result.isMom === curr.result.isMom) &&
-                       (prev.result.deadwoodScore === curr.result.deadwoodScore);
-        if (!isSame) {
-          currentRank = i + 1;
-        }
-      }
-      ranks[i] = currentRank;
-    }
-
-    const hasU = evaluated.some(e => e.result.isU);
-    const deltas = new Array(n).fill(0);
-
-    if (hasU) {
-      const uWinners = evaluated.filter(e => e.result.isU);
-      const isAnyUTron = uWinners.some(e => e.result.isUTron);
-      const chipPenalty = isAnyUTron ? 12 : 6;
-
-      let totalPool = 0;
-      for (let i = 0; i < n; i++) {
-        if (!evaluated[i].result.isU) {
-          deltas[i] = -chipPenalty;
-          totalPool += chipPenalty;
-        }
-      }
-
-      const uCount = uWinners.length;
-      if (uCount > 0) {
-        const winPerU = Math.floor(totalPool / uCount);
-        let remainder = totalPool % uCount;
-        for (let i = 0; i < n; i++) {
-          if (evaluated[i].result.isU) {
-            deltas[i] = winPerU + (remainder > 0 ? 1 : 0);
-            if (remainder > 0) remainder--;
-          }
-        }
-      }
-    } else {
-      // Southern scoring: Nhì -1, Ba -2, Bét -3, Móm -4
-      let totalPool = 0;
-      for (let i = 0; i < n; i++) {
-        if (ranks[i] > 1) {
-          let penalty = 0;
-          if (evaluated[i].result.isMom) {
-            penalty = 4;
-          } else {
-            const rankPos = ranks[i];
-            if (rankPos === 2) penalty = 1;
-            else if (rankPos === 3) penalty = 2;
-            else penalty = 3;
-          }
-          deltas[i] = -penalty;
-          totalPool += penalty;
-        }
-      }
-
-      const rank1Count = ranks.filter(r => r === 1).length;
-      if (rank1Count > 0) {
-        const winPerWinner = Math.floor(totalPool / rank1Count);
-        let remainder = totalPool % rank1Count;
-        for (let i = 0; i < n; i++) {
-          if (ranks[i] === 1) {
-            deltas[i] = winPerWinner + (remainder > 0 ? 1 : 0);
-            if (remainder > 0) remainder--;
-          }
-        }
-      }
-    }
-
-    return evaluated.map((item, pos) => ({
-      index: item.index,
-      name: item.name,
-      result: item.result,
-      rank: ranks[pos],
-      scoreDelta: deltas[pos]
-    }));
+    const detail = `Chi 1: ${c1 > 0 ? '+1' : c1}, Chi 2: ${c2 > 0 ? '+1' : c2}, Chi 3: ${c3 > 0 ? '+1' : c3}${sapHamText} ➔ Tổng: ${total > 0 ? '+' : ''}${total} chi`;
+    return { scoreA: total, detail };
   }
 }
 
@@ -1234,15 +654,13 @@ class PhomEvaluator {
 class AppController {
 
   constructor() {
-    this.currentGameType = 'binh13';
+    this.currentGameType = 'lieng3';
     this.suitPreset = 'north';
     this.playerCount = 3;
     this.inputMode = 'roundRobin'; // 'roundRobin' or 'manual'
     this.roundRobinPointer = 0;
     this.selectedPlayerIndex = 0;
     this.isSelectingCommunity = false;
-    this.phomTenCardPlayerIndex = null;
-    this.lastPhomWinnerIndex = null;
 
     this.players = [];
     this.communityCards = [];
@@ -1262,32 +680,7 @@ class AppController {
   }
 
   targetCards(playerIndex) {
-    const cfg = GAME_CONFIGS[this.currentGameType];
-    if (this.currentGameType === 'phom9') {
-      return (this.phomTenCardPlayerIndex === playerIndex) ? 10 : 9;
-    }
-    return cfg.cardsPerPlayer;
-  }
-
-  togglePhomTenCard(index) {
-    if (this.currentGameType !== 'phom9') return;
-    if (this.phomTenCardPlayerIndex === index) {
-      if (this.players[index].cards.length > 9) {
-        const removed = this.players[index].cards.pop();
-        this.actionHistory = this.actionHistory.filter(h => h.cardId !== removed.id);
-      }
-      this.phomTenCardPlayerIndex = null;
-    } else {
-      if (this.phomTenCardPlayerIndex !== null && this.players[this.phomTenCardPlayerIndex]?.cards.length > 9) {
-        const removed = this.players[this.phomTenCardPlayerIndex].cards.pop();
-        this.actionHistory = this.actionHistory.filter(h => h.cardId !== removed.id);
-      }
-      this.phomTenCardPlayerIndex = index;
-    }
-    this.clearResultsState();
-    this.renderDeck();
-    this.renderPlayers();
-    this.updateUI();
+    return GAME_CONFIGS[this.currentGameType].cardsPerPlayer;
   }
 
   startNewRound() {
@@ -1297,15 +690,8 @@ class AppController {
     this.actionHistory = [];
     this.isSelectingCommunity = false;
 
-    if (this.currentGameType === 'phom9' && this.lastPhomWinnerIndex !== null && this.lastPhomWinnerIndex < this.players.length) {
-      this.phomTenCardPlayerIndex = this.lastPhomWinnerIndex;
-      this.roundRobinPointer = this.lastPhomWinnerIndex;
-      this.selectedPlayerIndex = this.lastPhomWinnerIndex;
-    } else {
-      this.phomTenCardPlayerIndex = null;
-      this.roundRobinPointer = 0;
-      this.selectedPlayerIndex = 0;
-    }
+    this.roundRobinPointer = 0;
+    this.selectedPlayerIndex = 0;
 
     this.renderDeck();
     this.renderPlayers();
@@ -1313,8 +699,6 @@ class AppController {
   }
 
   initPlayers() {
-    this.phomTenCardPlayerIndex = null;
-    this.lastPhomWinnerIndex = null;
     this.players = [];
     for (let i = 0; i < this.playerCount; i++) {
       this.players.push({
@@ -1564,10 +948,7 @@ class AppController {
               this.isSelectingCommunity = true;
             }
           }
-        } else if (this.currentGameType === 'phom9' && this.phomTenCardPlayerIndex === null && curr && curr.cards.length === 9) {
-          this.phomTenCardPlayerIndex = this.selectedPlayerIndex;
-          curr.cards.push(card);
-          this.actionHistory.push({ cardId: card.id, target: this.selectedPlayerIndex });
+
         } else if (commTarget > 0 && this.communityCards.length < commTarget) {
           this.communityCards.push(card);
           this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
@@ -1589,11 +970,6 @@ class AppController {
   isReady() {
     const cfg = GAME_CONFIGS[this.currentGameType];
     const commFull = this.communityCards.length === cfg.community;
-    if (this.currentGameType === 'phom9') {
-      const allValid = this.players.every(p => p.cards.length >= 9 && p.cards.length <= 10);
-      const tenCount = this.players.filter(p => p.cards.length === 10).length;
-      return allValid && tenCount <= 1;
-    }
     const allFull = this.players.every((p, i) => p.cards.length >= this.targetCards(i));
     return allFull && commFull;
   }
@@ -1643,8 +1019,6 @@ class AppController {
   }
 
   resetTable() {
-    this.phomTenCardPlayerIndex = null;
-    this.lastPhomWinnerIndex = null;
     this.players.forEach(p => {
       p.cards = [];
       p.score = 0;
@@ -1776,11 +1150,7 @@ class AppController {
         rankBadgeHtml = `<span class="p-rank-badge ${badgeClass}">${rankText}</span> ${titleHtml} ${scoreStr}`;
       }
 
-      let phomBtnHtml = '';
-      if (this.currentGameType === 'phom9' && !hasResult) {
-        const is10 = target === 10;
-        phomBtnHtml = `<button type="button" class="btn-phom-10" style="font-size: 10px; font-weight: bold; padding: 2px 6px; margin-left: 6px; border-radius: 4px; border: 1px solid ${is10 ? '#f59e0b' : '#8e8e93'}; background: ${is10 ? '#f59e0b' : 'transparent'}; color: ${is10 ? '#fff' : 'inherit'}; cursor: pointer;">${is10 ? '🎴 10 lá' : '9 lá'}</button>`;
-      }
+
 
       const counterHtml = `<span class="p-count ${p.cards.length === target ? 'full' : ''}">${p.cards.length}/${target} lá</span>`;
 
@@ -1793,8 +1163,7 @@ class AppController {
             <span class="p-name" style="${isWinner ? 'color:#f59e0b;font-weight:700;' : ''}">${p.name}</span>
             <span class="p-edit-icon">✏️</span>
           </div>
-          ${phomBtnHtml}
-          ${rankBadgeHtml ? rankBadgeHtml : (isActive ? `<span class="p-tag">${this.inputMode === 'roundRobin' ? '▶ Lượt nhận' : '▶ Đang chọn'}</span>` : '')}
+                    ${rankBadgeHtml ? rankBadgeHtml : (isActive ? `<span class="p-tag">${this.inputMode === 'roundRobin' ? '▶ Lượt nhận' : '▶ Đang chọn'}</span>` : '')}
         </div>
         ${counterHtml}
       `;
@@ -1805,13 +1174,7 @@ class AppController {
         this.renamePlayer(idx);
       });
 
-      const btnP10 = header.querySelector('.btn-phom-10');
-      if (btnP10) {
-        btnP10.addEventListener('click', (e) => {
-          e.stopPropagation();
-          this.togglePhomTenCard(idx);
-        });
-      }
+
       
       mat.appendChild(header);
 
@@ -1898,9 +1261,6 @@ class AppController {
 
   calculate() {
     switch(this.currentGameType) {
-      case 'phom9':
-        this.calcPhom();
-        break;
       case 'lieng3':
         this.calcLieng();
         break;
@@ -1909,9 +1269,6 @@ class AppController {
         break;
       case 'texasHoldem':
         this.calcHoldem();
-        break;
-      case 'binh13':
-        this.calcBinh13();
         break;
       case 'binh9':
         this.calcBinh9();
@@ -2116,77 +1473,30 @@ class AppController {
     document.getElementById('matrixSection').style.display = 'none';
   }
 
-  calcPhom() {
-    const inputList = this.players.map((p, idx) => ({
-      index: idx,
-      name: p.name,
-      cards: p.cards
-    }));
-    const ranked = PhomEvaluator.rankPlayers(inputList);
-
-    ranked.forEach(item => {
-      const p = this.players[item.index];
-      p.rankOrder = item.rank;
-      p.score = item.scoreDelta;
-      if (item.result.isUTron) {
-        p.resultTitle = "🎉 Ù TRÒN 10 LÁ";
-      } else if (item.result.isUKhan) {
-        p.resultTitle = "🎉 Ù KHAN";
-      } else if (item.result.isU) {
-        p.resultTitle = "🎉 Ù (0 điểm rác)";
-      } else if (item.result.isMom) {
-        p.resultTitle = `💀 Móm / Cháy (${item.result.deadwoodScore}đ)`;
-      } else {
-        p.resultTitle = `${item.result.deadwoodScore} điểm rác (${item.result.phoms.length} phỏm)`;
-      }
-      p.resultDetail = item.result.summary;
-    });
-
-    const winners = this.players.filter(p => p.rankOrder === 1);
-    if (winners.length > 0) {
-      const wIdx = this.players.findIndex(p => p.rankOrder === 1);
-      if (wIdx !== -1) {
-        this.lastPhomWinnerIndex = wIdx;
-      }
-    }
-    if (winners.length > 1) {
-      document.getElementById('bannerWinner').innerHTML = `
-        👑 <strong>Đồng Hạng 1</strong>: ${winners.map(w => w.name).join(', ')} (Hòa điểm với ${winners[0].resultTitle})!
-      `;
-    } else {
-      const winner = winners[0];
-      document.getElementById('bannerWinner').innerHTML = `
-        🏆 <strong>${winner ? winner.name : '—'}</strong> Thắng ván Phỏm với ${winner ? winner.resultTitle : ''}!
-      `;
-    }
-    document.getElementById('matrixSection').style.display = 'none';
-  }
-
-  calcBinh13() {
+  calcBinh9() {
     const arrangements = this.players.map(p => {
-      const arr = Binh13Evaluator.autoArrange(p.cards);
+      const arr = Binh9Evaluator.autoArrange(p.cards);
       p.isLung = arr.isLung;
       p.score = 0;
       if (arr.instantWin) {
-        p.resultTitle = arr.instantWin.name;
+        p.resultTitle = arr.instantWin;
         p.resultDetail = "Tự động Thắng Trắng mà không cần so từng chi!";
       } else if (arr.isLung) {
-        p.resultTitle = "⚠️ BỊ LỦNG (Thua phạt x2)";
-        p.resultDetail = "Chi dưới yếu hơn chi giữa hoặc chi trên!";
+        p.resultTitle = "⚠️ BỊ LỦNG (Thua phạt -6 chi)";
+        p.resultDetail = "Chi dưới yếu hơn chi trên!";
       } else {
         p.resultTitle = "Đã xếp 3 chi tối ưu";
-        p.resultDetail = `Chi 1 (3 lá): ${arr.frontScore.desc}\nChi 2 (5 lá): ${arr.middleScore.desc}\nChi 3 (5 lá): ${arr.backScore.desc}`;
+        p.resultDetail = `Chi 1 (3 lá): ${arr.score1.desc}\nChi 2 (3 lá): ${arr.score2.desc}\nChi 3 (3 lá): ${arr.score3.desc}`;
       }
       return arr;
     });
 
-    // Matrix
     const N = this.players.length;
     const matrix = Array.from({ length: N }, () => Array(N).fill('—'));
 
     for (let i = 0; i < N; i++) {
       for (let j = i + 1; j < N; j++) {
-        const match = Binh13Evaluator.compareMatch(arrangements[i], arrangements[j]);
+        const match = Binh9Evaluator.compareMatch(arrangements[i], arrangements[j]);
         this.players[i].score += match.scoreA;
         this.players[j].score -= match.scoreA;
         matrix[i][j] = (match.scoreA > 0 ? `+${match.scoreA}` : `${match.scoreA}`) + " chi";
@@ -2215,7 +1525,6 @@ class AppController {
       `;
     }
 
-    // Render Matrix Table
     const matSection = document.getElementById('matrixSection');
     matSection.style.display = 'block';
     const matWrapper = document.getElementById('matrixTableWrapper');
@@ -2236,10 +1545,6 @@ class AppController {
     }
     tblHtml += `</tbody></table>`;
     matWrapper.innerHTML = tblHtml;
-  }
-
-  calcBinh9() {
-    this.calcBinh13();
   }
 
   calcBinh6Poker() {

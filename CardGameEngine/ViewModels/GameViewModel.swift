@@ -17,7 +17,7 @@ public enum InputMode: String, CaseIterable, Identifiable {
 }
 
 public class GameViewModel: ObservableObject {
-    @Published public var gameType: GameType = .binh13 {
+    @Published public var gameType: GameType = .lieng3 {
         didSet {
             resetTable()
         }
@@ -44,9 +44,6 @@ public class GameViewModel: ObservableObject {
     @Published public var isSelectingCommunity: Bool = false
     @Published public var roundRobinPointer: Int = 0
     
-    @Published public var phomTenCardPlayerIndex: Int? = nil
-    public var lastPhomWinnerIndex: Int? = nil
-    
     // Result State
     @Published public var hasCalculatedResults: Bool = false
     @Published public var isShowResultModal: Bool = false
@@ -61,30 +58,7 @@ public class GameViewModel: ObservableObject {
     private var actionHistory: [(card: Card, target: String)] = []
     
     public func targetCards(for playerIndex: Int) -> Int {
-        if gameType == .phom9 {
-            return (phomTenCardPlayerIndex == playerIndex) ? 10 : 9
-        }
         return gameType.cardsPerPlayer
-    }
-    
-    public func togglePhomTenCard(for index: Int) {
-        guard gameType == .phom9 else { return }
-        if phomTenCardPlayerIndex == index {
-            if players[index].cards.count > 9 {
-                if let last = players[index].cards.last {
-                    removeCard(last)
-                }
-            }
-            phomTenCardPlayerIndex = nil
-        } else {
-            if let oldIdx = phomTenCardPlayerIndex, oldIdx < players.count, players[oldIdx].cards.count > 9 {
-                if let last = players[oldIdx].cards.last {
-                    removeCard(last)
-                }
-            }
-            phomTenCardPlayerIndex = index
-        }
-        clearResultsState()
     }
     
     public func renamePlayer(at index: Int, to newName: String) {
@@ -122,8 +96,6 @@ public class GameViewModel: ObservableObject {
             players[i].clearCards()
         }
         communityCards.removeAll()
-        phomTenCardPlayerIndex = nil
-        lastPhomWinnerIndex = nil
         roundRobinPointer = 0
         selectedPlayerIndex = 0
         isSelectingCommunity = false
@@ -145,16 +117,8 @@ public class GameViewModel: ObservableObject {
         isShowResultModal = false
         showdownSummary = ""
         confrontationMatrix.removeAll()
-        
-        if gameType == .phom9, let winnerIdx = lastPhomWinnerIndex, winnerIdx < players.count {
-            phomTenCardPlayerIndex = winnerIdx
-            roundRobinPointer = winnerIdx
-            selectedPlayerIndex = winnerIdx
-        } else {
-            phomTenCardPlayerIndex = nil
-            roundRobinPointer = 0
-            selectedPlayerIndex = 0
-        }
+        roundRobinPointer = 0
+        selectedPlayerIndex = 0
     }
     
     // Check if a card is currently assigned
@@ -250,11 +214,6 @@ public class GameViewModel: ObservableObject {
                             isSelectingCommunity = true
                         }
                     }
-                } else if gameType == .phom9 && phomTenCardPlayerIndex == nil && players[selectedPlayerIndex].cards.count == 9 {
-                    // Allow 10th card dynamically if no other player has 10 cards
-                    phomTenCardPlayerIndex = selectedPlayerIndex
-                    players[selectedPlayerIndex].cards.append(card)
-                    actionHistory.append((card: card, target: players[selectedPlayerIndex].id))
                 } else if commTargetCount > 0 && communityCards.count < commTargetCount {
                     communityCards.append(card)
                     actionHistory.append((card: card, target: "COMMUNITY"))
@@ -336,15 +295,9 @@ public class GameViewModel: ObservableObject {
     
     // Check if table is ready for calculation
     public var isReadyToCalculate: Bool {
-        if gameType == .phom9 {
-            let allFull = players.indices.allSatisfy { players[$0].cards.count >= 9 }
-            let valid10Count = players.filter { $0.cards.count == 10 }.count <= 1
-            let noOver = players.allSatisfy { $0.cards.count <= 10 }
-            return allFull && valid10Count && noOver
-        }
         let allPlayersFull = players.allSatisfy { $0.cards.count == gameType.cardsPerPlayer }
         let commFull = communityCards.count == gameType.communityCardsCount
-        return allPlayersFull && commFull
+        return allPlayersFull && commFull && !players.isEmpty
     }
     
     // Calculate Winner & Results
@@ -352,18 +305,14 @@ public class GameViewModel: ObservableObject {
         guard isReadyToCalculate else { return }
         
         switch gameType {
-        case .phom9:
-            calculatePhom()
-        case .binh13:
-            calculateBinh13()
+        case .lieng3:
+            calculateLieng()
         case .binh9:
             calculateBinh9()
         case .binh6Poker:
             calculateBinh6Poker()
         case .binh6Split:
             calculateBinh6Split()
-        case .lieng3:
-            calculateLieng()
         case .xiDach2:
             calculateXiDach()
         case .texasHoldem:
@@ -400,39 +349,6 @@ public class GameViewModel: ObservableObject {
 
     
     // MARK: - Game Calculation Logic
-    
-    private func calculatePhom() {
-        let inputList = players.enumerated().map { (index: $0.offset, name: $0.element.name, cards: $0.element.cards) }
-        let ranked = PhomEvaluator.rankPlayers(players: inputList)
-        
-        for item in ranked {
-            let idx = item.index
-            players[idx].rankOrder = item.rank
-            players[idx].score = item.scoreDelta
-            if item.result.isUTron {
-                players[idx].resultTitle = "🎉 Ù Tròn (0 điểm)"
-            } else if item.result.isUKhan {
-                players[idx].resultTitle = "🎉 Ù Khan (Không cạ)"
-            } else if item.result.isU {
-                players[idx].resultTitle = "🎉 Ù (0 điểm)"
-            } else if item.result.isMom {
-                players[idx].resultTitle = "💀 Móm / Cháy (\(item.result.deadwoodScore)đ)"
-            } else {
-                players[idx].resultTitle = "\(item.result.deadwoodScore) điểm rác (\(item.result.phoms.count) phỏm)"
-            }
-            players[idx].resultDetail = item.result.summary
-        }
-        
-        let rank1Players = players.filter { $0.rankOrder == 1 }
-        if rank1Players.count > 1 {
-            let names = rank1Players.map { $0.name }.joined(separator: ", ")
-            showdownSummary = "👑 Đồng Hạng 1: \(names) (Hòa ván Phỏm với \(rank1Players[0].resultTitle))!"
-            lastPhomWinnerIndex = rank1Players.first.flatMap { p in players.firstIndex(where: { $0.id == p.id }) }
-        } else if let winner = rank1Players.first {
-            showdownSummary = "🏆 \(winner.name) Thắng ván Phỏm với \(winner.resultTitle)!"
-            lastPhomWinnerIndex = players.firstIndex(where: { $0.id == winner.id })
-        }
-    }
     
     private func calculateLieng() {
         var scores = [(index: Int, score: LiengHandScore)]()
@@ -515,68 +431,6 @@ public class GameViewModel: ObservableObject {
             showdownSummary = "👑 Đồng Hạng 1 (Split Pot): \(names) với \(rank1Players[0].resultTitle)!"
         } else if let winner = rank1Players.first {
             showdownSummary = "🏆 \(winner.name) Thắng Pot với \(winner.resultTitle)!"
-        }
-    }
-    
-    private func calculateBinh13() {
-        var arrangements = [Binh13Arrangement]()
-        for i in 0..<players.count {
-            let arr = Binh13Evaluator.autoArrange(cards: players[i].cards)
-            arrangements.append(arr)
-            players[i].isLung = arr.isLung
-            if let instant = arr.instantWin {
-                players[i].resultTitle = instant.nameVN
-                players[i].resultDetail = "Tự động Thắng Trắng mà không cần so từng chi!"
-            } else if arr.isLung {
-                players[i].resultTitle = "⚠️ BỊ LỦNG"
-                players[i].resultDetail = "Chi dưới yếu hơn chi trên hoặc chi giữa!"
-            } else {
-                players[i].resultTitle = "Đã xếp 3 chi tối ưu"
-                players[i].resultDetail = "Chi 1 (3 lá): \(arr.frontScore.descriptionVN)\nChi 2 (5 lá): \(arr.middleScore.descriptionVN)\nChi 3 (5 lá): \(arr.backScore.descriptionVN)"
-            }
-            players[i].score = 0
-        }
-        
-        // Matrix showdown
-        var matrix = Array(repeating: Array(repeating: "-", count: players.count), count: players.count)
-        
-        for i in 0..<players.count {
-            for j in 0..<players.count {
-                if i == j {
-                    matrix[i][j] = "—"
-                } else if i < j {
-                    let res = Binh13Evaluator.compareMatch(a: arrangements[i], b: arrangements[j])
-                    players[i].score += res.scoreA
-                    players[j].score -= res.scoreA
-                    matrix[i][j] = "\(res.scoreA > 0 ? "+\(res.scoreA)" : "\(res.scoreA)") chi"
-                    matrix[j][i] = "\(-res.scoreA > 0 ? "+\(-res.scoreA)" : "\(-res.scoreA)") chi"
-                }
-            }
-        }
-        
-        confrontationMatrix = matrix
-        
-        // Sort by total score with tie awareness
-        var sortedIndices = Array(0..<players.count)
-        sortedIndices.sort { players[$0].score > players[$1].score }
-        var currentRank = 1
-        for i in 0..<sortedIndices.count {
-            let idx = sortedIndices[i]
-            if i > 0 {
-                let prevIdx = sortedIndices[i - 1]
-                if players[idx].score < players[prevIdx].score {
-                    currentRank = i + 1
-                }
-            }
-            players[idx].rankOrder = currentRank
-        }
-        
-        let rank1Players = players.filter { $0.rankOrder == 1 }
-        if rank1Players.count > 1 {
-            let names = rank1Players.map { $0.name }.joined(separator: ", ")
-            showdownSummary = "👑 Đồng Hạng 1: \(names) (Cùng \(rank1Players[0].score > 0 ? "+\(rank1Players[0].score)" : "\(rank1Players[0].score)") chi)!"
-        } else if let winner = rank1Players.first {
-            showdownSummary = "🏆 \(winner.name) Dẫn đầu với tổng điểm: \(winner.score > 0 ? "+\(winner.score)" : "\(winner.score)") chi!"
         }
     }
     

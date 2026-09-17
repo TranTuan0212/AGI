@@ -85,7 +85,7 @@ public struct ResultModalView: View {
                                         
                                         Spacer()
                                         
-                                        if viewModel.gameType.category == .binh || viewModel.gameType.category == .phom {
+                                        if viewModel.gameType.category == .binh {
                                             Text("\(player.score > 0 ? "+\(player.score)" : "\(player.score)") chi")
                                                 .font(.headline)
                                                 .foregroundColor(player.score > 0 ? .green : (player.score < 0 ? .red : .primary))
@@ -106,55 +106,6 @@ public struct ResultModalView: View {
                             .padding(12)
                             .background(Color(.secondarySystemBackground))
                             .cornerRadius(12)
-                            .padding(.horizontal)
-                        }
-                    }
-                    
-                    // Binh 13 Confrontation Matrix
-                    if viewModel.gameType == .binh13 && !viewModel.confrontationMatrix.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Ma Trận Đối Đầu Chi (A vs B)")
-                                .font(.headline)
-                                .padding(.horizontal)
-                            
-                            VStack(spacing: 2) {
-                                // Header row
-                                HStack {
-                                    Text("Nhà")
-                                        .font(.caption)
-                                        .fontWeight(.bold)
-                                        .frame(width: 60)
-                                    ForEach(viewModel.players) { p in
-                                        Text(p.name.replacingOccurrences(of: "Nhóm ", with: ""))
-                                            .font(.caption)
-                                            .fontWeight(.bold)
-                                            .frame(maxWidth: .infinity)
-                                    }
-                                }
-                                .padding(.vertical, 4)
-                                .background(Color.gray.opacity(0.15))
-                                
-                                ForEach(0..<viewModel.players.count, id: \.self) { i in
-                                    HStack {
-                                        Text(viewModel.players[i].name.replacingOccurrences(of: "Nhóm ", with: ""))
-                                            .font(.caption)
-                                            .fontWeight(.bold)
-                                            .frame(width: 60)
-                                        
-                                        ForEach(0..<viewModel.players.count, id: \.self) { j in
-                                            let val = viewModel.confrontationMatrix[i][j]
-                                            Text(val)
-                                                .font(.caption2)
-                                                .foregroundColor(val.contains("+") ? .green : (val.contains("-") ? .red : .primary))
-                                                .frame(maxWidth: .infinity)
-                                        }
-                                    }
-                                    .padding(.vertical, 4)
-                                }
-                            }
-                            .padding(8)
-                            .background(Color(.secondarySystemBackground))
-                            .cornerRadius(10)
                             .padding(.horizontal)
                         }
                     }
