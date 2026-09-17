@@ -291,6 +291,56 @@ public class GameViewModel: ObservableObject {
         }
     }
     
+    // Hidden Card Tap Handler ("Không thấy" button - allows multiple taps without locking)
+    public func onHiddenCardTapped() {
+        clearResultsState()
+        
+        let cardId = "hidden_\(UUID().uuidString)"
+        let card = Card(rank: .two, suit: .spades, customId: cardId, isHidden: true)
+        
+        if inputMode == .roundRobin {
+            var nextNeedingIdx: Int? = nil
+            for i in 0..<players.count {
+                let checkIdx = (roundRobinPointer + i) % players.count
+                if players[checkIdx].cards.count < targetCards(for: checkIdx) {
+                    nextNeedingIdx = checkIdx
+                    break
+                }
+            }
+            
+            if let idx = nextNeedingIdx {
+                players[idx].cards.append(card)
+                actionHistory.append((card: card, target: players[idx].id))
+                roundRobinPointer = (idx + 1) % players.count
+                selectedPlayerIndex = roundRobinPointer
+            }
+        } else {
+            let targetCount = targetCards(for: selectedPlayerIndex)
+            if players[selectedPlayerIndex].cards.count < targetCount {
+                players[selectedPlayerIndex].cards.append(card)
+                actionHistory.append((card: card, target: players[selectedPlayerIndex].id))
+                
+                if players[selectedPlayerIndex].cards.count == targetCount {
+                    var nextNeedingIdx: Int? = nil
+                    for i in 0..<players.count {
+                        let checkIdx = (selectedPlayerIndex + 1 + i) % players.count
+                        if players[checkIdx].cards.count < targetCards(for: checkIdx) {
+                            nextNeedingIdx = checkIdx
+                            break
+                        }
+                    }
+                    if let next = nextNeedingIdx {
+                        selectedPlayerIndex = next
+                    }
+                }
+            }
+        }
+        
+        if isReadyToCalculate {
+            calculateResults()
+        }
+    }
+    
     // Clear calculated results when cards change
     private func clearResultsState() {
         hasCalculatedResults = false

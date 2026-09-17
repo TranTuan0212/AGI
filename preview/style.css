@@ -517,28 +517,22 @@ body {
 
 
 .btn-showdown-compact {
-  flex: 1.4;
-  background: linear-gradient(135deg, #007AFF, #5856D6);
+  flex: 1;
+  background: linear-gradient(135deg, #FF9500, #FF3B30);
   color: white;
   border: none;
   border-radius: var(--radius-sm);
-  padding: 6px 6px;
-  font-size: 12px;
-  font-weight: 800;
+  padding: 6px 2px;
+  font-size: 11px;
+  font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  box-shadow: 0 2px 6px rgba(0, 122, 255, 0.35);
+  gap: 3px;
+  box-shadow: 0 2px 6px rgba(255, 149, 0, 0.3);
   transition: all 0.15s;
-}
-
-.btn-showdown-compact:disabled {
-  background: #C7C7CC;
-  box-shadow: none;
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 .btn-showdown-compact.btn-new-round {
@@ -548,6 +542,56 @@ body {
 
 .btn-showdown-compact:not(:disabled):active {
   transform: scale(0.96);
+}
+
+/* Chi Group Layout for Binh 9 & Binh 6 */
+.chi-groups-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.chi-group-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: rgba(0, 122, 255, 0.05);
+  border: 1px solid rgba(0, 122, 255, 0.2);
+  border-radius: 6px;
+  padding: 2px 4px 4px 4px;
+}
+
+.chi-group-label {
+  font-size: 9px;
+  font-weight: 800;
+  color: #007AFF;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.chi-group-cards {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* Hidden Card (Không thấy - ?) */
+.mini-card.hidden-card {
+  background: #F2F2F7;
+  border: 1.2px dashed #8E8E93;
+  color: #8E8E93;
+}
+
+.mini-card.hidden-card .mini-card-rank {
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.mini-card.hidden-card .mini-card-suit {
+  font-size: 8px;
+  font-weight: 700;
+  color: #8E8E93;
 }
 
 /* 52-Card Keypad Grid */

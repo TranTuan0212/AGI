@@ -147,33 +147,33 @@ public struct ContentView: View {
                                 .cornerRadius(6)
                         }
                         
-                        Button(action: { 
-                            if viewModel.hasCalculatedResults {
-                                viewModel.startNewRound()
-                            } else {
-                                viewModel.calculateResults()
-                            }
-                        }) {
-                            HStack(spacing: 4) {
-                                Image(systemName: viewModel.hasCalculatedResults ? "arrow.clockwise.circle.fill" : "crown.fill")
-                                    .font(.caption)
-                                Text(viewModel.hasCalculatedResults ? "Ván Mới" : "So Bài")
+                        if viewModel.hasCalculatedResults {
+                            Button(action: { viewModel.startNewRound() }) {
+                                Label("Ván Mới", systemImage: "arrow.clockwise.circle.fill")
                                     .font(.caption)
                                     .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        LinearGradient(colors: [Color.green, Color.teal], startPoint: .leading, endPoint: .trailing)
+                                    )
+                                    .cornerRadius(6)
                             }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(
-                                viewModel.hasCalculatedResults ?
-                                LinearGradient(colors: [Color.green, Color.teal], startPoint: .leading, endPoint: .trailing) :
-                                (viewModel.isReadyToCalculate ?
-                                LinearGradient(colors: [Color.blue, Color.purple], startPoint: .leading, endPoint: .trailing) :
-                                LinearGradient(colors: [Color.gray, Color.gray.opacity(0.7)], startPoint: .leading, endPoint: .trailing))
-                            )
-                            .cornerRadius(6)
+                        } else {
+                            Button(action: { viewModel.onHiddenCardTapped() }) {
+                                Label("Không thấy", systemImage: "questionmark.circle.fill")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 6)
+                                    .background(
+                                        LinearGradient(colors: [Color.orange, Color.red], startPoint: .leading, endPoint: .trailing)
+                                    )
+                                    .cornerRadius(6)
+                            }
                         }
-                        .disabled(!viewModel.isReadyToCalculate && !viewModel.hasCalculatedResults)
                     }
                     .padding(.horizontal)
                     

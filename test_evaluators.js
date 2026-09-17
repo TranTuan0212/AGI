@@ -295,6 +295,22 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE (6 TRÒ CHƠI) =
   app.isRankOnlyMode = false;
   sandbox.localStorage.setItem('card_game_rank_only_mode', 'false');
   assert(app.isRankOnlyActive() === false, 'Rank-Only: Tắt chế độ thành công và ghi nhớ vào storage');
+
+  // Test nút [Không thấy] (Lá bài ẩn ?)
+  app.resetTable();
+  app.currentGameType = 'lieng3';
+  app.playerCount = 2;
+  app.initPlayers();
+
+  // Bấm nút [Không thấy] nhiều lần liên tiếp
+  app.onHiddenCardClick();
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].isHidden === true, 'Không thấy: Tụ 1 nhận được lá ẩn ?');
+  app.onHiddenCardClick();
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].isHidden === true, 'Không thấy: Lượt tiếp theo chuyển sang Tụ 2 nhận lá ẩn ?');
+  // Bấm thêm nhiều lần
+  app.onHiddenCardClick();
+  app.onHiddenCardClick();
+  assert(app.players[0].cards.length === 2, 'Không thấy: Cho phép bấm nhiều lần không bị khóa');
 }
 
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);

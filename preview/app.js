@@ -777,7 +777,7 @@ class AppController {
       if (hasResults) {
         this.startNewRound();
       } else {
-        this.calculate();
+        this.onHiddenCardClick();
       }
     });
 
@@ -919,6 +919,58 @@ class AppController {
       suitName: '',
       isRed: rankItem.sym === 'A' || rankItem.sym === '10',
       isRankOnly: true
+    };
+
+    if (this.inputMode === 'roundRobin') {
+      for (let i = 0; i < this.players.length; i++) {
+        const pIdx = (this.roundRobinPointer + i) % this.players.length;
+        const targetCards = this.targetCards(pIdx);
+        if (this.players[pIdx].cards.length < targetCards) {
+          this.players[pIdx].cards.push(card);
+          this.actionHistory.push({ cardId: card.id, target: pIdx });
+          this.roundRobinPointer = (pIdx + 1) % this.players.length;
+          this.selectedPlayerIndex = this.roundRobinPointer;
+          break;
+        }
+      }
+    } else {
+      const curP = this.players[this.selectedPlayerIndex];
+      const targetCards = this.targetCards(this.selectedPlayerIndex);
+      if (curP && curP.cards.length < targetCards) {
+        curP.cards.push(card);
+        this.actionHistory.push({ cardId: card.id, target: this.selectedPlayerIndex });
+        if (curP.cards.length === targetCards) {
+          let nextIdx = null;
+          for (let i = 0; i < this.players.length; i++) {
+            if (this.players[i].cards.length < this.targetCards(i)) {
+              nextIdx = i;
+              break;
+            }
+          }
+          if (nextIdx !== null) this.selectedPlayerIndex = nextIdx;
+        }
+      }
+    }
+
+    this.renderPlayers();
+    this.updateUI();
+
+    if (this.isReady()) {
+      this.calculate();
+    }
+  }
+
+  onHiddenCardClick() {
+    const cardId = `hidden_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
+    const card = {
+      id: cardId,
+      rank: 2,
+      sym: '?',
+      suit: '',
+      suitIcon: 'Ẩn',
+      suitName: 'Không rõ',
+      isRed: false,
+      isHidden: true
     };
 
     if (this.inputMode === 'roundRobin') {
@@ -1271,32 +1323,72 @@ class AppController {
       const cardsContainer = document.createElement('div');
       cardsContainer.className = 'hand-cards-container';
 
-      const overlapWrap = document.createElement('div');
-      overlapWrap.className = 'card-overlap-wrapper';
+      if (this.currentGameType === 'binh9' || this.currentGameType === 'binh6Split') {
+        const chiCount = this.currentGameType === 'binh9' ? 3 : 2;
+        const chiGroupsWrap = document.createElement('div');
+        chiGroupsWrap.className = 'chi-groups-wrapper';
 
-      p.cards.forEach(c => {
-        const mini = this.createMiniCard(c);
-        overlapWrap.appendChild(mini);
-      });
+        for (let chiIdx = 0; chiIdx < chiCount; chiIdx++) {
+          const startIdx = chiIdx * 3;
+          const chiCards = (startIdx < p.cards.length) ? p.cards.slice(startIdx, startIdx + 3) : [];
+          const missingInChi = 3 - chiCards.length;
 
-      const missing = Math.max(0, target - p.cards.length);
-      // Show up to 6 placeholders to avoid taking too much horizontal space
-      const showPlaceholders = Math.min(missing, 6);
-      for (let i = 0; i < showPlaceholders; i++) {
-        const ph = document.createElement('div');
-        ph.className = 'placeholder-card';
-        ph.textContent = '+';
-        overlapWrap.appendChild(ph);
+          const chiBox = document.createElement('div');
+          chiBox.className = 'chi-group-box';
+
+          const chiLabel = document.createElement('div');
+          chiLabel.className = 'chi-group-label';
+          chiLabel.textContent = `Chi ${chiIdx + 1}`;
+          chiBox.appendChild(chiLabel);
+
+          const chiCardsDiv = document.createElement('div');
+          chiCardsDiv.className = 'chi-group-cards';
+
+          chiCards.forEach(c => {
+            const mini = this.createMiniCard(c);
+            chiCardsDiv.appendChild(mini);
+          });
+
+          for (let m = 0; m < missingInChi; m++) {
+            const ph = document.createElement('div');
+            ph.className = 'placeholder-card';
+            ph.textContent = '+';
+            chiCardsDiv.appendChild(ph);
+          }
+
+          chiBox.appendChild(chiCardsDiv);
+          chiGroupsWrap.appendChild(chiBox);
+        }
+
+        cardsContainer.appendChild(chiGroupsWrap);
+      } else {
+        const overlapWrap = document.createElement('div');
+        overlapWrap.className = 'card-overlap-wrapper';
+
+        p.cards.forEach(c => {
+          const mini = this.createMiniCard(c);
+          overlapWrap.appendChild(mini);
+        });
+
+        const missing = Math.max(0, target - p.cards.length);
+        const showPlaceholders = Math.min(missing, 6);
+        for (let i = 0; i < showPlaceholders; i++) {
+          const ph = document.createElement('div');
+          ph.className = 'placeholder-card';
+          ph.textContent = '+';
+          overlapWrap.appendChild(ph);
+        }
+        if (missing > showPlaceholders) {
+          const morePh = document.createElement('div');
+          morePh.className = 'placeholder-card';
+          morePh.style.fontSize = '9px';
+          morePh.textContent = `+${missing - showPlaceholders}`;
+          overlapWrap.appendChild(morePh);
+        }
+
+        cardsContainer.appendChild(overlapWrap);
       }
-      if (missing > showPlaceholders) {
-        const morePh = document.createElement('div');
-        morePh.className = 'placeholder-card';
-        morePh.style.fontSize = '9px';
-        morePh.textContent = `+${missing - showPlaceholders}`;
-        overlapWrap.appendChild(morePh);
-      }
 
-      cardsContainer.appendChild(overlapWrap);
       mat.appendChild(cardsContainer);
       list.appendChild(mat);
     });
@@ -1304,7 +1396,14 @@ class AppController {
 
   createMiniCard(card) {
     const mini = document.createElement('div');
-    if (card.isRankOnly) {
+    if (card.isHidden) {
+      mini.className = 'mini-card hidden-card';
+      mini.innerHTML = `
+        <span class="mini-card-rank">?</span>
+        <span class="mini-card-suit">Ẩn</span>
+      `;
+      mini.title = 'Lá ẩn (Không thấy) - Bấm để gỡ';
+    } else if (card.isRankOnly) {
       let colorCls = card.sym === 'A' ? 'red' : (['J', 'Q', 'K'].includes(card.sym) ? 'blue' : 'black');
       mini.className = `mini-card rank-only ${colorCls}`;
       mini.innerHTML = `
@@ -1339,9 +1438,9 @@ class AppController {
       btnCalc.className = 'btn-showdown-compact btn-new-round';
       btnCalc.innerHTML = `<span>🔄 VÁN MỚI</span>`;
     } else {
+      btnCalc.disabled = false;
       btnCalc.className = 'btn-showdown-compact';
-      btnCalc.disabled = !isReady;
-      btnCalc.innerHTML = isReady ? `<span>👑 SO BÀI</span>` : `<span>👑 Chưa đủ lá</span>`;
+      btnCalc.innerHTML = `<span>❓ Không thấy</span>`;
     }
 
     // Turn indicator

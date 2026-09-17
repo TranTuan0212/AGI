@@ -99,19 +99,22 @@ public struct Card: Identifiable, Hashable, Codable, Comparable {
     public let rank: Rank
     public let customId: String?
     public let isRankOnly: Bool
+    public let isHidden: Bool
     
     public var id: String {
         return customId ?? "\(rank.displaySymbol)\(suit.rawValue)"
     }
     
-    public init(rank: Rank, suit: Suit = .spades, customId: String? = nil, isRankOnly: Bool = false) {
+    public init(rank: Rank = .two, suit: Suit = .spades, customId: String? = nil, isRankOnly: Bool = false, isHidden: Bool = false) {
         self.rank = rank
         self.suit = suit
         self.customId = customId
         self.isRankOnly = isRankOnly
+        self.isHidden = isHidden
     }
     
     public var displayName: String {
+        if isHidden { return "?" }
         return isRankOnly ? rank.displaySymbol : "\(rank.displaySymbol)\(suit.rawValue)"
     }
     
