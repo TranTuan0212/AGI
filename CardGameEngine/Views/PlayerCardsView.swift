@@ -108,6 +108,16 @@ public struct PlayerCardsView: View {
                             }
                             .buttonStyle(PlainButtonStyle())
 
+                            if viewModel.gameType == .phom9 && idx == 0 {
+                                Text("🎴 10 lá")
+                                    .font(.system(size: 9, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 2)
+                                    .background(Color.orange)
+                                    .cornerRadius(4)
+                            }
+
                             if let rank = player.rankOrder {
                                 let isTie = viewModel.players.filter({ $0.rankOrder == rank }).count > 1
                                 let badgeText = rank == 1 ? (isTie ? "👑 Đ.Hạng 1" : "👑 Nhất") :

@@ -72,6 +72,9 @@ public class GameViewModel: ObservableObject {
     }
     
     public func targetCards(for playerIndex: Int) -> Int {
+        if gameType == .phom9 {
+            return playerIndex == 0 ? 10 : 9
+        }
         return gameType.cardsPerPlayer
     }
     
@@ -389,8 +392,8 @@ public class GameViewModel: ObservableObject {
         resetTable()
         var deck = Card.fullDeck52.shuffled()
         
-        let targetCount = gameType.cardsPerPlayer
         for i in 0..<players.count {
+            let targetCount = targetCards(for: i)
             players[i].cards = Array(deck.prefix(targetCount))
             deck.removeFirst(targetCount)
         }
@@ -409,6 +412,10 @@ public class GameViewModel: ObservableObject {
     
     // Check if table is ready for calculation
     public var isReadyToCalculate: Bool {
+        if gameType == .phom9 {
+            guard !players.isEmpty else { return false }
+            return players.indices.allSatisfy { players[$0].cards.count == targetCards(for: $0) }
+        }
         let allPlayersFull = players.allSatisfy { $0.cards.count == gameType.cardsPerPlayer }
         let commFull = communityCards.count == gameType.communityCardsCount
         return allPlayersFull && commFull && !players.isEmpty
@@ -419,6 +426,8 @@ public class GameViewModel: ObservableObject {
         guard isReadyToCalculate else { return }
         
         switch gameType {
+        case .phom9:
+            calculatePhom()
         case .lieng3:
             calculateLieng()
         case .binh9:
@@ -431,9 +440,11 @@ public class GameViewModel: ObservableObject {
             calculateTexasHoldem()
         }
         
-        recordMatchToHistory()
         hasCalculatedResults = true
-        isShowResultModal = false // Show result directly on the mats without popup!
+        isShowResultModal = true
+        
+        // Ghi lại lịch sử ván đấu (Match History)
+        recordMatchToHistory()
     }
     
     private func recordMatchToHistory() {
@@ -461,6 +472,37 @@ public class GameViewModel: ObservableObject {
 
     
     // MARK: - Game Calculation Logic
+    
+    private func calculatePhom() {
+        let inputList = players.enumerated().map { (index: $0.offset, name: $0.element.name, cards: $0.element.cards) }
+        let ranked = PhomEvaluator.rankPlayers(players: inputList)
+        
+        for item in ranked {
+            let idx = item.index
+            players[idx].rankOrder = item.rank
+            players[idx].score = item.scoreDelta
+            if item.result.isUTron {
+                players[idx].resultTitle = "🎉 Ù Tròn (0 điểm)"
+            } else if item.result.isUKhan {
+                players[idx].resultTitle = "🎉 Ù Khan (Không cạ)"
+            } else if item.result.isU {
+                players[idx].resultTitle = "🎉 Ù (0 điểm)"
+            } else if item.result.isMom {
+                players[idx].resultTitle = "💀 Móm / Cháy (\(item.result.deadwoodScore)đ)"
+            } else {
+                players[idx].resultTitle = "\(item.result.deadwoodScore) điểm rác (\(item.result.phoms.count) phỏm)"
+            }
+            players[idx].resultDetail = item.result.summary
+        }
+        
+        let rank1Players = players.filter { $0.rankOrder == 1 }
+        if rank1Players.count > 1 {
+            let names = rank1Players.map { $0.name }.joined(separator: ", ")
+            showdownSummary = "👑 Đồng Hạng 1: \(names) (Hòa ván Phỏm với \(rank1Players[0].resultTitle))!"
+        } else if let winner = rank1Players.first {
+            showdownSummary = "🏆 \(winner.name) Thắng ván Phỏm với \(winner.resultTitle)!"
+        }
+    }
     
     private func calculateLieng() {
         let rule = isRankOnlyActive ? .international : suitPreset

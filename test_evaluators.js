@@ -288,6 +288,111 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE (6 TRÒ CHƠI) =
   assert(app.players.every(p => p.cards.length === 0), 'AppController: Ván mới thu hồi toàn bộ bài');
   assert(app.roundRobinPointer === 0, 'AppController: Con trỏ bắt đầu từ Tụ 1');
   assert(app.selectedPlayerIndex === 0, 'AppController: Chọn Tụ 1');
+
+  // Test Phỏm (Tá Lả) trong AppController
+  app.currentGameType = 'phom9';
+  app.playerCount = 3;
+  app.initPlayers();
+
+  assert(app.targetCards(0) === 10, 'Phỏm: Tụ 1 (người đi đầu) luôn luôn nhận 10 lá');
+  assert(app.targetCards(1) === 9, 'Phỏm: Tụ 2 nhận 9 lá');
+  assert(app.targetCards(2) === 9, 'Phỏm: Tụ 3 nhận 9 lá');
+
+  // Giả lập Tụ 2 thắng ván 1
+  app.players[0].rankOrder = 2;
+  app.players[1].rankOrder = 1; // Tụ 2 Thắng
+  app.players[2].rankOrder = 3;
+
+  // Bấm "Ván mới": Tụ 1 VẪN LUÔN là 10 lá theo yêu cầu người dùng!
+  app.startNewRound();
+  assert(app.targetCards(0) === 10, 'Phỏm Ván Mới: Tụ 1 VẪN LUÔN LUÔN LÀ 10 LÁ dù ván trước Tụ 2 thắng');
+  assert(app.targetCards(1) === 9, 'Phỏm Ván Mới: Tụ 2 vẫn nhận 9 lá');
+  assert(app.roundRobinPointer === 0, 'Phỏm Ván Mới: Lượt chia bài vẫn bắt đầu từ Tụ 1');
+}
+
+// 11. Test Đánh Giá Thuật Toán Phỏm (Tá Lả)
+{
+  // 1. Phỏm dọc sảnh A-2-3 và ngang Sáp
+  const phomVertical = [
+    { id: 'Ah', rank: 14, sym: 'A', suit: 'hearts', suitIcon: '♥' },
+    { id: '2h', rank: 2, sym: '2', suit: 'hearts', suitIcon: '♥' },
+    { id: '3h', rank: 3, sym: '3', suit: 'hearts', suitIcon: '♥' },
+    { id: '8h', rank: 8, sym: '8', suit: 'hearts', suitIcon: '♥' },
+    { id: '8d', rank: 8, sym: '8', suit: 'diamonds', suitIcon: '♦' },
+    { id: '8s', rank: 8, sym: '8', suit: 'spades', suitIcon: '♠' },
+    { id: 'Jc', rank: 11, sym: 'J', suit: 'clubs', suitIcon: '♣' },
+    { id: 'Qc', rank: 12, sym: 'Q', suit: 'clubs', suitIcon: '♣' },
+    { id: 'Kc', rank: 13, sym: 'K', suit: 'clubs', suitIcon: '♣' }
+  ];
+  const resU = PhomEvaluator.evaluate(phomVertical);
+  assert(resU.isU === true, 'Phỏm: Nhận diện đúng Ù 9 lá (3 phỏm, 0 điểm rác)');
+  assert(resU.phoms.length === 3, 'Phỏm: Tách đúng 3 phỏm hợp lệ');
+
+  // 2. Phỏm có điểm rác
+  const onePhomCards = [
+    { id: '8h', rank: 8, sym: '8', suit: 'hearts', suitIcon: '♥' },
+    { id: '8d', rank: 8, sym: '8', suit: 'diamonds', suitIcon: '♦' },
+    { id: '8s', rank: 8, sym: '8', suit: 'spades', suitIcon: '♠' },
+    { id: 'Ah', rank: 14, sym: 'A', suit: 'hearts', suitIcon: '♥' }, // 1
+    { id: '2h', rank: 2, sym: '2', suit: 'hearts', suitIcon: '♥' },  // 2
+    { id: '4d', rank: 4, sym: '4', suit: 'diamonds', suitIcon: '♦' }, // 4
+    { id: '5c', rank: 5, sym: '5', suit: 'clubs', suitIcon: '♣' },   // 5
+    { id: 'Jd', rank: 11, sym: 'J', suit: 'diamonds', suitIcon: '♦' }, // 11
+    { id: 'Ks', rank: 13, sym: 'K', suit: 'spades', suitIcon: '♠' }  // 13
+  ];
+  const resOne = PhomEvaluator.evaluate(onePhomCards);
+  assert(resOne.deadwoodScore === 36, `Phỏm: Tính điểm rác chính xác 1+2+4+5+11+13 = 36 (Thực tế: ${resOne.deadwoodScore})`);
+
+  // 3. Móm (Cháy bài)
+  const momCards = [
+    { id: '2h', rank: 2, sym: '2', suit: 'hearts', suitIcon: '♥' },
+    { id: '4d', rank: 4, sym: '4', suit: 'diamonds', suitIcon: '♦' },
+    { id: '3c', rank: 3, sym: '3', suit: 'clubs', suitIcon: '♣' },
+    { id: '9h', rank: 9, sym: '9', suit: 'hearts', suitIcon: '♥' }
+  ];
+  const resMom = PhomEvaluator.evaluate(momCards);
+  assert(resMom.isMom === true, 'Phỏm: Nhận diện chính xác Móm (Cháy bài)');
+
+  // 4. Ù Khan (9 lá không cạ: khoảng cách cùng chất >= 3, không trùng rank)
+  const uKhanCards = [
+    { id: '2h', rank: 2, suit: 'hearts', sym: '2', suitIcon: '♥' },
+    { id: '5h', rank: 5, suit: 'hearts', sym: '5', suitIcon: '♥' },
+    { id: '8h', rank: 8, suit: 'hearts', sym: '8', suitIcon: '♥' },
+    { id: '3d', rank: 3, suit: 'diamonds', sym: '3', suitIcon: '♦' },
+    { id: '6d', rank: 6, suit: 'diamonds', sym: '6', suitIcon: '♦' },
+    { id: '9d', rank: 9, suit: 'diamonds', sym: '9', suitIcon: '♦' },
+    { id: '4c', rank: 4, suit: 'clubs', sym: '4', suitIcon: '♣' },
+    { id: '7c', rank: 7, suit: 'clubs', sym: '7', suitIcon: '♣' },
+    { id: '10s', rank: 10, suit: 'spades', sym: '10', suitIcon: '♠' }
+  ];
+  const resUKhan = PhomEvaluator.evaluate(uKhanCards);
+  assert(resUKhan.isUKhan === true, 'Phỏm: Nhận diện chính xác Ù Khan (9 lá không cạ)');
+
+  // 5. Ù Tròn 10 lá (0 rác)
+  const uTronCards = [
+    { id: 'Ah', rank: 14, suit: 'hearts', sym: 'A', suitIcon: '♥' },
+    { id: '2h', rank: 2, suit: 'hearts', sym: '2', suitIcon: '♥' },
+    { id: '3h', rank: 3, suit: 'hearts', sym: '3', suitIcon: '♥' },
+    { id: '8h', rank: 8, suit: 'hearts', sym: '8', suitIcon: '♥' },
+    { id: '8d', rank: 8, suit: 'diamonds', sym: '8', suitIcon: '♦' },
+    { id: '8s', rank: 8, suit: 'spades', sym: '8', suitIcon: '♠' },
+    { id: '8c', rank: 8, suit: 'clubs', sym: '8', suitIcon: '♣' },
+    { id: 'Jc', rank: 11, suit: 'clubs', sym: 'J', suitIcon: '♣' },
+    { id: 'Qc', rank: 12, suit: 'clubs', sym: 'Q', suitIcon: '♣' },
+    { id: 'Kc', rank: 13, suit: 'clubs', sym: 'K', suitIcon: '♣' }
+  ];
+  const resUTron = PhomEvaluator.evaluate(uTronCards);
+  assert(resUTron.isUTron === true, 'Phỏm: Nhận diện chính xác Ù Tròn 10 lá');
+
+  // 6. Xếp hạng đối đầu
+  const ranked = PhomEvaluator.rankPlayers([
+    { name: 'Tụ Ù', cards: phomVertical },
+    { name: 'Tụ Điểm', cards: onePhomCards },
+    { name: 'Tụ Móm', cards: momCards }
+  ]);
+  assert(ranked[0].name === 'Tụ Ù' && ranked[0].rank === 1, 'Phỏm: Người Ù đứng Hạng 1');
+  assert(ranked[1].name === 'Tụ Điểm' && ranked[1].rank === 2, 'Phỏm: Người có phỏm đứng Hạng 2');
+  assert(ranked[0].scoreDelta === 12, 'Phỏm: Người Ù ăn mỗi nhà 6 chi (+12 chi)');
 }
 
 // 11. Test Chế độ không so chất (Bàn phím A->K) trong Cài Đặt (Hình răng cưa ⚙️)

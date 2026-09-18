@@ -1,6 +1,7 @@
 import Foundation
 
 public enum GameCategory: String, CaseIterable, Identifiable, Codable {
+    case phom = "Phỏm (Tá Lả)"
     case binh = "Binh (Mậu Binh)"
     case lieng = "Liêng (3 Cây / Cào Tố)"
     case xiDach = "Xì Dách (2 Lá / Xì Lát)"
@@ -10,6 +11,9 @@ public enum GameCategory: String, CaseIterable, Identifiable, Codable {
 }
 
 public enum GameType: String, CaseIterable, Identifiable, Codable {
+    // Phom
+    case phom9 = "Phỏm (Tá Lả 9 lá)"
+    
     // Lieng
     case lieng3 = "Liêng (3 Cây chuẩn)"
     
@@ -27,6 +31,7 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
     
     public var shortName: String {
         switch self {
+        case .phom9: return "Phỏm 9 lá"
         case .lieng3: return "Liêng (3 Cây)"
         case .binh9: return "Binh 9 lá"
         case .binh6Poker: return "Binh 6 lá"
@@ -37,6 +42,8 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
     
     public var category: GameCategory {
         switch self {
+        case .phom9:
+            return .phom
         case .binh9, .binh6Poker:
             return .binh
         case .lieng3:
@@ -51,6 +58,7 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
     // Cards required per player
     public var cardsPerPlayer: Int {
         switch self {
+        case .phom9: return 9
         case .lieng3: return 3
         case .binh9: return 9
         case .binh6Poker: return 6
@@ -71,6 +79,7 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
     
     public var maxPlayers: Int {
         switch self {
+        case .phom9: return 4
         case .binh9: return 5
         case .binh6Poker: return 8
         case .lieng3: return 10
@@ -81,6 +90,8 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
     
     public var descriptionVN: String {
         switch self {
+        case .phom9:
+            return "9 lá/người (Tụ 1 luôn 10 lá). Ghép các phỏm dọc (sảnh cùng chất) hoặc phỏm ngang (3-4 lá cùng số). Ai Ù (0 lá rác) thắng tuyệt đối; tính điểm các lá rác còn lại (A=1, J=11, Q=12, K=13), ít điểm nhất thắng; không có phỏm bị Móm (Cháy)."
         case .lieng3:
             return "3 lá/người, phân cấp: Sáp (10.000 + độ mạnh) > Liêng (5.000 + độ mạnh) > Ba Tây (1.000) > Điểm mod 10. Bằng điểm nhau thì đồng hạng."
         case .binh9:
