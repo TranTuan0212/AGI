@@ -275,7 +275,7 @@ public struct SamLocEvaluator {
                     type: .fourOfAKind,
                     title: "Tứ quý \(rankDisplayName(rank))",
                     cards: sortedGroup,
-                    cardIds: Set(sortedGroup.map { $0.id.uuidString })
+                    cardIds: Set(sortedGroup.map { $0.id })
                 ))
             }
         }
@@ -288,7 +288,7 @@ public struct SamLocEvaluator {
                     type: .threeOfAKind,
                     title: "Sám \(rankDisplayName(rank))",
                     cards: sub,
-                    cardIds: Set(sub.map { $0.id.uuidString })
+                    cardIds: Set(sub.map { $0.id })
                 ))
             }
         }
@@ -317,7 +317,7 @@ public struct SamLocEvaluator {
                             type: .straight,
                             title: "Sảnh \(nameMin)-\(nameMax)",
                             cards: sub,
-                            cardIds: Set(sub.map { $0.id.uuidString })
+                            cardIds: Set(sub.map { $0.id })
                         ))
                     }
                 }
@@ -333,7 +333,7 @@ public struct SamLocEvaluator {
                 type: .straight,
                 title: "Sảnh A-2-3",
                 cards: a23,
-                cardIds: Set(a23.map { $0.id.uuidString })
+                cardIds: Set(a23.map { $0.id })
             ))
         }
         
@@ -345,7 +345,7 @@ public struct SamLocEvaluator {
                     type: .pair,
                     title: "Đôi \(rankDisplayName(rank))",
                     cards: sub,
-                    cardIds: Set(sub.map { $0.id.uuidString })
+                    cardIds: Set(sub.map { $0.id })
                 ))
             }
         }
@@ -400,7 +400,7 @@ public struct SamLocEvaluator {
         for c in bestCombo {
             usedInBest.formUnion(c.cardIds)
         }
-        let trashCards = cards.filter { !usedInBest.contains($0.id.uuidString) }
+        let trashCards = cards.filter { !usedInBest.contains($0.id) }
             .sorted { samRankValue($0.rank) < samRankValue($1.rank) }
         
         var resultGroups: [SamLocGroup] = []
