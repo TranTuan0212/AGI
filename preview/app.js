@@ -28,6 +28,14 @@ const RANKS = [
 ];
 
 const GAME_CONFIGS = {
+  chan19: {
+    name: "Chắn Trung Quốc (19 lá)",
+    cardsPerPlayer: 19,
+    community: 0,
+    minPlayers: 2,
+    maxPlayers: 5,
+    desc: "19 lá/người (2-5 người). Dùng bàn phím số A➔K to bản giống Liêng & Sâm Lốc, nhập đủ 19 lá, hiển thị toàn bộ bài theo thứ tự tăng dần."
+  },
   samLoc10: {
     name: "Sâm Lốc (10 lá)",
     cardsPerPlayer: 10,
@@ -1527,7 +1535,7 @@ class AppController {
   }
 
   isRankOnlyActive() {
-    return this.isRankOnlyMode && (this.currentGameType === 'lieng3' || this.currentGameType === 'xiDach2' || this.currentGameType === 'samLoc10');
+    return this.isRankOnlyMode && (this.currentGameType === 'lieng3' || this.currentGameType === 'xiDach2' || this.currentGameType === 'samLoc10' || this.currentGameType === 'chan19');
   }
 
   targetCards(playerIndex) {
@@ -2249,6 +2257,33 @@ class AppController {
         }
 
         cardsContainer.appendChild(chiGroupsWrap);
+      } else if (this.currentGameType === 'chan19') {
+        const sortedCards = [...p.cards].sort((a, b) => a.rank - b.rank);
+        const overlapWrap = document.createElement('div');
+        overlapWrap.className = 'card-overlap-wrapper';
+
+        sortedCards.forEach(c => {
+          const mini = this.createMiniCard(c);
+          overlapWrap.appendChild(mini);
+        });
+
+        const missing = Math.max(0, target - p.cards.length);
+        const showPlaceholders = Math.min(missing, 6);
+        for (let i = 0; i < showPlaceholders; i++) {
+          const ph = document.createElement('div');
+          ph.className = 'placeholder-card';
+          ph.textContent = '+';
+          overlapWrap.appendChild(ph);
+        }
+        if (missing > showPlaceholders) {
+          const morePh = document.createElement('div');
+          morePh.className = 'placeholder-card';
+          morePh.style.fontSize = '9px';
+          morePh.textContent = `+${missing - showPlaceholders}`;
+          overlapWrap.appendChild(morePh);
+        }
+
+        cardsContainer.appendChild(overlapWrap);
       } else {
         const overlapWrap = document.createElement('div');
         overlapWrap.className = 'card-overlap-wrapper';
@@ -2347,6 +2382,9 @@ class AppController {
 
   calculate() {
     switch(this.currentGameType) {
+      case 'chan19':
+        this.calcChan19();
+        break;
       case 'samLoc10':
         this.calcSamLoc();
         break;
@@ -2372,6 +2410,16 @@ class AppController {
     this.recordMatchResult();
     this.renderPlayers(); // Show result directly on the mats!
     this.updateUI();
+  }
+
+  calcChan19() {
+    this.players.forEach((p, idx) => {
+      p.cards.sort((a, b) => a.rank - b.rank);
+      p.score = 0;
+      p.resultTitle = `${p.cards.length} lá`;
+      p.resultDetail = "Chắn Trung Quốc (19 lá)";
+      p.rankOrder = idx + 1;
+    });
   }
 
   recordMatchResult() {

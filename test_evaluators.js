@@ -593,4 +593,63 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE (6 TRÒ CHƠI) =
   assert(appSam.players[1].rankOrder === 2, 'AppController Sâm Lốc: Tụ 2 Thua (Hạng 2)');
 }
 
+// 13. Test Chắn Trung Quốc (19 lá)
+{
+  const appCodeFull = fs.readFileSync('preview/app.js', 'utf8');
+  const sandbox = {
+    window: { addEventListener: () => {} },
+    document: {
+      getElementById: () => ({ style: {}, innerHTML: '', appendChild: () => {}, classList: { add: () => {}, remove: () => {} }, querySelector: () => ({ addEventListener: () => {} }), addEventListener: () => {} }),
+      querySelectorAll: () => [],
+      createElement: () => ({ style: {}, dataset: {}, appendChild: () => {}, addEventListener: () => {}, querySelector: () => ({ addEventListener: () => {} }), setAttribute: () => {} })
+    },
+    localStorage: { getItem: () => null, setItem: () => {} },
+    console: console,
+    setTimeout: setTimeout
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(appCodeFull, sandbox);
+  const AppCtrl = vm.runInContext('AppController', sandbox);
+  const appChan = new AppCtrl();
+
+  appChan.currentGameType = 'chan19';
+  appChan.playerCount = 5;
+  appChan.initPlayers();
+
+  assert(appChan.targetCards(0) === 19, 'Chắn TQ: Mỗi nhà cần đúng 19 lá bài');
+  assert(appChan.players.length === 5, 'Chắn TQ: Hỗ trợ đủ 5 người chơi');
+
+  // Test Rank-Only Mode
+  appChan.isRankOnlyMode = true;
+  assert(appChan.isRankOnlyActive() === true, 'Chắn TQ: Kích hoạt bàn phím số A➔K giống Liêng & Sâm Lốc');
+
+  // Nhập 19 lá cho Tụ 1 bằng phím số A->K
+  appChan.inputMode = 'manual';
+  appChan.selectedPlayerIndex = 0;
+  const sampleRanks = [
+    { raw: 14, sym: 'A' }, { raw: 2, sym: '2' }, { raw: 3, sym: '3' }, { raw: 4, sym: '4' },
+    { raw: 5, sym: '5' }, { raw: 6, sym: '6' }, { raw: 7, sym: '7' }, { raw: 8, sym: '8' },
+    { raw: 9, sym: '9' }, { raw: 10, sym: '10' }, { raw: 11, sym: 'J' }, { raw: 12, sym: 'Q' },
+    { raw: 13, sym: 'K' }, { raw: 14, sym: 'A' }, { raw: 2, sym: '2' }, { raw: 3, sym: '3' },
+    { raw: 4, sym: '4' }, { raw: 5, sym: '5' }, { raw: 6, sym: '6' }
+  ];
+  sampleRanks.forEach(r => appChan.onRankClick(r));
+  assert(appChan.players[0].cards.length === 19, 'Chắn TQ: Tụ 1 nhận đủ 19 lá bài bằng bàn phím số');
+
+  // Tụ 1 tự động chuyển sang Tụ 2 khi đủ 19 lá trong Manual Mode
+  assert(appChan.selectedPlayerIndex === 1, 'Chắn TQ: Tự động chuyển tiêu điểm sang Tụ 2 khi Tụ 1 đủ 19 lá');
+
+  // Kiểm tra sắp xếp bài tăng dần
+  appChan.calculate();
+  const sortedRanks = appChan.players[0].cards.map(c => c.rank);
+  let isSorted = true;
+  for (let i = 0; i < sortedRanks.length - 1; i++) {
+    if (sortedRanks[i] > sortedRanks[i + 1]) {
+      isSorted = false;
+      break;
+    }
+  }
+  assert(isSorted === true, 'Chắn TQ: Các lá bài được tự động sắp xếp theo thứ tự tăng dần trực quan');
+}
+
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);

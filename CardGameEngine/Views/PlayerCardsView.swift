@@ -233,6 +233,23 @@ public struct PlayerCardsView: View {
                                     }
                                 }
                                 .padding(.vertical, 1)
+                            } else if viewModel.gameType == .chan19 {
+                                let sortedCards = player.cards.sorted { $0.rank.value < $1.rank.value }
+                                HStack(spacing: 4) {
+                                    ForEach(sortedCards) { card in
+                                        MiniCardView(card: card) {
+                                            viewModel.removeCard(card)
+                                        }
+                                    }
+                                    let missing = target - player.cards.count
+                                    let showCount = max(0, min(missing, 6))
+                                    if showCount > 0 {
+                                        ForEach(0..<showCount, id: \.self) { _ in
+                                            CardPlaceholderView()
+                                        }
+                                    }
+                                }
+                                .padding(.vertical, 1)
                             } else {
                                 HStack(spacing: 4) {
                                     ForEach(player.cards) { card in

@@ -1,6 +1,7 @@
 import Foundation
 
 public enum GameCategory: String, CaseIterable, Identifiable, Codable {
+    case chan = "Chắn Trung Quốc"
     case samLoc = "Sâm Lốc"
     case phom = "Phỏm (Tá Lả)"
     case binh = "Binh (Mậu Binh)"
@@ -12,6 +13,9 @@ public enum GameCategory: String, CaseIterable, Identifiable, Codable {
 }
 
 public enum GameType: String, CaseIterable, Identifiable, Codable {
+    // Chan
+    case chan19 = "Chắn Trung Quốc (19 lá)"
+    
     // Sam Loc
     case samLoc10 = "Sâm Lốc (10 lá)"
     
@@ -35,6 +39,7 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
     
     public var shortName: String {
         switch self {
+        case .chan19: return "Chắn TQ (19 lá)"
         case .samLoc10: return "Sâm Lốc"
         case .phom9: return "Phỏm 9 lá"
         case .lieng3: return "Liêng (3 Cây)"
@@ -47,6 +52,8 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
     
     public var category: GameCategory {
         switch self {
+        case .chan19:
+            return .chan
         case .samLoc10:
             return .samLoc
         case .phom9:
@@ -65,6 +72,7 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
     // Cards required per player
     public var cardsPerPlayer: Int {
         switch self {
+        case .chan19: return 19
         case .samLoc10: return 10
         case .phom9: return 9
         case .lieng3: return 3
@@ -87,6 +95,7 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
     
     public var maxPlayers: Int {
         switch self {
+        case .chan19: return 5
         case .samLoc10: return 5
         case .phom9: return 4
         case .binh9: return 5
@@ -99,6 +108,8 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
     
     public var descriptionVN: String {
         switch self {
+        case .chan19:
+            return "19 lá/người (2-5 người). Dùng bàn phím số A➔K to bản giống Liêng & Sâm Lốc, nhập đủ 19 lá, hiển thị dãy bài trực quan theo thứ tự tăng dần."
         case .samLoc10:
             return "10 lá/người (2-5 người). Khi nhập đủ 10 lá, tự động gom bài thành các cụm: Rác, Đôi, Sảnh, Sám (3 cây), Tứ quý (4 cây). Nhận diện Thắng trắng (Sảnh rồng, Tứ quý 2, 5 đôi, 3 sám, đồng màu)."
         case .phom9:

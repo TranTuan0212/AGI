@@ -7,10 +7,10 @@ public struct SettingsView: View {
     public var body: some View {
         NavigationView {
             Form {
-                Section(header: Text("Tùy Chọn Bàn Phím Số A➔K (Liêng / Xì Dách / Sâm Lốc)")) {
+                Section(header: Text("Tùy Chọn Bàn Phím Số A➔K (Liêng / Xì Dách / Sâm Lốc / Chắn TQ)")) {
                     Toggle("Chế độ không so chất (Bàn phím A➔K)", isOn: $viewModel.isRankOnlyMode)
                     
-                    Text("Khi bật, Liêng, Xì Dách và Sâm Lốc sẽ dùng bàn phím số A➔K to bản, một lá có thể chọn nhiều lần (không khóa phím), không phân biệt chất bài.")
+                    Text("Khi bật, Liêng, Xì Dách, Sâm Lốc và Chắn TQ sẽ dùng bàn phím số A➔K to bản, một lá có thể chọn nhiều lần (không khóa phím), không phân biệt chất bài.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

@@ -68,7 +68,7 @@ public class GameViewModel: ObservableObject {
     }
     
     public var isRankOnlyActive: Bool {
-        return isRankOnlyMode && (gameType == .lieng3 || gameType == .xiDach2 || gameType == .samLoc10)
+        return isRankOnlyMode && (gameType == .lieng3 || gameType == .xiDach2 || gameType == .samLoc10 || gameType == .chan19)
     }
     
     public func targetCards(for playerIndex: Int) -> Int {
@@ -426,6 +426,8 @@ public class GameViewModel: ObservableObject {
         guard isReadyToCalculate else { return }
         
         switch gameType {
+        case .chan19:
+            calculateChan19()
         case .samLoc10:
             calculateSamLoc()
         case .phom9:
@@ -474,6 +476,16 @@ public class GameViewModel: ObservableObject {
 
     
     // MARK: - Game Calculation Logic
+    
+    private func calculateChan19() {
+        for i in 0..<players.count {
+            players[i].cards.sort { $0.rank.value < $1.rank.value }
+            players[i].rankOrder = i + 1
+            players[i].score = 0
+            players[i].resultTitle = "\(players[i].cards.count) lá"
+            players[i].resultDetail = "Chắn Trung Quốc (19 lá)"
+        }
+    }
     
     private func calculateSamLoc() {
         let inputList = players.enumerated().map { (index: $0.offset, name: $0.element.name, cards: $0.element.cards) }
