@@ -12,11 +12,16 @@ public class SpeechRecognitionService: ObservableObject {
     private var recognitionTask: SFSpeechRecognitionTask?
     private var audioEngine: AVAudioEngine?
     
+    // Thread synchronization lock for CoreAudio realtime tap vs Speech completion
+    private let lock = NSLock()
+    private var isAcceptingAudio: Bool = false
+    private var activeRequest: SFSpeechAudioBufferRecognitionRequest? = nil
+    
     // Tap installation state to prevent calling removeTap when no tap exists
     private var isTapInstalled: Bool = false
     
-    // Safety flag to prevent appending audio buffer after endAudio has been called
-    private var isAudioEnding: Bool = false
+    // Unique session ID to invalidate trailing callbacks from previous sessions
+    private var sessionID: UUID = UUID()
     
     public init() {}
     
@@ -46,9 +51,11 @@ public class SpeechRecognitionService: ObservableObject {
             return
         }
         
+        let newSessionID = UUID()
+        self.sessionID = newSessionID
+        
         do {
             let audioSession = AVAudioSession.sharedInstance()
-            // .playAndRecord with mode .default is fully valid and compatible with .defaultToSpeaker and .allowBluetooth
             try audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
             try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
             
@@ -56,26 +63,44 @@ public class SpeechRecognitionService: ObservableObject {
             self.recognitionRequest = recognitionRequest
             recognitionRequest.shouldReportPartialResults = true
             
-            // Re-instantiate fresh AVAudioEngine per recording session to avoid stale graph state
+            // Re-instantiate fresh AVAudioEngine per recording session
             let engine = AVAudioEngine()
             self.audioEngine = engine
             
             let inputNode = engine.inputNode
+            let recordingFormat = inputNode.outputFormat(forBus: 0)
+            
+            guard recordingFormat.sampleRate > 0 else {
+                self.errorMessage = "Lỗi âm thanh: Không tìm thấy thiết bị thu âm hợp lệ."
+                stopRecording()
+                return
+            }
             
             recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, error in
                 guard let self = self else { return }
                 
+                // Ignore stale results from past sessions
+                guard self.sessionID == newSessionID else { return }
+                
                 if let result = result {
                     let text = result.bestTranscription.formattedString
                     DispatchQueue.main.async {
+                        guard self.sessionID == newSessionID else { return }
                         self.recognizedText = text
                         onResult(text)
                     }
                 }
                 
-                // If error or finished, clean up on the main thread safely
-                if error != nil || (result?.isFinal ?? false) {
+                let isFinal = result?.isFinal ?? false
+                if error != nil || isFinal {
+                    // IMMEDIATELY cutoff audio buffers on this thread under lock to prevent NSInvalidArgumentException
+                    self.lock.lock()
+                    self.isAcceptingAudio = false
+                    self.activeRequest = nil
+                    self.lock.unlock()
+                    
                     DispatchQueue.main.async {
+                        guard self.sessionID == newSessionID else { return }
                         if self.isRecording {
                             self.stopRecording()
                         }
@@ -83,24 +108,30 @@ public class SpeechRecognitionService: ObservableObject {
                 }
             }
             
-            // Format check: Use native inputFormat or nil fallback for maximum hardware compatibility
-            let hwFormat = inputNode.outputFormat(forBus: 0)
-            let tapFormat = hwFormat.sampleRate > 0 ? hwFormat : nil
-            
-            inputNode.installTap(onBus: 0, bufferSize: 1024, format: tapFormat) { [weak self] buffer, _ in
-                guard let self = self, self.isRecording, !self.isAudioEnding else {
+            // Thread-safe audio tap: will never call append() after request is closed
+            inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
+                guard let self = self else { return }
+                self.lock.lock()
+                guard self.isAcceptingAudio, let request = self.activeRequest else {
+                    self.lock.unlock()
                     return
                 }
-                self.recognitionRequest?.append(buffer)
+                request.append(buffer)
+                self.lock.unlock()
             }
             self.isTapInstalled = true
             
             engine.prepare()
             try engine.start()
             
+            // Enable buffer acceptance only after engine successfully starts
+            self.lock.lock()
+            self.isAcceptingAudio = true
+            self.activeRequest = recognitionRequest
+            self.lock.unlock()
+            
             DispatchQueue.main.async {
                 self.isRecording = true
-                self.isAudioEnding = false
                 self.errorMessage = nil
             }
             
@@ -113,37 +144,39 @@ public class SpeechRecognitionService: ObservableObject {
     }
     
     public func stopRecording() {
-        // Step 1: Immediately flag that audio is ending so no more buffers are appended
-        isAudioEnding = true
+        // Step 1: Immediately cut off buffer delivery under lock
+        lock.lock()
+        isAcceptingAudio = false
+        activeRequest = nil
+        lock.unlock()
+        
+        // Invalidate session ID so background handlers drop trailing events
+        sessionID = UUID()
         
         DispatchQueue.main.async {
             self.isRecording = false
         }
         
-        // Step 2: Remove tap FIRST while engine is still bound, avoiding RemoveTap exception
-        if isTapInstalled, let engine = audioEngine {
-            engine.inputNode.removeTap(onBus: 0)
-            isTapInstalled = false
-        }
-        
-        // Step 3: Stop and clear audio engine instance
+        // Step 2: Stop audio engine first so hardware stops delivering frames
         if let engine = audioEngine {
             if engine.isRunning {
                 engine.stop()
             }
+            if isTapInstalled {
+                engine.inputNode.removeTap(onBus: 0)
+                isTapInstalled = false
+            }
             self.audioEngine = nil
         }
         
-        // Step 4: Safely end audio request now that tap is completely removed
+        // Step 3: Safely end audio request now that tap is completely removed and engine is stopped
         recognitionRequest?.endAudio()
         recognitionRequest = nil
         
         recognitionTask?.cancel()
         recognitionTask = nil
         
-        isAudioEnding = false
-        
-        // Step 5: Deactivate audio session to return hardware to normal state
+        // Step 4: Deactivate audio session to return hardware to normal state
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 }
