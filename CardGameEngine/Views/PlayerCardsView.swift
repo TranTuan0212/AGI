@@ -234,7 +234,7 @@ public struct PlayerCardsView: View {
                                 }
                                 .padding(.vertical, 1)
                             } else if viewModel.gameType == .chan19 {
-                                let sortedCards = player.cards.sorted { $0.rank.value < $1.rank.value }
+                                let sortedCards = player.cards.sorted { $0.rank < $1.rank }
                                 HStack(spacing: 4) {
                                     ForEach(sortedCards) { card in
                                         MiniCardView(card: card) {
