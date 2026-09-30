@@ -76,37 +76,53 @@ public class SpeechRecognitionService: ObservableObject {
                 return
             }
             
-            recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, error in
-                guard let self = self else { return }
-                
-                // Ignore stale results from past sessions
-                guard self.sessionID == newSessionID else { return }
-                
-                if let result = result {
-                    let text = result.bestTranscription.formattedString
-                    DispatchQueue.main.async {
-                        guard self.sessionID == newSessionID else { return }
-                        self.recognizedText = text
-                        onResult(text)
-                    }
-                }
-                
-                let isFinal = result?.isFinal ?? false
-                if error != nil || isFinal {
-                    // IMMEDIATELY cutoff audio buffers on this thread under lock to prevent NSInvalidArgumentException
-                    self.lock.lock()
-                    self.isAcceptingAudio = false
-                    self.activeRequest = nil
-                    self.lock.unlock()
+            var recognitionTaskError: NSError? = nil
+            var createdTask: SFSpeechRecognitionTask? = nil
+            
+            let success = ObjcTryCatch({
+                createdTask = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, error in
+                    guard let self = self else { return }
                     
-                    DispatchQueue.main.async {
-                        guard self.sessionID == newSessionID else { return }
-                        if self.isRecording {
-                            self.stopRecording()
+                    // Ignore stale results from past sessions
+                    guard self.sessionID == newSessionID else { return }
+                    
+                    if let result = result {
+                        let text = result.bestTranscription.formattedString
+                        DispatchQueue.main.async {
+                            guard self.sessionID == newSessionID else { return }
+                            self.recognizedText = text
+                            onResult(text)
+                        }
+                    }
+                    
+                    let isFinal = result?.isFinal ?? false
+                    if error != nil || isFinal {
+                        // IMMEDIATELY cutoff audio buffers on this thread under lock to prevent NSInvalidArgumentException
+                        self.lock.lock()
+                        self.isAcceptingAudio = false
+                        self.activeRequest = nil
+                        self.lock.unlock()
+                        
+                        DispatchQueue.main.async {
+                            guard self.sessionID == newSessionID else { return }
+                            if self.isRecording {
+                                self.stopRecording()
+                            }
                         }
                     }
                 }
+            }, &recognitionTaskError)
+            
+            guard success, let task = createdTask else {
+                let reason = recognitionTaskError?.localizedDescription ?? "Hệ thống nhận diện giọng nói không khởi động được (model on-device chưa sẵn sàng)."
+                DispatchQueue.main.async {
+                    self.errorMessage = "⚠️ \(reason)"
+                }
+                stopRecording()
+                return
             }
+            self.recognitionTask = task
+
             
             // Thread-safe audio tap: will never call append() after request is closed
             inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in

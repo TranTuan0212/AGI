@@ -30,6 +30,7 @@
 		536C1F7229F32371F19E0950 /* Assets.xcassets in Sources */ = {isa = PBXBuildFile; fileRef = F5711A4F8FE991CF76A72175 /* Assets.xcassets */; };
 		B1C2D3E4F5A6012345678901 /* VietnameseCardVoiceParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6012345678901 /* VietnameseCardVoiceParser.swift */; };
 		B1C2D3E4F5A6012345678902 /* SpeechRecognitionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6012345678902 /* SpeechRecognitionService.swift */; };
+		CC0011AA22BB33CC44DD5501 /* ObjcExceptionCatcher.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0011AA22BB33CC44DD5500 /* ObjcExceptionCatcher.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -58,6 +59,9 @@
 		3FAFB429590C61B761CDF86D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6012345678901 /* VietnameseCardVoiceParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VietnameseCardVoiceParser.swift; sourceTree = "<group>"; };
 		A1B2C3D4E5F6012345678902 /* SpeechRecognitionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognitionService.swift; sourceTree = "<group>"; };
+		CC0011AA22BB33CC44DD5500 /* ObjcExceptionCatcher.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjcExceptionCatcher.m; sourceTree = "<group>"; };
+		CC0011AA22BB33CC44DD5502 /* ObjcExceptionCatcher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjcExceptionCatcher.h; sourceTree = "<group>"; };
+		CC0011AA22BB33CC44DD5503 /* CardGameApp-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CardGameApp-Bridging-Header.h"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -139,6 +143,8 @@
 			children = (
 				A1B2C3D4E5F6012345678901 /* VietnameseCardVoiceParser.swift */,
 				A1B2C3D4E5F6012345678902 /* SpeechRecognitionService.swift */,
+				CC0011AA22BB33CC44DD5502 /* ObjcExceptionCatcher.h */,
+				CC0011AA22BB33CC44DD5500 /* ObjcExceptionCatcher.m */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -147,6 +153,7 @@
 			isa = PBXGroup;
 			children = (
 				213DED3C160668CF2F4807D5 /* CardGameApp.swift */,
+				CC0011AA22BB33CC44DD5503 /* CardGameApp-Bridging-Header.h */,
 				9CF042290D5E925227654673 /* Evaluators */,
 				BC8E6A5FDB0FEE50AF1B10E7 /* Models */,
 				C1D2E3F4A5B6012345678901 /* Services */,
@@ -248,6 +255,7 @@
 				686C404C84BB19E7802C3B68 /* SettingsView.swift in Sources */,
 				B1C2D3E4F5A6012345678901 /* VietnameseCardVoiceParser.swift in Sources */,
 				B1C2D3E4F5A6012345678902 /* SpeechRecognitionService.swift in Sources */,
+				CC0011AA22BB33CC44DD5501 /* ObjcExceptionCatcher.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -322,6 +330,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.trantuan.cardgame;
 				PRODUCT_NAME = CardGameApp;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "CardGameEngine/CardGameApp-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -346,6 +355,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.trantuan.cardgame;
 				PRODUCT_NAME = CardGameApp;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = "CardGameEngine/CardGameApp-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
