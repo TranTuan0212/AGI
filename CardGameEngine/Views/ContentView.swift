@@ -113,31 +113,66 @@ public struct ContentView: View {
                 
                 // 3. LOWER: Pinned 52-Card Deck & Actions (Nhập ở dưới)
                 VStack(spacing: 6) {
-                    // Action Buttons: 1 Balanced Row (Hoàn tác [Left] - KHÔNG THẤY [Center Large] - Làm mới [Right])
-                    HStack(spacing: 8) {
-                        // Nút phụ bên trái: Hoàn tác
+                    // Voice Banner Notification
+                    if let banner = viewModel.voiceBannerText {
+                        HStack(spacing: 6) {
+                            Image(systemName: viewModel.voiceService.isRecording ? "waveform" : "mic.fill")
+                                .font(.system(size: 11, weight: .bold))
+                            Text(banner)
+                                .font(.system(size: 11, weight: .semibold))
+                                .lineLimit(1)
+                        }
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(viewModel.voiceService.isRecording ? Color.red : Color.blue)
+                        .cornerRadius(12)
+                        .animation(.easeInOut, value: viewModel.voiceService.isRecording)
+                    }
+                    
+                    // Action Buttons: Balanced Row (Hoàn tác - Giọng nói - KHÔNG THẤY - Làm mới)
+                    HStack(spacing: 6) {
+                        // Nút Hoàn tác
                         Button(action: { viewModel.undoLastAction() }) {
                             VStack(spacing: 2) {
                                 Image(systemName: "arrow.uturn.backward")
-                                    .font(.system(size: 14, weight: .bold))
+                                    .font(.system(size: 13, weight: .bold))
                                 Text("Hoàn tác")
-                                    .font(.system(size: 11, weight: .medium))
+                                    .font(.system(size: 10, weight: .medium))
                             }
                             .foregroundColor(.primary)
-                            .frame(maxWidth: 72, minHeight: 44)
+                            .frame(minWidth: 54, maxWidth: 64, minHeight: 44)
                             .background(Color(.secondarySystemBackground))
                             .cornerRadius(9)
+                        }
+                        
+                        // Nút Giọng Nói Tiếng Việt
+                        Button(action: { viewModel.toggleVoiceRecognition() }) {
+                            VStack(spacing: 2) {
+                                Image(systemName: viewModel.voiceService.isRecording ? "waveform" : "mic.fill")
+                                    .font(.system(size: 14, weight: .bold))
+                                Text(viewModel.voiceService.isRecording ? "Đang nghe" : "Nói bài")
+                                    .font(.system(size: 10, weight: .medium))
+                            }
+                            .foregroundColor(viewModel.voiceService.isRecording ? .white : .blue)
+                            .frame(minWidth: 54, maxWidth: 64, minHeight: 44)
+                            .background(viewModel.voiceService.isRecording ? Color.red : Color.blue.opacity(0.12))
+                            .cornerRadius(9)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 9)
+                                    .stroke(viewModel.voiceService.isRecording ? Color.red : Color.blue.opacity(0.3), lineWidth: 1)
+                            )
                         }
                         
                         // Nút chính ở giữa: KHÔNG THẤY (BÀI ẨN) / VÁN MỚI (To bản, nổi bật nhất)
                         Group {
                             if viewModel.hasCalculatedResults {
                                 Button(action: { viewModel.startNewRound() }) {
-                                    HStack(spacing: 7) {
+                                    HStack(spacing: 6) {
                                         Image(systemName: "arrow.clockwise.circle.fill")
-                                            .font(.system(size: 18, weight: .black))
+                                            .font(.system(size: 17, weight: .black))
                                         Text("VÁN MỚI")
-                                            .font(.system(size: 15, weight: .black))
+                                            .font(.system(size: 14, weight: .black))
                                     }
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity, minHeight: 44)
@@ -149,11 +184,11 @@ public struct ContentView: View {
                                 }
                             } else {
                                 Button(action: { viewModel.onHiddenCardTapped() }) {
-                                    HStack(spacing: 7) {
+                                    HStack(spacing: 6) {
                                         Image(systemName: "questionmark.circle.fill")
-                                            .font(.system(size: 18, weight: .black))
+                                            .font(.system(size: 17, weight: .black))
                                         Text("KHÔNG THẤY")
-                                            .font(.system(size: 15, weight: .black))
+                                            .font(.system(size: 14, weight: .black))
                                     }
                                     .foregroundColor(.white)
                                     .frame(maxWidth: .infinity, minHeight: 44)
@@ -170,12 +205,12 @@ public struct ContentView: View {
                         Button(action: { viewModel.resetTable() }) {
                             VStack(spacing: 2) {
                                 Image(systemName: "trash")
-                                    .font(.system(size: 14, weight: .bold))
+                                    .font(.system(size: 13, weight: .bold))
                                 Text("Làm mới")
-                                    .font(.system(size: 11, weight: .medium))
+                                    .font(.system(size: 10, weight: .medium))
                             }
                             .foregroundColor(.red)
-                            .frame(maxWidth: 72, minHeight: 44)
+                            .frame(minWidth: 54, maxWidth: 64, minHeight: 44)
                             .background(Color.red.opacity(0.1))
                             .cornerRadius(9)
                         }

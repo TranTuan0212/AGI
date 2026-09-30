@@ -652,6 +652,49 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE (6 TRÒ CHƠI) =
   assert(isSorted === true, 'Chắn TQ: Các lá bài được tự động sắp xếp theo thứ tự tăng dần trực quan');
 }
 
+// 22. Test Nhập liệu bằng Giọng nói Tiếng Việt (VietnameseCardVoiceParser)
+console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (VietnameseCardVoiceParser) ---');
+{
+  // Test từ lóng / phương ngữ: già xì ri q -> K, A, J, Q
+  const res1 = VietnameseCardVoiceParser.parse('già xì ri q');
+  assert(res1.length === 4, 'Voice Parser: Nhận diện đủ 4 lá "già xì ri q"');
+  assert(res1[0].rank === 13 && res1[1].rank === 14 && res1[2].rank === 11 && res1[3].rank === 12, 'Voice Parser: Ánh xạ chuẩn Già(13/K), Xì(14/A), Ri(11/J), Q(12/Q)');
+
+  // Test số lượng: đôi già -> K, K
+  const res2 = VietnameseCardVoiceParser.parse('đôi già');
+  assert(res2.length === 2 && res2[0].rank === 13 && res2[1].rank === 13, 'Voice Parser: Nhận diện chuẩn "đôi già" -> [K, K]');
+
+  // Test tứ quý át
+  const res3 = VietnameseCardVoiceParser.parse('tứ quý át');
+  assert(res3.length === 4 && res3.every(c => c.rank === 14), 'Voice Parser: Nhận diện chuẩn "tứ quý át" -> [A, A, A, A]');
+
+  // Test sám / ba con: sám tám
+  const res4 = VietnameseCardVoiceParser.parse('sám tám');
+  assert(res4.length === 3 && res4.every(c => c.rank === 8), 'Voice Parser: Nhận diện chuẩn "sám tám" -> [8, 8, 8]');
+
+  // Test đọc số liên tiếp: ba bốn năm sáu
+  const res5 = VietnameseCardVoiceParser.parse('ba bốn năm sáu');
+  assert(res5.length === 4 && res5[0].rank === 3 && res5[1].rank === 4 && res5[2].rank === 5 && res5[3].rank === 6, 'Voice Parser: Đọc sảnh liên tiếp "ba bốn năm sáu" -> [3, 4, 5, 6]');
+
+  // Test kèm chất (Suit): át cơ k bích q tép j rô
+  const res6 = VietnameseCardVoiceParser.parse('át cơ k bích q tép j rô');
+  assert(res6.length === 4, 'Voice Parser: Nhận diện đủ 4 lá có chất');
+  assert(res6[0].rank === 14 && res6[0].suit === 'hearts', 'Voice Parser: "át cơ" -> A cơ (hearts)');
+  assert(res6[1].rank === 13 && res6[1].suit === 'spades', 'Voice Parser: "k bích" -> K bích (spades)');
+  assert(res6[2].rank === 12 && res6[2].suit === 'clubs', 'Voice Parser: "q tép" -> Q chuồn/tép (clubs)');
+  assert(res6[3].rank === 11 && res6[3].suit === 'diamonds', 'Voice Parser: "j rô" -> J rô (diamonds)');
+
+  // Test từ đệm / khẩu ngữ tự nhiên: cho tôi con già và con xì nhé
+  const res7 = VietnameseCardVoiceParser.parse('cho tôi con già và con xì nhé');
+  assert(res7.length === 2 && res7[0].rank === 13 && res7[1].rank === 14, 'Voice Parser: Lọc bỏ chuẩn từ đệm ("cho tôi con ... và con ... nhé") -> [K, A]');
+
+  // Test khẩu ngữ "hai con", "ba con", "bốn con"
+  const res8 = VietnameseCardVoiceParser.parse('hai con mười với bốn con át');
+  assert(res8.length === 6, 'Voice Parser: Nhận diện đúng cụm "hai con mười với bốn con át" -> 6 lá');
+  assert(res8[0].rank === 10 && res8[1].rank === 10, 'Voice Parser: Hai con mười -> [10, 10]');
+  assert(res8.slice(2).every(c => c.rank === 14), 'Voice Parser: Bốn con át -> [A, A, A, A]');
+}
+
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);
 
 

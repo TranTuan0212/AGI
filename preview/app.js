@@ -1501,6 +1501,128 @@ class SamLocEvaluator {
   }
 }
 
+// MARK: - Vietnamese Card Voice Parser
+class VietnameseCardVoiceParser {
+  static rankMap = {
+    // Ace
+    'át': 14, 'at': 14, 'ách': 14, 'ach': 14, 'xì': 14, 'xi': 14, 'mốt': 14, 'mot': 14, 'một': 14, 'a': 14, 'ace': 14,
+    // 2
+    'hai': 2, 'nhị': 2, 'nhi': 2, '2': 2,
+    // 3
+    'ba': 3, 'tam': 3, '3': 3,
+    // 4
+    'bốn': 4, 'bon': 4, 'tư': 4, 'tu': 4, '4': 4,
+    // 5
+    'năm': 5, 'nam': 5, 'ngũ': 5, 'ngu': 5, '5': 5,
+    // 6
+    'sáu': 6, 'sau': 6, 'lục': 6, 'luc': 6, '6': 6,
+    // 7
+    'bảy': 7, 'bay': 7, 'bẩy': 7, 'bey': 7, 'thất': 7, 'that': 7, '7': 7,
+    // 8
+    'tám': 8, 'tam8': 8, 'bát': 8, 'bat': 8, '8': 8,
+    // 9
+    'chín': 9, 'chin': 9, 'cửu': 9, 'cuu': 9, '9': 9,
+    // 10
+    'mười': 10, 'muoi': 10, 'chục': 10, 'chuc': 10, '10': 10,
+    // J
+    'bồi': 11, 'boi': 11, 'ri': 11, 'gi': 11, 'di': 11, 'ghi': 11, 'j': 11, 'jack': 11,
+    // Q
+    'đầm': 12, 'dam': 12, 'quy': 12, 'q': 12, 'qui': 12, 'nữ': 12, 'nu': 12, 'queen': 12,
+    // K
+    'già': 13, 'gia': 13, 'ka': 13, 'k': 13, 'vua': 13, 'king': 13
+  };
+
+  static suitMap = {
+    'cơ': 'hearts', 'co': 'hearts', 'tim': 'hearts', 'đỏ': 'hearts', 'do': 'hearts', 'heart': 'hearts',
+    'rô': 'diamonds', 'ro': 'diamonds', 'vuông': 'diamonds', 'vuong': 'diamonds', 'diamond': 'diamonds',
+    'tép': 'clubs', 'tep': 'clubs', 'chuồn': 'clubs', 'chuon': 'clubs', 'nhép': 'clubs', 'nhep': 'clubs', 'chùy': 'clubs', 'club': 'clubs',
+    'bích': 'spades', 'bich': 'spades', 'đen': 'spades', 'den': 'spades', 'spade': 'spades'
+  };
+
+  static fillerWords = new Set([
+    'cho', 'tôi', 'toi', 'tao', 'mình', 'minh',
+    'con', 'lá', 'la', 'quân', 'quan', 'cây', 'cay',
+    'nhà', 'nha', 'tụ', 'tu',
+    'với', 'voi', 'và', 'va',
+    'nhập', 'nhap', 'thêm', 'them', 'lấy', 'lay',
+    'nữa', 'nua', 'nhé', 'nhe', 'rồi', 'roi'
+  ]);
+
+  static parse(text) {
+    if (!text || typeof text !== 'string') return [];
+    let cleaned = text.toLowerCase()
+      .replace(/[,.:;?!/\-—_]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!cleaned) return [];
+
+    let normalized = cleaned
+      .replace(/tứ quý/g, 'tu_quy')
+      .replace(/tu quy/g, 'tu_quy')
+      .replace(/hai con/g, 'đôi')
+      .replace(/hai lá/g, 'đôi')
+      .replace(/ba con/g, 'sám')
+      .replace(/ba lá/g, 'sám')
+      .replace(/bốn con/g, 'tu_quy')
+      .replace(/bốn lá/g, 'tu_quy');
+
+    const tokens = normalized.split(' ').filter(Boolean);
+    const result = [];
+    let i = 0;
+    let multiplier = 1;
+
+    while (i < tokens.length) {
+      const token = tokens[i];
+
+      if (token === 'tu_quy') {
+        multiplier = 4;
+        i++;
+        continue;
+      } else if (token === 'đôi' || token === 'doi') {
+        multiplier = 2;
+        i++;
+        continue;
+      } else if (token === 'sám' || token === 'sam' || token === 'xám' || token === 'xam') {
+        multiplier = 3;
+        i++;
+        continue;
+      }
+
+      if (this.fillerWords.has(token)) {
+        i++;
+        continue;
+      }
+
+      if (this.rankMap[token] !== undefined) {
+        const rawRank = this.rankMap[token];
+        let detectedSuit = null;
+
+        if (i + 1 < tokens.length) {
+          const nextToken = tokens[i + 1];
+          if (this.suitMap[nextToken]) {
+            detectedSuit = this.suitMap[nextToken];
+            i++;
+          }
+        }
+
+        const count = multiplier;
+        multiplier = 1;
+        for (let c = 0; c < count; c++) {
+          result.push({
+            rank: rawRank,
+            suit: detectedSuit
+          });
+        }
+      }
+
+      i++;
+    }
+
+    return result;
+  }
+}
+
 // MARK: - State & App Controller
 
 class AppController {
@@ -1519,6 +1641,9 @@ class AppController {
     this.communityCards = [];
     this.actionHistory = [];
     this.history = [];
+    this.isVoiceRecording = false;
+    this.processedVoiceCardsCount = 0;
+    this.recognition = null;
     try {
       this.history = JSON.parse(localStorage.getItem('card_game_history') || '[]');
     } catch (e) {
@@ -1628,6 +1753,12 @@ class AppController {
 
     document.getElementById('btnUndo').addEventListener('click', () => this.undo());
     
+    // Nút Giọng Nói Tiếng Việt
+    const btnVoice = document.getElementById('btnVoice');
+    if (btnVoice) {
+      btnVoice.addEventListener('click', () => this.toggleVoiceRecognition());
+    }
+    
     // Nút Lịch Sử
     const btnHist = document.getElementById('btnHistory');
     if (btnHist) {
@@ -1669,6 +1800,129 @@ class AppController {
       this.renderPlayers();
       this.renderDeck();
       this.updateUI();
+    }
+  }
+
+  toggleVoiceRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Trình duyệt hiện tại chưa hỗ trợ Web Speech API. Hãy sử dụng Google Chrome hoặc Safari để nhập bằng giọng nói tiếng Việt.");
+      return;
+    }
+
+    if (this.isVoiceRecording) {
+      this.stopVoiceRecognition();
+    } else {
+      this.startVoiceRecognition();
+    }
+  }
+
+  startVoiceRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) return;
+
+    this.processedVoiceCardsCount = 0;
+    this.recognition = new SpeechRecognition();
+    this.recognition.lang = 'vi-VN';
+    this.recognition.continuous = true;
+    this.recognition.interimResults = true;
+
+    const banner = document.getElementById('voiceBanner');
+    const bannerTxt = document.getElementById('voiceBannerText');
+    const btnVoice = document.getElementById('btnVoice');
+
+    if (banner) {
+      banner.style.display = 'flex';
+      banner.classList.add('recording');
+    }
+    if (bannerTxt) bannerTxt.textContent = 'Đang lắng nghe... Hãy đọc tên các lá bài';
+    if (btnVoice) {
+      btnVoice.classList.add('recording');
+      btnVoice.innerHTML = '🔴 Đang nghe';
+    }
+
+    this.isVoiceRecording = true;
+
+    this.recognition.onresult = (event) => {
+      let fullTranscript = '';
+      for (let i = 0; i < event.results.length; i++) {
+        fullTranscript += event.results[i][0].transcript + ' ';
+      }
+      const trimmed = fullTranscript.trim();
+      if (trimmed) {
+        if (bannerTxt) bannerTxt.textContent = `🎙️ "${trimmed}"`;
+        this.processVoiceInput(trimmed);
+      }
+    };
+
+    this.recognition.onerror = (event) => {
+      console.warn("Speech recognition error:", event.error);
+      if (bannerTxt) bannerTxt.textContent = `Lỗi giọng nói: ${event.error}`;
+      this.stopVoiceRecognition();
+    };
+
+    this.recognition.onend = () => {
+      if (this.isVoiceRecording) {
+        this.stopVoiceRecognition();
+      }
+    };
+
+    try {
+      this.recognition.start();
+    } catch (e) {
+      console.error(e);
+      this.stopVoiceRecognition();
+    }
+  }
+
+  stopVoiceRecognition() {
+    this.isVoiceRecording = false;
+    if (this.recognition) {
+      try { this.recognition.stop(); } catch(e) {}
+      this.recognition = null;
+    }
+
+    const banner = document.getElementById('voiceBanner');
+    const btnVoice = document.getElementById('btnVoice');
+
+    if (btnVoice) {
+      btnVoice.classList.remove('recording');
+      btnVoice.innerHTML = '🎙️ Nói bài';
+    }
+
+    if (banner) {
+      banner.classList.remove('recording');
+      setTimeout(() => {
+        if (!this.isVoiceRecording && banner) {
+          banner.style.display = 'none';
+        }
+      }, 2500);
+    }
+
+    this.processedVoiceCardsCount = 0;
+  }
+
+  processVoiceInput(text) {
+    const parsed = VietnameseCardVoiceParser.parse(text);
+    if (parsed.length > this.processedVoiceCardsCount) {
+      const newItems = parsed.slice(this.processedVoiceCardsCount);
+      for (const item of newItems) {
+        if (this.isRankOnlyActive() || !item.suit) {
+          const rObj = RANKS.find(r => r.raw === item.rank);
+          if (rObj) this.onRankClick(rObj);
+        } else {
+          // Find card in 52 deck
+          const deck = this.generateFullDeck();
+          const found = deck.find(c => c.rank === item.rank && c.suit === item.suit);
+          if (found && !this.getCardOwner(found.id)) {
+            this.onCardClick(found);
+          } else {
+            const rObj = RANKS.find(r => r.raw === item.rank);
+            if (rObj) this.onRankClick(rObj);
+          }
+        }
+      }
+      this.processedVoiceCardsCount = parsed.length;
     }
   }
 
