@@ -169,7 +169,34 @@ public struct PlayerCardsView: View {
                         
                         // Cards display
                         ScrollView(.horizontal, showsIndicators: false) {
-                            if viewModel.gameType == .binh9 {
+                            if viewModel.gameType == .samLoc10 && player.cards.count == 10 {
+                                let result = SamLocEvaluator.arrange(cards: player.cards)
+                                HStack(spacing: 6) {
+                                    ForEach(result.groups) { group in
+                                        VStack(spacing: 2) {
+                                            Text(group.title)
+                                                .font(.system(size: 9.5, weight: .bold))
+                                                .foregroundColor(colorForSamLocGroup(group.type))
+                                            
+                                            HStack(spacing: 3) {
+                                                ForEach(group.cards) { card in
+                                                    MiniCardView(card: card) {
+                                                        viewModel.removeCard(card)
+                                                    }
+                                                }
+                                            }
+                                            .padding(3)
+                                            .background(Color(.systemBackground).opacity(0.6))
+                                            .cornerRadius(6)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 6)
+                                                    .stroke(colorForSamLocGroup(group.type).opacity(0.35), lineWidth: 1)
+                                            )
+                                        }
+                                    }
+                                }
+                                .padding(.vertical, 1)
+                            } else if viewModel.gameType == .binh9 {
                                 let chiCount = 3
                                 HStack(spacing: 8) {
                                     ForEach(0..<chiCount, id: \.self) { chiIdx in
@@ -255,6 +282,16 @@ public struct PlayerCardsView: View {
             Button("Hủy", role: .cancel) {}
         } message: {
             Text("Nhập tên hiển thị mới cho tụ này:")
+        }
+    }
+    
+    private func colorForSamLocGroup(_ type: SamLocGroupType) -> Color {
+        switch type {
+        case .trash: return .secondary
+        case .pair: return .blue
+        case .straight: return .green
+        case .threeOfAKind: return .purple
+        case .fourOfAKind: return .orange
         }
     }
 }

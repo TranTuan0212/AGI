@@ -28,6 +28,14 @@ const RANKS = [
 ];
 
 const GAME_CONFIGS = {
+  samLoc10: {
+    name: "Sâm Lốc (10 lá)",
+    cardsPerPlayer: 10,
+    community: 0,
+    minPlayers: 2,
+    maxPlayers: 5,
+    desc: "10 lá/người. Khi đủ 10 lá, tự động gom bài thành các cụm: Rác, Đôi, Sảnh, Sám (3 cây), Tứ quý (4 cây). Nhận diện Thắng trắng (Sảnh rồng, Tứ quý 2, 5 đôi, 3 sám, đồng màu)."
+  },
   phom9: {
     name: "Phỏm (Tá Lả 9 lá)",
     cardsPerPlayer: 9,
@@ -1118,6 +1126,373 @@ class PhomEvaluator {
   }
 }
 
+// MARK: - Sam Loc (Sâm Lốc) Evaluator
+class SamLocEvaluator {
+  static samRankValue(card) {
+    if (card.rank === 2) return 15;
+    return card.rank;
+  }
+
+  static rankDisplayName(card) {
+    return card.sym || (card.rank === 14 ? 'A' : (card.rank === 13 ? 'K' : (card.rank === 12 ? 'Q' : (card.rank === 11 ? 'J' : String(card.rank)))));
+  }
+
+  static checkInstantWin(cards) {
+    if (!cards || cards.length !== 10) return null;
+
+    // 1. Tứ quý 2
+    const twoCount = cards.filter(c => c.rank === 2).length;
+    if (twoCount === 4) return "👑 Tứ Quý 2 (Bốn con Heo)";
+
+    // 2. Đồng màu
+    const redCount = cards.filter(c => c.suit === 'hearts' || c.suit === 'diamonds').length;
+    if (redCount === 10 || redCount === 0) return "👑 Đồng Màu (10 lá cùng màu)";
+
+    // 3. Sảnh Rồng 10 lá
+    const distinctRanks = Array.from(new Set(cards.map(c => this.samRankValue(c)))).sort((a, b) => a - b);
+    if (distinctRanks.length === 10) {
+      let isCont = true;
+      for (let i = 0; i < 9; i++) {
+        if (distinctRanks[i+1] !== distinctRanks[i] + 1) { isCont = false; break; }
+      }
+      if (isCont) return "👑 Sảnh Rồng (10 lá liên tiếp)";
+
+      const a2Ranks = Array.from(new Set(cards.map(c => {
+        if (c.rank === 14) return 1;
+        if (c.rank === 2) return 2;
+        return c.rank;
+      }))).sort((a, b) => a - b);
+      if (a2Ranks.length === 10) {
+        let isA2 = true;
+        for (let i = 0; i < 9; i++) {
+          if (a2Ranks[i+1] !== a2Ranks[i] + 1) { isA2 = false; break; }
+        }
+        if (isA2) return "👑 Sảnh Rồng (10 lá liên tiếp)";
+      }
+    }
+
+    // 4. 5 Đôi
+    const rankCounts = {};
+    cards.forEach(c => { rankCounts[c.rank] = (rankCounts[c.rank] || 0) + 1; });
+    const totalPairs = Object.values(rankCounts).reduce((acc, count) => acc + Math.floor(count / 2), 0);
+    if (totalPairs === 5) return "👑 5 Đôi";
+
+    // 5. 3 Sám Cô
+    const totalSams = Object.values(rankCounts).reduce((acc, count) => acc + Math.floor(count / 3), 0);
+    if (totalSams >= 3) return "👑 3 Sám Cô";
+
+    return null;
+  }
+
+  static arrange(cards) {
+    if (!cards || cards.length === 0) {
+      return { instantWin: null, groups: [], trashCards: [], trashCount: 0, summary: "Chưa có bài" };
+    }
+
+    const instant = this.checkInstantWin(cards);
+    const bestCombos = this.findBestArrangement(cards);
+
+    // Group separation and sorting according to Option 1:
+    // [Rác] -> [Đôi] -> [Sảnh] -> [Sám] -> [Tứ quý]
+    let trashGroup = null;
+    const pairGroups = [];
+    const straightGroups = [];
+    const threeGroups = [];
+    const fourGroups = [];
+
+    bestCombos.forEach(g => {
+      if (g.type === 'trash') trashGroup = g;
+      else if (g.type === 'pair') pairGroups.push(g);
+      else if (g.type === 'straight') straightGroups.push(g);
+      else if (g.type === 'threeOfAKind') threeGroups.push(g);
+      else if (g.type === 'fourOfAKind') fourGroups.push(g);
+    });
+
+    pairGroups.sort((a, b) => this.samRankValue(a.cards[0]) - this.samRankValue(b.cards[0]));
+    threeGroups.sort((a, b) => this.samRankValue(a.cards[0]) - this.samRankValue(b.cards[0]));
+    fourGroups.sort((a, b) => this.samRankValue(a.cards[0]) - this.samRankValue(b.cards[0]));
+    straightGroups.sort((a, b) => {
+      const minA = Math.min(...a.cards.map(c => this.samRankValue(c)));
+      const minB = Math.min(...b.cards.map(c => this.samRankValue(c)));
+      return minA - minB;
+    });
+
+    const finalGroups = [];
+    // 1. Rác (bên trái đầu tiên)
+    if (trashGroup && trashGroup.cards.length > 0) finalGroups.push(trashGroup);
+    // 2. Đôi
+    pairGroups.forEach(g => finalGroups.push(g));
+    // 3. Sảnh
+    straightGroups.forEach(g => finalGroups.push(g));
+    // 4. Sám
+    threeGroups.forEach(g => finalGroups.push(g));
+    // 5. Tứ quý (bên phải cuối cùng)
+    fourGroups.forEach(g => finalGroups.push(g));
+
+    const trashCards = trashGroup ? trashGroup.cards : [];
+
+    const parts = [];
+    if (instant) parts.push(instant);
+    if (fourGroups.length > 0) parts.push(fourGroups.map(g => g.title).join(", "));
+    if (threeGroups.length > 0) parts.push(threeGroups.map(g => g.title).join(", "));
+    if (straightGroups.length > 0) parts.push(straightGroups.map(g => g.title).join(", "));
+    if (pairGroups.length > 0) parts.push(pairGroups.map(g => g.title).join(", "));
+    if (trashCards.length > 0) {
+      const trStr = trashCards.map(c => `${c.sym}${c.suitIcon}`).join(" ");
+      parts.push(`Rác: ${trStr}`);
+    }
+
+    const summary = parts.join(" | ");
+
+    return {
+      instantWin: instant,
+      groups: finalGroups,
+      trashCards,
+      trashCount: trashCards.length,
+      summary
+    };
+  }
+
+  static findBestArrangement(cards) {
+    const candidates = [];
+
+    const rankGroups = {};
+    cards.forEach(c => {
+      if (!rankGroups[c.rank]) rankGroups[c.rank] = [];
+      rankGroups[c.rank].push(c);
+    });
+
+    // 1. Tứ quý
+    Object.keys(rankGroups).forEach(rankStr => {
+      const group = rankGroups[rankStr];
+      if (group.length === 4) {
+        candidates.push({
+          type: 'fourOfAKind',
+          title: `Tứ quý ${this.rankDisplayName(group[0])}`,
+          cards: [...group],
+          cardIds: new Set(group.map(c => c.id))
+        });
+      }
+    });
+
+    // 2. Sám
+    Object.keys(rankGroups).forEach(rankStr => {
+      const group = rankGroups[rankStr];
+      if (group.length >= 3) {
+        const sub = group.slice(0, 3);
+        candidates.push({
+          type: 'threeOfAKind',
+          title: `Sám ${this.rankDisplayName(sub[0])}`,
+          cards: sub,
+          cardIds: new Set(sub.map(c => c.id))
+        });
+      }
+    });
+
+    // 3. Sảnh (>= 3 lá liên tiếp, không chứa 2)
+    const nonTwos = cards.filter(c => c.rank !== 2);
+    const distinctRanksMap = {};
+    nonTwos.forEach(c => {
+      const rv = this.samRankValue(c);
+      if (!distinctRanksMap[rv]) distinctRanksMap[rv] = c;
+    });
+    const distinctRanksList = Object.keys(distinctRanksMap).map(k => distinctRanksMap[k]).sort((a, b) => this.samRankValue(a) - this.samRankValue(b));
+
+    if (distinctRanksList.length >= 3) {
+      for (let len = distinctRanksList.length; len >= 3; len--) {
+        for (let i = 0; i <= distinctRanksList.length - len; i++) {
+          const sub = distinctRanksList.slice(i, i + len);
+          let isStraight = true;
+          for (let k = 0; k < len - 1; k++) {
+            if (this.samRankValue(sub[k+1]) !== this.samRankValue(sub[k]) + 1) {
+              isStraight = false;
+              break;
+            }
+          }
+          if (isStraight) {
+            candidates.push({
+              type: 'straight',
+              title: `Sảnh ${this.rankDisplayName(sub[0])}-${this.rankDisplayName(sub[sub.length - 1])}`,
+              cards: sub,
+              cardIds: new Set(sub.map(c => c.id))
+            });
+          }
+        }
+      }
+    }
+
+    // Sảnh A-2-3
+    const aCard = cards.find(c => c.rank === 14);
+    const twoCard = cards.find(c => c.rank === 2);
+    const threeCard = cards.find(c => c.rank === 3);
+    if (aCard && twoCard && threeCard) {
+      const a23 = [aCard, twoCard, threeCard];
+      candidates.push({
+        type: 'straight',
+        title: 'Sảnh A-2-3',
+        cards: a23,
+        cardIds: new Set(a23.map(c => c.id))
+      });
+    }
+
+    // 4. Đôi
+    Object.keys(rankGroups).forEach(rankStr => {
+      const group = rankGroups[rankStr];
+      if (group.length >= 2) {
+        const sub = group.slice(0, 2);
+        candidates.push({
+          type: 'pair',
+          title: `Đôi ${this.rankDisplayName(sub[0])}`,
+          cards: sub,
+          cardIds: new Set(sub.map(c => c.id))
+        });
+      }
+    });
+
+    let bestCombo = [];
+    let maxCovered = 0;
+    let bestScore = -1;
+
+    function evaluateCombo(combo) {
+      let covered = 0;
+      let score = 0;
+      combo.forEach(c => {
+        covered += c.cards.length;
+        if (c.type === 'fourOfAKind') score += 1000;
+        else if (c.type === 'threeOfAKind') score += 400;
+        else if (c.type === 'straight') score += 300 + c.cards.length * 10;
+        else if (c.type === 'pair') score += 100;
+      });
+      return { covered, score };
+    }
+
+    function search(startIdx, currentCombo, usedIds) {
+      const curEval = evaluateCombo(currentCombo);
+      if (curEval.covered > maxCovered || (curEval.covered === maxCovered && curEval.score > bestScore)) {
+        maxCovered = curEval.covered;
+        bestScore = curEval.score;
+        bestCombo = [...currentCombo];
+      }
+
+      for (let i = startIdx; i < candidates.length; i++) {
+        const cand = candidates[i];
+        let disjoint = true;
+        for (const cid of cand.cardIds) {
+          if (usedIds.has(cid)) { disjoint = false; break; }
+        }
+        if (disjoint) {
+          const nextUsed = new Set(usedIds);
+          cand.cardIds.forEach(cid => nextUsed.add(cid));
+          search(i + 1, [...currentCombo, cand], nextUsed);
+        }
+      }
+    }
+
+    search(0, [], new Set());
+
+    const usedInBest = new Set();
+    bestCombo.forEach(c => c.cardIds.forEach(id => usedInBest.add(id)));
+    const trashCards = cards.filter(c => !usedInBest.has(c.id)).sort((a, b) => this.samRankValue(a) - this.samRankValue(b));
+
+    const resultGroups = [];
+    if (trashCards.length > 0) {
+      resultGroups.push({
+        type: 'trash',
+        title: 'Rác',
+        cards: trashCards
+      });
+    }
+    bestCombo.forEach(b => {
+      resultGroups.push({
+        type: b.type,
+        title: b.title,
+        cards: b.cards
+      });
+    });
+
+    return resultGroups;
+  }
+
+  static rankPlayers(players) {
+    const evaluated = players.map(p => ({
+      index: p.index,
+      name: p.name,
+      result: this.arrange(p.cards)
+    }));
+
+    evaluated.sort((a, b) => {
+      const aWin = a.result.instantWin != null;
+      const bWin = b.result.instantWin != null;
+      if (aWin !== bWin) return aWin ? -1 : 1;
+      if (a.result.trashCount !== b.result.trashCount) {
+        return a.result.trashCount - b.result.trashCount;
+      }
+      return a.index - b.index;
+    });
+
+    const n = evaluated.length;
+    const ranks = new Array(n).fill(1);
+    let curRank = 1;
+    for (let i = 0; i < n; i++) {
+      if (i > 0) {
+        const prev = evaluated[i - 1];
+        const curr = evaluated[i];
+        const same = (prev.result.instantWin === curr.result.instantWin) &&
+                     (prev.result.trashCount === curr.result.trashCount);
+        if (!same) curRank = i + 1;
+      }
+      ranks[i] = curRank;
+    }
+
+    const hasInstant = evaluated.some(e => e.result.instantWin != null);
+    const deltas = new Array(n).fill(0);
+
+    if (hasInstant) {
+      const winCount = evaluated.filter(e => e.result.instantWin != null).length;
+      const lossCount = n - winCount;
+      const total = lossCount * 20;
+      const winPer = winCount > 0 ? Math.floor(total / winCount) : 0;
+      let rem = winCount > 0 ? total % winCount : 0;
+      for (let i = 0; i < n; i++) {
+        if (evaluated[i].result.instantWin != null) {
+          deltas[i] = winPer + (rem > 0 ? 1 : 0);
+          if (rem > 0) rem--;
+        } else {
+          deltas[i] = -20;
+        }
+      }
+    } else {
+      let totalPool = 0;
+      for (let i = 0; i < n; i++) {
+        if (ranks[i] > 1) {
+          const penalty = Math.min(ranks[i] - 1, 3) * 2;
+          deltas[i] = -penalty;
+          totalPool += penalty;
+        }
+      }
+      const rank1Count = ranks.filter(r => r === 1).length;
+      if (rank1Count > 0) {
+        const winPer = Math.floor(totalPool / rank1Count);
+        let rem = totalPool % rank1Count;
+        for (let i = 0; i < n; i++) {
+          if (ranks[i] === 1) {
+            deltas[i] = winPer + (rem > 0 ? 1 : 0);
+            if (rem > 0) rem--;
+          }
+        }
+      }
+    }
+
+    return evaluated.map((item, pos) => ({
+      index: item.index,
+      name: item.name,
+      result: item.result,
+      rank: ranks[pos],
+      scoreDelta: deltas[pos]
+    }));
+  }
+}
+
 // MARK: - State & App Controller
 
 // MARK: - State & App Controller
@@ -1811,7 +2186,32 @@ class AppController {
       const cardsContainer = document.createElement('div');
       cardsContainer.className = 'hand-cards-container';
 
-      if (this.currentGameType === 'binh9') {
+      if (this.currentGameType === 'samLoc10' && p.cards.length === 10) {
+        const result = SamLocEvaluator.arrange(p.cards);
+        const samLocWrap = document.createElement('div');
+        samLocWrap.className = 'samloc-groups-wrapper';
+
+        result.groups.forEach(g => {
+          const gBox = document.createElement('div');
+          gBox.className = `samloc-group-box ${g.type}`;
+
+          const gLabel = document.createElement('div');
+          gLabel.className = 'samloc-group-label';
+          gLabel.textContent = g.title;
+          gBox.appendChild(gLabel);
+
+          const gCardsDiv = document.createElement('div');
+          gCardsDiv.className = 'samloc-group-cards';
+          g.cards.forEach(c => {
+            const mini = this.createMiniCard(c);
+            gCardsDiv.appendChild(mini);
+          });
+          gBox.appendChild(gCardsDiv);
+          samLocWrap.appendChild(gBox);
+        });
+
+        cardsContainer.appendChild(samLocWrap);
+      } else if (this.currentGameType === 'binh9') {
         const chiCount = 3;
         const chiGroupsWrap = document.createElement('div');
         chiGroupsWrap.className = 'chi-groups-wrapper';
@@ -1947,6 +2347,9 @@ class AppController {
 
   calculate() {
     switch(this.currentGameType) {
+      case 'samLoc10':
+        this.calcSamLoc();
+        break;
       case 'phom9':
         this.calcPhom();
         break;
@@ -2064,6 +2467,37 @@ class AppController {
     }
   }
 
+
+  calcSamLoc() {
+    const inputList = this.players.map((p, idx) => ({
+      index: idx,
+      name: p.name,
+      cards: p.cards
+    }));
+    const ranked = SamLocEvaluator.rankPlayers(inputList);
+
+    ranked.forEach(item => {
+      const p = this.players[item.index];
+      p.rankOrder = item.rank;
+      p.score = item.scoreDelta;
+      if (item.result.instantWin) {
+        p.resultTitle = item.result.instantWin;
+      } else if (item.result.trashCount === 0) {
+        p.resultTitle = '🎉 Hết Rác (Bài Vào Bộ Hết)';
+      } else {
+        p.resultTitle = `Còn ${item.result.trashCount} lá rác`;
+      }
+      p.resultDetail = item.result.summary;
+    });
+
+    const winners = this.players.filter(p => p.rankOrder === 1);
+    if (winners.length > 1) {
+      const names = winners.map(w => w.name).join(", ");
+      this.showdownSummary = `👑 Đồng Hạng 1: ${names} (Hòa ván Sâm với ${winners[0].resultTitle})!`;
+    } else if (winners.length === 1) {
+      this.showdownSummary = `🏆 ${winners[0].name} Thắng ván Sâm với ${winners[0].resultTitle}!`;
+    }
+  }
 
   calcPhom() {
     const inputList = this.players.map((p, idx) => ({

@@ -466,4 +466,110 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE (6 TRÒ CHƠI) =
   assert(app.players[0].cards.length === 2, 'Không thấy: Cho phép bấm nhiều lần không bị khóa');
 }
 
+// 12. Test Sâm Lốc (10 lá) - Sắp xếp theo Lựa chọn 1 [Rác -> Đôi -> Sảnh -> Sám -> Tứ quý] & Thắng trắng
+{
+  // Test Bài hỗn hợp 10 lá: 1 Tứ quý 8 (4 lá), 1 Sảnh 4-5-6 (3 lá), 1 Đôi K (2 lá), 1 Rác 2 (1 lá)
+  const mixedHand = [
+    { id: '8h', rank: 8, sym: '8', suit: 'hearts', suitIcon: '♥' },
+    { id: '8d', rank: 8, sym: '8', suit: 'diamonds', suitIcon: '♦' },
+    { id: '8s', rank: 8, sym: '8', suit: 'spades', suitIcon: '♠' },
+    { id: '8c', rank: 8, sym: '8', suit: 'clubs', suitIcon: '♣' },
+    { id: '4h', rank: 4, sym: '4', suit: 'hearts', suitIcon: '♥' },
+    { id: '5d', rank: 5, sym: '5', suit: 'diamonds', suitIcon: '♦' },
+    { id: '6s', rank: 6, sym: '6', suit: 'spades', suitIcon: '♠' },
+    { id: 'Kh', rank: 13, sym: 'K', suit: 'hearts', suitIcon: '♥' },
+    { id: 'Kd', rank: 13, sym: 'K', suit: 'diamonds', suitIcon: '♦' },
+    { id: '2c', rank: 2, sym: '2', suit: 'clubs', suitIcon: '♣' }
+  ];
+
+  const res = SamLocEvaluator.arrange(mixedHand);
+  assert(res.groups.length === 4, 'Sâm Lốc: Tách chính xác thành 4 nhóm bộ');
+  assert(res.groups[0].type === 'trash', 'Sâm Lốc (Lựa chọn 1): Nhóm đầu tiên bên trái là [Rác]');
+  assert(res.groups[1].type === 'pair', 'Sâm Lốc (Lựa chọn 1): Nhóm thứ hai là [Đôi]');
+  assert(res.groups[2].type === 'straight', 'Sâm Lốc (Lựa chọn 1): Nhóm thứ ba là [Sảnh]');
+  assert(res.groups[3].type === 'fourOfAKind', 'Sâm Lốc (Lựa chọn 1): Nhóm cuối cùng bên phải là [Tứ quý]');
+  assert(res.trashCount === 1, 'Sâm Lốc: Nhận diện chính xác còn 1 lá rác (2♣)');
+
+  // Test Sảnh rồng 10 lá liên tiếp (3 đến Q)
+  const sanhRongHand = [
+    { id: '3h', rank: 3, sym: '3', suit: 'hearts', suitIcon: '♥' },
+    { id: '4d', rank: 4, sym: '4', suit: 'diamonds', suitIcon: '♦' },
+    { id: '5s', rank: 5, sym: '5', suit: 'spades', suitIcon: '♠' },
+    { id: '6c', rank: 6, sym: '6', suit: 'clubs', suitIcon: '♣' },
+    { id: '7h', rank: 7, sym: '7', suit: 'hearts', suitIcon: '♥' },
+    { id: '8d', rank: 8, sym: '8', suit: 'diamonds', suitIcon: '♦' },
+    { id: '9s', rank: 9, sym: '9', suit: 'spades', suitIcon: '♠' },
+    { id: '10c', rank: 10, sym: '10', suit: 'clubs', suitIcon: '♣' },
+    { id: 'Jh', rank: 11, sym: 'J', suit: 'hearts', suitIcon: '♥' },
+    { id: 'Qd', rank: 12, sym: 'Q', suit: 'diamonds', suitIcon: '♦' }
+  ];
+  const resSanhRong = SamLocEvaluator.arrange(sanhRongHand);
+  assert(resSanhRong.instantWin != null && resSanhRong.instantWin.includes('Sảnh Rồng'), 'Sâm Lốc Thắng Trắng: Nhận diện đúng Sảnh Rồng 10 lá');
+
+  // Test Tứ quý 2
+  const tuQuy2Hand = [
+    { id: '2h', rank: 2, sym: '2', suit: 'hearts', suitIcon: '♥' },
+    { id: '2d', rank: 2, sym: '2', suit: 'diamonds', suitIcon: '♦' },
+    { id: '2s', rank: 2, sym: '2', suit: 'spades', suitIcon: '♠' },
+    { id: '2c', rank: 2, sym: '2', suit: 'clubs', suitIcon: '♣' },
+    { id: '3h', rank: 3, sym: '3', suit: 'hearts', suitIcon: '♥' },
+    { id: '4d', rank: 4, sym: '4', suit: 'diamonds', suitIcon: '♦' },
+    { id: '5s', rank: 5, sym: '5', suit: 'spades', suitIcon: '♠' },
+    { id: '6c', rank: 6, sym: '6', suit: 'clubs', suitIcon: '♣' },
+    { id: '7h', rank: 7, sym: '7', suit: 'hearts', suitIcon: '♥' },
+    { id: '8d', rank: 8, sym: '8', suit: 'diamonds', suitIcon: '♦' }
+  ];
+  const resTuQuy2 = SamLocEvaluator.arrange(tuQuy2Hand);
+  assert(resTuQuy2.instantWin != null && resTuQuy2.instantWin.includes('Tứ Quý 2'), 'Sâm Lốc Thắng Trắng: Nhận diện đúng Tứ Quý 2');
+
+  // Test Đồng màu (10 lá đỏ)
+  const dongMauHand = [
+    { id: '3h', rank: 3, sym: '3', suit: 'hearts', suitIcon: '♥' },
+    { id: '4h', rank: 4, sym: '4', suit: 'hearts', suitIcon: '♥' },
+    { id: '5d', rank: 5, sym: '5', suit: 'diamonds', suitIcon: '♦' },
+    { id: '6d', rank: 6, sym: '6', suit: 'diamonds', suitIcon: '♦' },
+    { id: '7h', rank: 7, sym: '7', suit: 'hearts', suitIcon: '♥' },
+    { id: '8h', rank: 8, sym: '8', suit: 'hearts', suitIcon: '♥' },
+    { id: '9d', rank: 9, sym: '9', suit: 'diamonds', suitIcon: '♦' },
+    { id: '10d', rank: 10, sym: '10', suit: 'diamonds', suitIcon: '♦' },
+    { id: 'Jh', rank: 11, sym: 'J', suit: 'hearts', suitIcon: '♥' },
+    { id: 'Qd', rank: 12, sym: 'Q', suit: 'diamonds', suitIcon: '♦' }
+  ];
+  const resDongMau = SamLocEvaluator.arrange(dongMauHand);
+  assert(resDongMau.instantWin != null && resDongMau.instantWin.includes('Đồng Màu'), 'Sâm Lốc Thắng Trắng: Nhận diện đúng 10 lá đồng màu');
+
+  // Test AppController với game Sâm Lốc
+  const appCodeFull = fs.readFileSync('preview/app.js', 'utf8');
+  const sandbox = {
+    window: { addEventListener: () => {} },
+    document: {
+      getElementById: () => ({ style: {}, innerHTML: '', appendChild: () => {}, classList: { add: () => {}, remove: () => {} }, querySelector: () => ({ addEventListener: () => {} }), addEventListener: () => {} }),
+      querySelectorAll: () => [],
+      createElement: () => ({ style: {}, dataset: {}, appendChild: () => {}, addEventListener: () => {}, querySelector: () => ({ addEventListener: () => {} }), setAttribute: () => {} })
+    },
+    localStorage: { getItem: () => null, setItem: () => {} },
+    console: console,
+    setTimeout: setTimeout
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(appCodeFull, sandbox);
+  const AppCtrl = vm.runInContext('AppController', sandbox);
+  const appSam = new AppCtrl();
+
+  appSam.currentGameType = 'samLoc10';
+  appSam.playerCount = 2;
+  appSam.initPlayers();
+
+  assert(appSam.targetCards(0) === 10, 'AppController Sâm Lốc: Tụ 1 target là 10 lá');
+  assert(appSam.targetCards(1) === 10, 'AppController Sâm Lốc: Tụ 2 target là 10 lá');
+
+  appSam.players[0].cards = [...sanhRongHand];
+  appSam.players[1].cards = [...mixedHand];
+  assert(appSam.isReady() === true, 'AppController Sâm Lốc: isReady() khi mỗi tụ đủ 10 lá');
+
+  appSam.calculate();
+  assert(appSam.players[0].rankOrder === 1, 'AppController Sâm Lốc: Tụ 1 Thắng Trắng (Hạng 1)');
+  assert(appSam.players[1].rankOrder === 2, 'AppController Sâm Lốc: Tụ 2 Thua (Hạng 2)');
+}
+
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);

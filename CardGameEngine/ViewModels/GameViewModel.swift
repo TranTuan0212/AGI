@@ -426,6 +426,8 @@ public class GameViewModel: ObservableObject {
         guard isReadyToCalculate else { return }
         
         switch gameType {
+        case .samLoc10:
+            calculateSamLoc()
         case .phom9:
             calculatePhom()
         case .lieng3:
@@ -472,6 +474,33 @@ public class GameViewModel: ObservableObject {
 
     
     // MARK: - Game Calculation Logic
+    
+    private func calculateSamLoc() {
+        let inputList = players.enumerated().map { (index: $0.offset, name: $0.element.name, cards: $0.element.cards) }
+        let ranked = SamLocEvaluator.rankPlayers(players: inputList)
+        
+        for item in ranked {
+            let idx = item.index
+            players[idx].rankOrder = item.rank
+            players[idx].score = item.scoreDelta
+            if let instant = item.result.instantWin {
+                players[idx].resultTitle = instant.rawValue
+            } else if item.result.trashCount == 0 {
+                players[idx].resultTitle = "🎉 Hết Rác (Bài Vào Bộ Hết)"
+            } else {
+                players[idx].resultTitle = "Còn \(item.result.trashCount) lá rác"
+            }
+            players[idx].resultDetail = item.result.summary
+        }
+        
+        let rank1Players = players.filter { $0.rankOrder == 1 }
+        if rank1Players.count > 1 {
+            let names = rank1Players.map { $0.name }.joined(separator: ", ")
+            showdownSummary = "👑 Đồng Hạng 1: \(names) (Hòa ván Sâm với \(rank1Players[0].resultTitle))!"
+        } else if let winner = rank1Players.first {
+            showdownSummary = "🏆 \(winner.name) Thắng ván Sâm với \(winner.resultTitle)!"
+        }
+    }
     
     private func calculatePhom() {
         let inputList = players.enumerated().map { (index: $0.offset, name: $0.element.name, cards: $0.element.cards) }

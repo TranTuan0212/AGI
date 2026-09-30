@@ -579,6 +579,63 @@ body {
   gap: 3px;
 }
 
+/* Sam Loc Group Layout */
+.samloc-groups-wrapper {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.samloc-group-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: rgba(142, 142, 147, 0.08);
+  border: 1px solid rgba(142, 142, 147, 0.25);
+  border-radius: 6px;
+  padding: 2px 4px 4px 4px;
+}
+
+.samloc-group-box.trash {
+  background: rgba(142, 142, 147, 0.08);
+  border-color: rgba(142, 142, 147, 0.3);
+}
+.samloc-group-box.pair {
+  background: rgba(0, 122, 255, 0.07);
+  border-color: rgba(0, 122, 255, 0.35);
+}
+.samloc-group-box.straight {
+  background: rgba(52, 199, 89, 0.07);
+  border-color: rgba(52, 199, 89, 0.35);
+}
+.samloc-group-box.threeOfAKind {
+  background: rgba(175, 82, 222, 0.07);
+  border-color: rgba(175, 82, 222, 0.35);
+}
+.samloc-group-box.fourOfAKind {
+  background: rgba(255, 149, 0, 0.09);
+  border-color: rgba(255, 149, 0, 0.4);
+}
+
+.samloc-group-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+.samloc-group-box.trash .samloc-group-label { color: #8E8E93; }
+.samloc-group-box.pair .samloc-group-label { color: #007AFF; }
+.samloc-group-box.straight .samloc-group-label { color: #28a745; }
+.samloc-group-box.threeOfAKind .samloc-group-label { color: #AF52DE; }
+.samloc-group-box.fourOfAKind .samloc-group-label { color: #FF9500; }
+
+.samloc-group-cards {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
 /* Hidden Card (Không thấy - ?) on White Background */
 .mini-card.hidden-card {
   background: #FFF;
