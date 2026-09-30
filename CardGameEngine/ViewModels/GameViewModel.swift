@@ -368,8 +368,10 @@ public class GameViewModel: ObservableObject {
                 if authorized {
                     self.voiceBannerText = "🎙️ Đang lắng nghe... Hãy đọc tên các lá bài"
                     self.voiceService.startRecording { [weak self] spokenText in
-                        guard let self = self else { return }
-                        self.processSpokenVoice(spokenText)
+                        DispatchQueue.main.async {
+                            guard let self = self else { return }
+                            self.processSpokenVoice(spokenText)
+                        }
                     }
                 } else {
                     self.voiceBannerText = "Chưa cấp quyền microphone/nhận diện giọng nói."
@@ -381,6 +383,13 @@ public class GameViewModel: ObservableObject {
     public func processSpokenVoice(_ text: String) {
         let parsedCards = VietnameseCardVoiceParser.parse(text)
         voiceBannerText = "🎙️ \"\(text)\""
+        
+        guard !parsedCards.isEmpty else { return }
+        
+        // Defensive check: reset counter if transcription updated with a different or shortened sequence
+        if processedVoiceCardsCount > parsedCards.count {
+            processedVoiceCardsCount = 0
+        }
         
         if parsedCards.count > processedVoiceCardsCount {
             let newCards = parsedCards[processedVoiceCardsCount..<parsedCards.count]
