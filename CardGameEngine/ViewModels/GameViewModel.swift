@@ -57,11 +57,6 @@ public class GameViewModel: ObservableObject {
     // Action History for Undo
     private var actionHistory: [(card: Card, target: String)] = []
     
-    // Voice Recognition
-    @Published public var voiceService = SpeechRecognitionService()
-    @Published public var voiceBannerText: String? = nil
-    private var processedVoiceCardsCount: Int = 0
-    
     // Rank-Only Mode (A->K) for 3 Cây & 2 Lá
     @Published public var isRankOnlyMode: Bool {
         didSet {
@@ -126,7 +121,6 @@ public class GameViewModel: ObservableObject {
         showdownSummary = ""
         confrontationMatrix.removeAll()
         actionHistory.removeAll()
-        processedVoiceCardsCount = 0
     }
     
     public func startNewRound() {
@@ -142,7 +136,6 @@ public class GameViewModel: ObservableObject {
         confrontationMatrix.removeAll()
         roundRobinPointer = 0
         selectedPlayerIndex = 0
-        processedVoiceCardsCount = 0
     }
     
     // Check if a card is currently assigned
@@ -348,55 +341,6 @@ public class GameViewModel: ObservableObject {
         
         if isReadyToCalculate {
             calculateResults()
-        }
-    }
-    
-    // MARK: - Voice Recognition Handling
-    public func toggleVoiceRecognition() {
-        if voiceService.isRecording {
-            voiceService.stopRecording()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-                if self?.voiceService.isRecording == false {
-                    self?.voiceBannerText = nil
-                }
-            }
-            processedVoiceCardsCount = 0
-        } else {
-            processedVoiceCardsCount = 0
-            voiceService.requestAuthorization { [weak self] authorized in
-                guard let self = self else { return }
-                if authorized {
-                    self.voiceBannerText = "🎙️ Đang lắng nghe... Hãy đọc tên các lá bài"
-                    self.voiceService.startRecording { [weak self] spokenText in
-                        guard let self = self else { return }
-                        self.processSpokenVoice(spokenText)
-                    }
-                } else {
-                    self.voiceBannerText = "Chưa cấp quyền microphone/nhận diện giọng nói."
-                }
-            }
-        }
-    }
-    
-    public func processSpokenVoice(_ text: String) {
-        let parsedCards = VietnameseCardVoiceParser.parse(text)
-        voiceBannerText = "🎙️ \"\(text)\""
-        
-        if parsedCards.count > processedVoiceCardsCount {
-            let newCards = parsedCards[processedVoiceCardsCount..<parsedCards.count]
-            for item in newCards {
-                if isRankOnlyActive || item.suit == nil {
-                    onRankTapped(item.rank)
-                } else if let suit = item.suit {
-                    let card = Card(rank: item.rank, suit: suit)
-                    if cardOwner(card) == nil {
-                        onCardTapped(card)
-                    } else {
-                        onRankTapped(item.rank)
-                    }
-                }
-            }
-            processedVoiceCardsCount = parsedCards.count
         }
     }
     

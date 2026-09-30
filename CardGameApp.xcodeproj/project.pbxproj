@@ -28,8 +28,6 @@
 		787C187A43F629969714F30D /* ResultModalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19D4098C52EE2450AD816B46 /* ResultModalView.swift */; };
 		686C404C84BB19E7802C3B68 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3FAFB429590C61B761CDF86D /* SettingsView.swift */; };
 		536C1F7229F32371F19E0950 /* Assets.xcassets in Sources */ = {isa = PBXBuildFile; fileRef = F5711A4F8FE991CF76A72175 /* Assets.xcassets */; };
-		B1C2D3E4F5A6012345678901 /* VietnameseCardVoiceParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6012345678901 /* VietnameseCardVoiceParser.swift */; };
-		B1C2D3E4F5A6012345678902 /* SpeechRecognitionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6012345678902 /* SpeechRecognitionService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -56,8 +54,6 @@
 		815E19FFE88C94B079A70D55 /* PlayerCardsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerCardsView.swift; sourceTree = "<group>"; };
 		19D4098C52EE2450AD816B46 /* ResultModalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ResultModalView.swift; sourceTree = "<group>"; };
 		3FAFB429590C61B761CDF86D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F6012345678901 /* VietnameseCardVoiceParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VietnameseCardVoiceParser.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F6012345678902 /* SpeechRecognitionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognitionService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -134,22 +130,12 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
-		C1D2E3F4A5B6012345678901 /* Services */ = {
-			isa = PBXGroup;
-			children = (
-				A1B2C3D4E5F6012345678901 /* VietnameseCardVoiceParser.swift */,
-				A1B2C3D4E5F6012345678902 /* SpeechRecognitionService.swift */,
-			);
-			path = Services;
-			sourceTree = "<group>";
-		};
 		083595F532C478161EBFF269 /* CardGameEngine */ = {
 			isa = PBXGroup;
 			children = (
 				213DED3C160668CF2F4807D5 /* CardGameApp.swift */,
 				9CF042290D5E925227654673 /* Evaluators */,
 				BC8E6A5FDB0FEE50AF1B10E7 /* Models */,
-				C1D2E3F4A5B6012345678901 /* Services */,
 				F3533A2279EAD65233E99B38 /* ViewModels */,
 				F867080DDDCAA8CC74A91BE2 /* Views */,
 				F5711A4F8FE991CF76A72175 /* Assets.xcassets */,
@@ -246,8 +232,6 @@
 				AAFF400AC09BEF770C073834 /* PlayerCardsView.swift in Sources */,
 				787C187A43F629969714F30D /* ResultModalView.swift in Sources */,
 				686C404C84BB19E7802C3B68 /* SettingsView.swift in Sources */,
-				B1C2D3E4F5A6012345678901 /* VietnameseCardVoiceParser.swift in Sources */,
-				B1C2D3E4F5A6012345678902 /* SpeechRecognitionService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

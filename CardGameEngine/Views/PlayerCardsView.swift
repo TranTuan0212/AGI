@@ -168,106 +168,108 @@ public struct PlayerCardsView: View {
                         }
                         
                         // Cards display
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            if viewModel.gameType == .samLoc10 && player.cards.count == 10 {
-                                let result = SamLocEvaluator.arrange(cards: player.cards)
-                                HStack(spacing: 6) {
-                                    ForEach(result.groups) { group in
-                                        VStack(spacing: 2) {
-                                            Text(group.title)
-                                                .font(.system(size: 9.5, weight: .bold))
-                                                .foregroundColor(colorForSamLocGroup(group.type))
-                                            
-                                            HStack(spacing: 3) {
-                                                ForEach(group.cards) { card in
-                                                    MiniCardView(card: card) {
-                                                        viewModel.removeCard(card)
-                                                    }
-                                                }
-                                            }
-                                            .padding(3)
-                                            .background(Color(.systemBackground).opacity(0.6))
-                                            .cornerRadius(6)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 6)
-                                                    .stroke(colorForSamLocGroup(group.type).opacity(0.35), lineWidth: 1)
-                                            )
-                                        }
+                        if viewModel.gameType == .chan19 {
+                            let sortedCards = player.cards.sorted { $0.rank < $1.rank }
+                            let columns = [GridItem(.adaptive(minimum: 28, maximum: 36), spacing: 3)]
+                            LazyVGrid(columns: columns, alignment: .leading, spacing: 3) {
+                                ForEach(sortedCards) { card in
+                                    MiniCardView(card: card) {
+                                        viewModel.removeCard(card)
                                     }
                                 }
-                                .padding(.vertical, 1)
-                            } else if viewModel.gameType == .binh9 {
-                                let chiCount = 3
-                                HStack(spacing: 8) {
-                                    ForEach(0..<chiCount, id: \.self) { chiIdx in
-                                        let startIndex = chiIdx * 3
-                                        let chiCards: [Card] = (startIndex < player.cards.count) ?
-                                            Array(player.cards[startIndex..<min(startIndex + 3, player.cards.count)]) : []
-                                        let missingInChi = 3 - chiCards.count
+                                let missing = target - player.cards.count
+                                if missing > 0 {
+                                    ForEach(0..<missing, id: \.self) { _ in
+                                        CardPlaceholderView()
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        } else {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                if viewModel.gameType == .samLoc10 && player.cards.count == 10 {
+                                    let result = SamLocEvaluator.arrange(cards: player.cards)
+                                    HStack(spacing: 6) {
+                                        ForEach(result.groups) { group in
+                                            VStack(spacing: 2) {
+                                                Text(group.title)
+                                                    .font(.system(size: 9.5, weight: .bold))
+                                                    .foregroundColor(colorForSamLocGroup(group.type))
+                                                
+                                                HStack(spacing: 3) {
+                                                    ForEach(group.cards) { card in
+                                                        MiniCardView(card: card) {
+                                                            viewModel.removeCard(card)
+                                                        }
+                                                    }
+                                                }
+                                                .padding(3)
+                                                .background(Color(.systemBackground).opacity(0.6))
+                                                .cornerRadius(6)
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 6)
+                                                        .stroke(colorForSamLocGroup(group.type).opacity(0.35), lineWidth: 1)
+                                                )
+                                            }
+                                        }
+                                    }
+                                    .padding(.vertical, 1)
+                                } else if viewModel.gameType == .binh9 {
+                                    let chiCount = 3
+                                    HStack(spacing: 8) {
+                                        ForEach(0..<chiCount, id: \.self) { chiIdx in
+                                            let startIndex = chiIdx * 3
+                                            let chiCards: [Card] = (startIndex < player.cards.count) ?
+                                                Array(player.cards[startIndex..<min(startIndex + 3, player.cards.count)]) : []
+                                            let missingInChi = 3 - chiCards.count
+                                            
+                                            VStack(spacing: 3) {
+                                                Text("Chi \(chiIdx + 1)")
+                                                    .font(.system(size: 10, weight: .bold))
+                                                    .foregroundColor(.blue)
+                                                
+                                                HStack(spacing: 3) {
+                                                    ForEach(chiCards) { card in
+                                                        MiniCardView(card: card) {
+                                                            viewModel.removeCard(card)
+                                                        }
+                                                    }
+                                                    if missingInChi > 0 {
+                                                        ForEach(0..<missingInChi, id: \.self) { _ in
+                                                            CardPlaceholderView()
+                                                        }
+                                                    }
+                                                }
+                                                .padding(3)
+                                                .background(Color(.systemBackground).opacity(0.6))
+                                                .cornerRadius(6)
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 6)
+                                                        .stroke(Color.blue.opacity(0.25), lineWidth: 1)
+                                                )
+                                            }
+                                        }
+                                    }
+                                    .padding(.vertical, 1)
+                                } else {
+                                    HStack(spacing: 4) {
+                                        ForEach(player.cards) { card in
+                                            MiniCardView(card: card) {
+                                                viewModel.removeCard(card)
+                                            }
+                                        }
                                         
-                                        VStack(spacing: 3) {
-                                            Text("Chi \(chiIdx + 1)")
-                                                .font(.system(size: 10, weight: .bold))
-                                                .foregroundColor(.blue)
-                                            
-                                            HStack(spacing: 3) {
-                                                ForEach(chiCards) { card in
-                                                    MiniCardView(card: card) {
-                                                        viewModel.removeCard(card)
-                                                    }
-                                                }
-                                                if missingInChi > 0 {
-                                                    ForEach(0..<missingInChi, id: \.self) { _ in
-                                                        CardPlaceholderView()
-                                                    }
-                                                }
+                                        // Placeholders (show up to 6 placeholders to save space)
+                                        let missing = target - player.cards.count
+                                        let showCount = max(0, min(missing, 6))
+                                        if showCount > 0 {
+                                            ForEach(0..<showCount, id: \.self) { _ in
+                                                CardPlaceholderView()
                                             }
-                                            .padding(3)
-                                            .background(Color(.systemBackground).opacity(0.6))
-                                            .cornerRadius(6)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 6)
-                                                    .stroke(Color.blue.opacity(0.25), lineWidth: 1)
-                                            )
                                         }
                                     }
+                                    .padding(.vertical, 1)
                                 }
-                                .padding(.vertical, 1)
-                            } else if viewModel.gameType == .chan19 {
-                                let sortedCards = player.cards.sorted { $0.rank < $1.rank }
-                                HStack(spacing: 4) {
-                                    ForEach(sortedCards) { card in
-                                        MiniCardView(card: card) {
-                                            viewModel.removeCard(card)
-                                        }
-                                    }
-                                    let missing = target - player.cards.count
-                                    let showCount = max(0, min(missing, 6))
-                                    if showCount > 0 {
-                                        ForEach(0..<showCount, id: \.self) { _ in
-                                            CardPlaceholderView()
-                                        }
-                                    }
-                                }
-                                .padding(.vertical, 1)
-                            } else {
-                                HStack(spacing: 4) {
-                                    ForEach(player.cards) { card in
-                                        MiniCardView(card: card) {
-                                            viewModel.removeCard(card)
-                                        }
-                                    }
-                                    
-                                    // Placeholders (show up to 6 placeholders to save space)
-                                    let missing = target - player.cards.count
-                                    let showCount = max(0, min(missing, 6))
-                                    if showCount > 0 {
-                                        ForEach(0..<showCount, id: \.self) { _ in
-                                            CardPlaceholderView()
-                                        }
-                                    }
-                                }
-                                .padding(.vertical, 1)
                             }
                         }
                     }
