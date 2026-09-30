@@ -12,6 +12,9 @@ public class SpeechRecognitionService: ObservableObject {
     private var recognitionTask: SFSpeechRecognitionTask?
     private let audioEngine = AVAudioEngine()
     
+    // Safety flag to prevent appending audio buffer after endAudio has been called
+    private var isAudioEnding: Bool = false
+    
     public init() {}
     
     public func requestAuthorization(completion: @escaping (Bool) -> Void) {
@@ -32,17 +35,18 @@ public class SpeechRecognitionService: ObservableObject {
     }
     
     public func startRecording(onResult: @escaping (String) -> Void) {
-        // Cancel any previous task
+        // Cancel any previous task safely
         stopRecording()
         
         guard let speechRecognizer = speechRecognizer, speechRecognizer.isAvailable else {
-            self.errorMessage = "Nhận diện giọng nói tiếng Việt hiện không khả dụng."
+            self.errorMessage = "Nhận diện giọng nói tiếng Việt hiện không khả dụng trên thiết bị."
             return
         }
         
         do {
             let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+            // Use playAndRecord with defaultToSpeaker and allowBluetooth for high compatibility and stability
+            try audioSession.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .allowBluetooth])
             try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
             
             recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
@@ -65,17 +69,32 @@ public class SpeechRecognitionService: ObservableObject {
                     }
                 }
                 
+                // If error or finished, clean up on the main thread safely
                 if error != nil || (result?.isFinal ?? false) {
                     DispatchQueue.main.async {
-                        self.stopRecording()
+                        if self.isRecording {
+                            self.stopRecording()
+                        }
                     }
                 }
             }
             
             let recordingFormat = inputNode.outputFormat(forBus: 0)
+            guard recordingFormat.sampleRate > 0 else {
+                self.errorMessage = "Lỗi phần cứng âm thanh: Không nhận diện được tần số lấy mẫu."
+                stopRecording()
+                return
+            }
+            
+            // Clean any prior tap before installing
             inputNode.removeTap(onBus: 0)
-            inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
-                self.recognitionRequest?.append(buffer)
+            
+            // Safe tap callback: guards against appending after endAudio has been called
+            inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
+                guard let self = self, self.isRecording, !self.isAudioEnding, let request = self.recognitionRequest else {
+                    return
+                }
+                request.append(buffer)
             }
             
             audioEngine.prepare()
@@ -83,29 +102,42 @@ public class SpeechRecognitionService: ObservableObject {
             
             DispatchQueue.main.async {
                 self.isRecording = true
+                self.isAudioEnding = false
                 self.errorMessage = nil
             }
             
         } catch {
             DispatchQueue.main.async {
-                self.errorMessage = "Lỗi ghi âm: \(error.localizedDescription)"
+                self.errorMessage = "Lỗi âm thanh: \(error.localizedDescription)"
                 self.stopRecording()
             }
         }
     }
     
     public func stopRecording() {
-        if audioEngine.isRunning {
-            audioEngine.stop()
-            audioEngine.inputNode.removeTap(onBus: 0)
-        }
-        recognitionRequest?.endAudio()
-        recognitionRequest = nil
-        recognitionTask?.cancel()
-        recognitionTask = nil
+        // Step 1: Immediately flag that audio is ending so no more buffers are appended
+        isAudioEnding = true
         
         DispatchQueue.main.async {
             self.isRecording = false
         }
+        
+        // Step 2: Stop audio engine and remove tap FIRST
+        if audioEngine.isRunning {
+            audioEngine.stop()
+        }
+        audioEngine.inputNode.removeTap(onBus: 0)
+        
+        // Step 3: Now safely end audio request without buffer collisions
+        recognitionRequest?.endAudio()
+        recognitionRequest = nil
+        
+        recognitionTask?.cancel()
+        recognitionTask = nil
+        
+        isAudioEnding = false
+        
+        // Step 4: Deactivate audio session to return hardware to normal state
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 }

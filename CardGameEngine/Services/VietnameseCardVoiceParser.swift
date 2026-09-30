@@ -84,9 +84,12 @@ public struct VietnameseCardVoiceParser {
     
     /// Phân tích một chuỗi giọng nói tiếng Việt thành danh sách quân bài
     public static func parse(_ text: String) -> [ParsedVoiceCard] {
+        let separators = CharacterSet(charactersIn: ",.:;?!/\\-—_~|\n\r\t\"'")
         let cleaned = text.lowercased()
-            .replacingOccurrences(of: "[,.:;?!/\\-—_]", with: " ", options: .regularExpression)
-            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .components(separatedBy: separators)
+            .joined(separator: " ")
+            .split(separator: " ")
+            .joined(separator: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         
         guard !cleaned.isEmpty else { return [] }
