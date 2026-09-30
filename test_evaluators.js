@@ -444,6 +444,26 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE (6 TRÒ CHƠI) =
   assert(app.players[0].rankOrder === 1, 'Rank-Only: Tụ 1 đạt Hạng 1 (Sáp A)');
   assert(app.players[1].rankOrder === 1, 'Rank-Only: Tụ 2 đạt Đồng Hạng 1 (Sáp A - Không so chất)');
 
+  // Test Sâm Lốc với Rank-Only Mode (giống Liêng)
+  app.isRankOnlyMode = true;
+  app.currentGameType = 'samLoc10';
+  assert(app.isRankOnlyActive() === true, 'Rank-Only: Hoạt động khi đang ở game Sâm Lốc (samLoc10)');
+  app.playerCount = 2;
+  app.initPlayers();
+  app.inputMode = 'manual';
+  app.selectedPlayerIndex = 0;
+  // Nhập 10 lá số cho Tụ 1 bằng onRankClick: Sám 3, Sảnh 4-5-6, Tứ quý 8
+  const ranksToClick = [
+    { raw: 3, sym: '3' }, { raw: 3, sym: '3' }, { raw: 3, sym: '3' },
+    { raw: 4, sym: '4' }, { raw: 5, sym: '5' }, { raw: 6, sym: '6' },
+    { raw: 8, sym: '8' }, { raw: 8, sym: '8' }, { raw: 8, sym: '8' }, { raw: 8, sym: '8' }
+  ];
+  ranksToClick.forEach(r => app.onRankClick(r));
+  assert(app.players[0].cards.length === 10, 'Sâm Lốc Rank-Only: Tụ 1 nhận đủ 10 lá số');
+  const slArr = SamLocEvaluator.arrange(app.players[0].cards);
+  assert(slArr.groups.length === 3, 'Sâm Lốc Rank-Only: Tách chuẩn 3 bộ (Sảnh, Sám, Tứ quý)');
+  assert(slArr.trashCards.length === 0, 'Sâm Lốc Rank-Only: 0 lá rác');
+
   // Test lưu cài đặt khi tắt
   app.isRankOnlyMode = false;
   sandbox.localStorage.setItem('card_game_rank_only_mode', 'false');
@@ -453,6 +473,7 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE (6 TRÒ CHƠI) =
   app.resetTable();
   app.currentGameType = 'lieng3';
   app.playerCount = 2;
+  app.inputMode = 'roundRobin';
   app.initPlayers();
 
   // Bấm nút [Không thấy] nhiều lần liên tiếp

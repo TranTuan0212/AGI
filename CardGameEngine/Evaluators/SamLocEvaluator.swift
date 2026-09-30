@@ -240,7 +240,7 @@ public struct SamLocEvaluator {
             parts.append(pairGroups.map { $0.title }.joined(separator: ", "))
         }
         if !trashCards.isEmpty {
-            let trNames = trashCards.map { "\($0.rank.displaySymbol)\($0.suit.rawValue)" }.joined(separator: " ")
+            let trNames = trashCards.map { $0.isRankOnly ? $0.rank.displaySymbol : "\($0.rank.displaySymbol)\($0.suit.rawValue)" }.joined(separator: " ")
             parts.append("Rác: \(trNames)")
         }
         

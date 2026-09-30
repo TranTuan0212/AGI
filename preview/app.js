@@ -1238,7 +1238,7 @@ class SamLocEvaluator {
     if (straightGroups.length > 0) parts.push(straightGroups.map(g => g.title).join(", "));
     if (pairGroups.length > 0) parts.push(pairGroups.map(g => g.title).join(", "));
     if (trashCards.length > 0) {
-      const trStr = trashCards.map(c => `${c.sym}${c.suitIcon}`).join(" ");
+      const trStr = trashCards.map(c => c.isRankOnly ? c.sym : `${c.sym}${c.suitIcon}`).join(" ");
       parts.push(`Rác: ${trStr}`);
     }
 
@@ -1527,7 +1527,7 @@ class AppController {
   }
 
   isRankOnlyActive() {
-    return this.isRankOnlyMode && (this.currentGameType === 'lieng3' || this.currentGameType === 'xiDach2');
+    return this.isRankOnlyMode && (this.currentGameType === 'lieng3' || this.currentGameType === 'xiDach2' || this.currentGameType === 'samLoc10');
   }
 
   targetCards(playerIndex) {
