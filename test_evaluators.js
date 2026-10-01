@@ -784,6 +784,19 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   const resKhong = VietnameseCardVoiceParser.parse('không');
   assert(resKhong.length === 1 && resKhong[0].isHidden === true, 'Voice Parser: "không" -> Lá bài ẩn (?)');
 
+  // Test "bồi" và biến thể -> J / Jack
+  const resBoiCo = VietnameseCardVoiceParser.parse('bồi cơ');
+  assert(resBoiCo.length === 1 && resBoiCo[0].rank === 11 && resBoiCo[0].suit === 'hearts', 'Voice Parser: "bồi cơ" -> J cơ (11)');
+
+  const resConBoi = VietnameseCardVoiceParser.parse('con bồi bích');
+  assert(resConBoi.length === 1 && resConBoi[0].rank === 11 && resConBoi[0].suit === 'spades', 'Voice Parser: "con bồi bích" -> J bích (11)');
+
+  const resBoiVariants = VietnameseCardVoiceParser.parse('bôi rô bồ tép bội');
+  assert(resBoiVariants.length === 3, 'Voice Parser: Nhận diện 3 biến thể âm của bồi');
+  assert(resBoiVariants[0].rank === 11 && resBoiVariants[0].suit === 'diamonds', 'Voice Parser: "bôi rô" -> J rô (11)');
+  assert(resBoiVariants[1].rank === 11 && resBoiVariants[1].suit === 'clubs', 'Voice Parser: "bồ tép" -> J tép (11)');
+  assert(resBoiVariants[2].rank === 11, 'Voice Parser: "bội" -> J (11)');
+
   // Test chống nhảy 2 lần (No double jump on partial speech revision)
   const appVoiceTest = {
     processedVoiceCardsCount: 0,

@@ -10,6 +10,14 @@ public struct SettingsView: View {
                 Section(header: Text("Chế Độ Giọng Nói (Voice Mode)")) {
                     Toggle("Chế độ chuyên giọng nói (Ẩn bàn phím)", isOn: $viewModel.isVoiceMode)
                     
+                    HStack {
+                        Text("Thiết bị thu âm")
+                        Spacer()
+                        Text(viewModel.voiceService.currentInputDeviceName)
+                            .font(.subheadline)
+                            .foregroundColor(.blue)
+                    }
+                    
                     Text("Khi bật, toàn bộ bàn phím chọn lá bài sẽ được ẩn đi. Ứng dụng chỉ hiển thị icon micro to bản cùng các thao tác liên quan, giúp nhập bài bằng giọng nói nhanh chóng và rộng rãi.")
                         .font(.caption)
                         .foregroundColor(.secondary)

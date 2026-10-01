@@ -7,6 +7,9 @@ public class SpeechRecognitionService: ObservableObject {
     @Published public var recognizedText: String = ""
     @Published public var errorMessage: String? = nil
     
+    @Published public var currentInputDeviceName: String = "📱 Micro thân máy"
+    @Published public var isBluetoothInput: Bool = false
+    
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "vi-VN"))
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
@@ -23,7 +26,51 @@ public class SpeechRecognitionService: ObservableObject {
     // Unique session ID to invalidate trailing callbacks from previous sessions
     private var sessionID: UUID = UUID()
     
-    public init() {}
+    private var routeChangeObserver: NSObjectProtocol?
+    
+    public init() {
+        updateAudioInputDevice()
+        routeChangeObserver = NotificationCenter.default.addObserver(
+            forName: AVAudioSession.routeChangeNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.updateAudioInputDevice()
+        }
+    }
+    
+    deinit {
+        if let observer = routeChangeObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
+    
+    public func updateAudioInputDevice() {
+        let audioSession = AVAudioSession.sharedInstance()
+        let currentInputs = audioSession.currentRoute.inputs
+        if let primary = currentInputs.first {
+            let portType = primary.portType
+            let isBT = (portType == .bluetoothHFP || portType == .bluetoothA2DP || portType == .bluetoothLE)
+            let icon = isBT ? "🎧" : "📱"
+            DispatchQueue.main.async {
+                self.isBluetoothInput = isBT
+                self.currentInputDeviceName = "\(icon) \(primary.portName)"
+            }
+        } else if let available = audioSession.availableInputs?.first {
+            let portType = available.portType
+            let isBT = (portType == .bluetoothHFP || portType == .bluetoothA2DP || portType == .bluetoothLE)
+            let icon = isBT ? "🎧" : "📱"
+            DispatchQueue.main.async {
+                self.isBluetoothInput = isBT
+                self.currentInputDeviceName = "\(icon) \(available.portName)"
+            }
+        } else {
+            DispatchQueue.main.async {
+                self.isBluetoothInput = false
+                self.currentInputDeviceName = "📱 Micro thân máy"
+            }
+        }
+    }
     
     public func requestAuthorization(completion: @escaping (Bool) -> Void) {
         SFSpeechRecognizer.requestAuthorization { authStatus in
@@ -71,6 +118,7 @@ public class SpeechRecognitionService: ObservableObject {
             }
             
             try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+            self.updateAudioInputDevice()
             
             let recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
             self.recognitionRequest = recognitionRequest
@@ -81,7 +129,8 @@ public class SpeechRecognitionService: ObservableObject {
             }
             recognitionRequest.contextualStrings = [
                 "Át", "Xì", "Át cơ", "Át rô", "Át tép", "Át chuồn", "Át bích",
-                "K", "Già", "Ka", "Ca", "Da", "Dà", "Q", "Đầm", "Quy", "Qui", "Huy", "J", "Bồi", "Ri",
+                "K", "Già", "Ka", "Ca", "Da", "Dà", "Q", "Đầm", "Quy", "Qui", "Huy",
+                "J", "Bồi", "Ri", "Bồi cơ", "Bồi rô", "Bồi tép", "Bồi chuồn", "Bồi bích", "Con bồi", "Lá bồi",
                 "Đôi", "Sám", "Tứ quý",
                 "Mười ba", "Mười hai", "Mười một", "Một một",
                 "Mười", "Chín", "Tám", "Bảy", "Sáu", "Năm", "Bốn", "Ba", "Hai", "Heo",

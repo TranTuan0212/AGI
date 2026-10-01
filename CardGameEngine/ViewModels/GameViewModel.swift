@@ -383,7 +383,7 @@ public class GameViewModel: ObservableObject {
             voiceService.requestAuthorization { [weak self] authorized in
                 guard let self = self else { return }
                 if authorized {
-                    self.voiceBannerText = "🎙️ Đang lắng nghe... Hãy đọc bài"
+                    self.voiceBannerText = "🎙️ Đang nghe [\(self.voiceService.currentInputDeviceName)]... Hãy đọc bài"
                     self.voiceService.startRecording(
                         onResult: { [weak self] spokenText in
                             DispatchQueue.main.async {

@@ -319,6 +319,20 @@ struct VoiceOnlyControlView: View {
             }
             .buttonStyle(PlainButtonStyle())
             
+            // Device Input Indicator Badge
+            HStack(spacing: 5) {
+                Circle()
+                    .fill(viewModel.voiceService.isRecording ? Color.green : Color.gray)
+                    .frame(width: 6, height: 6)
+                Text("Đầu vào: \(viewModel.voiceService.currentInputDeviceName)")
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 3)
+            .background(Color(.secondarySystemBackground))
+            .cornerRadius(10)
+            
             // Action Buttons Row (Hoàn tác - KHÔNG THẤY / VÁN MỚI - Làm mới)
             HStack(spacing: 8) {
                 // Hoàn tác

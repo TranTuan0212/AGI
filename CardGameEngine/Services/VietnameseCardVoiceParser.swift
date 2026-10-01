@@ -49,7 +49,7 @@ public struct VietnameseCardVoiceParser {
         "mười": .ten, "muoi": .ten, "chục": .ten, "chuc": .ten, "10": .ten,
         
         // J
-        "11": .jack, "bồi": .jack, "boi": .jack, "ri": .jack, "gi": .jack, "di": .jack,
+        "11": .jack, "bồi": .jack, "boi": .jack, "bôi": .jack, "bồ": .jack, "bội": .jack, "ri": .jack, "gi": .jack, "di": .jack,
         "gì": .jack, "ghi": .jack, "dê": .jack, "de": .jack, "j": .jack, "jack": .jack,
         
         // Q
