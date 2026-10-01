@@ -114,7 +114,7 @@ public struct ContentView: View {
                 // 3. LOWER: Pinned 52-Card Deck & Actions (Nhập ở dưới)
                 VStack(spacing: 6) {
                     if viewModel.isVoiceMode {
-                        VoiceOnlyControlView(viewModel: viewModel)
+                        VoiceOnlyControlView(viewModel: viewModel, voiceService: viewModel.voiceService)
                     } else {
                         // Voice Banner Notification
                         if let banner = viewModel.voiceBannerText {
@@ -261,13 +261,14 @@ public struct ContentView: View {
 // MARK: - Voice Only Control View (Giao diện chuyên chế độ giọng nói to bản)
 struct VoiceOnlyControlView: View {
     @ObservedObject var viewModel: GameViewModel
+    @ObservedObject var voiceService: SpeechRecognitionService
     
     var body: some View {
         VStack(spacing: 12) {
             // Live transcription banner
             if let banner = viewModel.voiceBannerText {
                 HStack(spacing: 6) {
-                    Image(systemName: viewModel.voiceService.isRecording ? "waveform" : "checkmark.circle.fill")
+                    Image(systemName: voiceService.isRecording ? "waveform" : "checkmark.circle.fill")
                         .font(.system(size: 13, weight: .bold))
                     Text(banner)
                         .font(.system(size: 14, weight: .bold))
@@ -277,11 +278,11 @@ struct VoiceOnlyControlView: View {
                 .foregroundColor(.white)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
-                .background(viewModel.voiceService.isRecording ? Color.red : Color.blue)
+                .background(voiceService.isRecording ? Color.red : Color.blue)
                 .cornerRadius(16)
-                .shadow(color: (viewModel.voiceService.isRecording ? Color.red : Color.blue).opacity(0.3), radius: 4, y: 2)
+                .shadow(color: (voiceService.isRecording ? Color.red : Color.blue).opacity(0.3), radius: 4, y: 2)
             } else {
-                Text(viewModel.voiceService.isRecording ? "🎙️ Đang nghe... Hãy đọc tên các lá bài" : "Chạm mic bên dưới để bắt đầu nói bài")
+                Text(voiceService.isRecording ? "🎙️ Đang nghe... Hãy đọc tên các lá bài" : "Chạm mic bên dưới để bắt đầu nói bài")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.secondary)
                     .padding(.vertical, 4)
@@ -290,18 +291,18 @@ struct VoiceOnlyControlView: View {
             // Nút Micro Tròn To Bản (Chạm để bật, chạm lại để dừng)
             Button(action: { viewModel.toggleVoiceRecognition() }) {
                 VStack(spacing: 4) {
-                    Image(systemName: viewModel.voiceService.isRecording ? "stop.circle.fill" : "mic.fill")
+                    Image(systemName: voiceService.isRecording ? "stop.circle.fill" : "mic.fill")
                         .font(.system(size: 34, weight: .bold))
                         .foregroundColor(.white)
                     
-                    Text(viewModel.voiceService.isRecording ? "DỪNG LẠI" : "NÓI BÀI")
+                    Text(voiceService.isRecording ? "DỪNG LẠI" : "NÓI BÀI")
                         .font(.system(size: 11, weight: .black))
                         .foregroundColor(.white)
                 }
                 .frame(width: 82, height: 82)
                 .background(
                     Circle().fill(
-                        viewModel.voiceService.isRecording ?
+                        voiceService.isRecording ?
                         LinearGradient(colors: [Color.red, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing) :
                         LinearGradient(colors: [Color.blue, Color.purple], startPoint: .topLeading, endPoint: .bottomTrailing)
                     )
@@ -311,20 +312,21 @@ struct VoiceOnlyControlView: View {
                         .stroke(Color.white.opacity(0.4), lineWidth: 3)
                 )
                 .shadow(
-                    color: (viewModel.voiceService.isRecording ? Color.red : Color.blue).opacity(0.4),
-                    radius: viewModel.voiceService.isRecording ? 10 : 5,
+                    color: (voiceService.isRecording ? Color.red : Color.blue).opacity(0.4),
+                    radius: voiceService.isRecording ? 10 : 5,
                     x: 0,
                     y: 4
                 )
+                .animation(.easeInOut(duration: 0.15), value: voiceService.isRecording)
             }
             .buttonStyle(PlainButtonStyle())
             
             // Device Input Indicator Badge
             HStack(spacing: 5) {
                 Circle()
-                    .fill(viewModel.voiceService.isRecording ? Color.green : Color.gray)
+                    .fill(voiceService.isRecording ? Color.green : Color.gray)
                     .frame(width: 6, height: 6)
-                Text("Đầu vào: \(viewModel.voiceService.currentInputDeviceName)")
+                Text("Đầu vào: \(voiceService.currentInputDeviceName)")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(.secondary)
             }

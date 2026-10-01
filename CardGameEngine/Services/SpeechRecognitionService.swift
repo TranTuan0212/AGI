@@ -105,12 +105,12 @@ public class SpeechRecognitionService: ObservableObject {
         
         do {
             let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
+            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
             
             // Prefer Bluetooth microphone if connected
             if let availableInputs = audioSession.availableInputs {
                 let bluetoothInput = availableInputs.first(where: {
-                    $0.portType == .bluetoothHFP || $0.portType == .bluetoothA2DP || $0.portType == .bluetoothLE
+                    $0.portType == .bluetoothHFP || $0.portType == .bluetoothLE
                 })
                 if let bluetoothInput = bluetoothInput {
                     try? audioSession.setPreferredInput(bluetoothInput)
@@ -174,7 +174,14 @@ public class SpeechRecognitionService: ObservableObject {
                     
                     let isFinal = result?.isFinal ?? false
                     if let error = error {
-                        // Task aborted or failed (e.g. on-device model not compiled or offline)
+                        let nsError = error as NSError
+                        // Non-fatal transient completion or silent segment error
+                        if self.sessionID == newSessionID && self.isRecording && (nsError.code == 216 || nsError.code == 1110 || nsError.code == 203) {
+                            self.restartRecognitionTask(newSessionID: newSessionID, onResult: onResult)
+                            return
+                        }
+                        
+                        // Task aborted or fatal failure
                         self.lock.lock()
                         self.isAcceptingAudio = false
                         self.activeRequest = nil
@@ -192,21 +199,13 @@ public class SpeechRecognitionService: ObservableObject {
                             guard self.sessionID == newSessionID else { return }
                             self.errorMessage = friendlyMsg
                             onError?(friendlyMsg)
-                            // Crucial: do NOT call endAudio() when Apple already aborted the request
                             self.stopRecording(callEndAudio: false)
                         }
                     } else if isFinal {
-                        // Natural completion
-                        self.lock.lock()
-                        self.isAcceptingAudio = false
-                        self.activeRequest = nil
-                        self.lock.unlock()
-                        
+                        // Natural phrase completion: seamlessly continue listening for next cards!
                         DispatchQueue.main.async {
-                            guard self.sessionID == newSessionID else { return }
-                            if self.isRecording {
-                                self.stopRecording(callEndAudio: false)
-                            }
+                            guard self.sessionID == newSessionID, self.isRecording else { return }
+                            self.restartRecognitionTask(newSessionID: newSessionID, onResult: onResult)
                         }
                     }
                 }
@@ -261,6 +260,60 @@ public class SpeechRecognitionService: ObservableObject {
                 self.stopRecording(callEndAudio: false)
             }
         }
+    private func restartRecognitionTask(newSessionID: UUID, onResult: @escaping (String) -> Void) {
+        guard self.sessionID == newSessionID && self.isRecording else { return }
+        guard let speechRecognizer = self.speechRecognizer, speechRecognizer.isAvailable else { return }
+        
+        let newRequest = SFSpeechAudioBufferRecognitionRequest()
+        newRequest.shouldReportPartialResults = true
+        newRequest.taskHint = .search
+        if #available(iOS 16, *) {
+            newRequest.addsPunctuation = false
+        }
+        newRequest.contextualStrings = [
+            "Át", "Xì", "Át cơ", "Át rô", "Át tép", "Át chuồn", "Át bích",
+            "K", "Già", "Ka", "Ca", "Da", "Dà", "Q", "Đầm", "Quy", "Qui", "Huy",
+            "J", "Bồi", "Ri", "Bồi cơ", "Bồi rô", "Bồi tép", "Bồi chuồn", "Bồi bích", "Con bồi", "Lá bồi",
+            "Đôi", "Sám", "Tứ quý",
+            "Mười ba", "Mười hai", "Mười một", "Một một",
+            "Mười", "Chín", "Tám", "Bảy", "Sáu", "Năm", "Bốn", "Ba", "Hai", "Heo",
+            "Cơ", "Rô", "Tép", "Chuồn", "Bích",
+            "Bỏ", "Bỏ bài", "Bỏ qua", "Bài ẩn"
+        ]
+        
+        self.recognitionRequest = newRequest
+        
+        self.lock.lock()
+        self.activeRequest = newRequest
+        self.lock.unlock()
+        
+        var createdTask: SFSpeechRecognitionTask? = nil
+        _ = ObjcTryCatch({
+            createdTask = speechRecognizer.recognitionTask(with: newRequest) { [weak self] result, error in
+                guard let self = self, self.sessionID == newSessionID, self.isRecording else { return }
+                if let result = result {
+                    let text = result.bestTranscription.formattedString
+                    DispatchQueue.main.async {
+                        guard self.sessionID == newSessionID, self.isRecording else { return }
+                        self.recognizedText = text
+                        onResult(text)
+                    }
+                }
+                let isFinal = result?.isFinal ?? false
+                if let error = error {
+                    let nsError = error as NSError
+                    if self.sessionID == newSessionID && self.isRecording && (nsError.code == 216 || nsError.code == 1110 || nsError.code == 203) {
+                        self.restartRecognitionTask(newSessionID: newSessionID, onResult: onResult)
+                    }
+                } else if isFinal {
+                    DispatchQueue.main.async {
+                        guard self.sessionID == newSessionID, self.isRecording else { return }
+                        self.restartRecognitionTask(newSessionID: newSessionID, onResult: onResult)
+                    }
+                }
+            }
+        }, nil)
+        self.recognitionTask = createdTask
     }
     
     public func stopRecording(callEndAudio: Bool = true) {

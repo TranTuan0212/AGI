@@ -98,10 +98,22 @@ public class GameViewModel: ObservableObject {
         }
     }
     
+    private var cancellables = Set<AnyCancellable>()
+    
     public init() {
         self.isRankOnlyMode = UserDefaults.standard.bool(forKey: "isRankOnlyMode")
         self.isVoiceMode = UserDefaults.standard.bool(forKey: "isVoiceMode")
         setupInitialPlayers()
+        setupVoiceServiceObservation()
+    }
+    
+    private func setupVoiceServiceObservation() {
+        voiceService.objectWillChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                self?.objectWillChange.send()
+            }
+            .store(in: &cancellables)
     }
     
     private func setupInitialPlayers() {
