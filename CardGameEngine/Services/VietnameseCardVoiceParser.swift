@@ -80,7 +80,7 @@ public struct VietnameseCardVoiceParser {
     // Filler words to ignore safely
     private static let fillerWords: Set<String> = [
         "cho", "tôi", "toi", "tao", "mình", "minh",
-        "con", "lá", "la", "quân", "quan", "cây",
+        "con", "lá", "la", "quân", "quan",
         "nhà", "nha", "tụ", "tu",
         "với", "voi", "và", "va",
         "nhập", "nhap", "thêm", "them", "lấy", "lay",
@@ -142,6 +142,57 @@ public struct VietnameseCardVoiceParser {
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    // MARK: - Custom Voice Keywords for J, Q, K
+    public static func getCustomKeywords(for rank: Rank) -> [String] {
+        let key: String
+        switch rank {
+        case .jack: key = "custom_voice_keywords_jack"
+        case .queen: key = "custom_voice_keywords_queen"
+        case .king: key = "custom_voice_keywords_king"
+        default: return []
+        }
+        return UserDefaults.standard.stringArray(forKey: key) ?? []
+    }
+    
+    public static func addCustomKeyword(_ keyword: String, for rank: Rank) {
+        let clean = keyword.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !clean.isEmpty else { return }
+        let key: String
+        switch rank {
+        case .jack: key = "custom_voice_keywords_jack"
+        case .queen: key = "custom_voice_keywords_queen"
+        case .king: key = "custom_voice_keywords_king"
+        default: return
+        }
+        var current = UserDefaults.standard.stringArray(forKey: key) ?? []
+        if !current.contains(clean) {
+            current.append(clean)
+            UserDefaults.standard.set(current, forKey: key)
+        }
+    }
+    
+    public static func removeCustomKeyword(_ keyword: String, for rank: Rank) {
+        let clean = keyword.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let key: String
+        switch rank {
+        case .jack: key = "custom_voice_keywords_jack"
+        case .queen: key = "custom_voice_keywords_queen"
+        case .king: key = "custom_voice_keywords_king"
+        default: return
+        }
+        var current = UserDefaults.standard.stringArray(forKey: key) ?? []
+        current.removeAll { $0 == clean }
+        UserDefaults.standard.set(current, forKey: key)
+    }
+    
+    public static func getAllCustomKeywords() -> [String] {
+        var all: [String] = []
+        all.append(contentsOf: getCustomKeywords(for: .jack))
+        all.append(contentsOf: getCustomKeywords(for: .queen))
+        all.append(contentsOf: getCustomKeywords(for: .king))
+        return all
+    }
+
     /// Phân tích một chuỗi giọng nói tiếng Việt thành danh sách quân bài
     public static func parse(_ text: String) -> [ParsedVoiceCard] {
         let unglued = separateDigits(text)
@@ -189,6 +240,11 @@ public struct VietnameseCardVoiceParser {
             .replacingOccurrences(of: "bai an", with: "__hidden__")
 
         
+        var activeRankMap = rankMap
+        for word in getCustomKeywords(for: .jack) { activeRankMap[word] = .jack }
+        for word in getCustomKeywords(for: .queen) { activeRankMap[word] = .queen }
+        for word in getCustomKeywords(for: .king) { activeRankMap[word] = .king }
+        
         let tokens = normalized.split(separator: " ").map { String($0) }
         var result: [ParsedVoiceCard] = []
         var i = 0
@@ -229,8 +285,14 @@ public struct VietnameseCardVoiceParser {
                 continue
             }
             
+            // If token is "cây" and the next token is another rank or hidden, treat "cây" as classifier
+            if (token == "cây" || token == "cay") && i + 1 < tokens.count && (activeRankMap[tokens[i + 1]] != nil || tokens[i + 1] == "bỏ" || tokens[i + 1] == "__hidden__") {
+                i += 1
+                continue
+            }
+            
             // Check if token matches a rank
-            if let rank = rankMap[token] {
+            if let rank = activeRankMap[token] {
                 var detectedSuit: Suit? = nil
                 
                 // Lookahead for suit

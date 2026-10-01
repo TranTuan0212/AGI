@@ -62,6 +62,7 @@ public class GameViewModel: ObservableObject {
     @Published public var voiceBannerText: String? = nil
     private var processedVoiceCardsCount: Int = 0
     private var currentVoiceSegmentID: Int = 0
+    private var currentSegmentPlacedCards: [Card] = []
     
     // Rank-Only Mode (A->K) for 3 Cây & 2 Lá
     @Published public var isRankOnlyMode: Bool {
@@ -154,6 +155,7 @@ public class GameViewModel: ObservableObject {
         actionHistory.removeAll()
         processedVoiceCardsCount = 0
         currentVoiceSegmentID = 0
+        currentSegmentPlacedCards.removeAll()
         
         if shouldAutoRecord {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
@@ -436,9 +438,11 @@ public class GameViewModel: ObservableObject {
             }
             processedVoiceCardsCount = 0
             currentVoiceSegmentID = 0
+            currentSegmentPlacedCards.removeAll()
         } else {
             processedVoiceCardsCount = 0
             currentVoiceSegmentID = 0
+            currentSegmentPlacedCards.removeAll()
             voiceService.requestAuthorization { [weak self] authorized in
                 guard let self = self else { return }
                 if authorized {
@@ -473,6 +477,7 @@ public class GameViewModel: ObservableObject {
         if segmentID != 0 && segmentID != currentVoiceSegmentID {
             currentVoiceSegmentID = segmentID
             processedVoiceCardsCount = 0
+            currentSegmentPlacedCards.removeAll()
         }
         
         let parsedCards = VietnameseCardVoiceParser.parse(text)
@@ -481,9 +486,25 @@ public class GameViewModel: ObservableObject {
         
         guard !parsedCards.isEmpty else { return }
         
+        // Tentative card revision: Check if the last card placed in this segment was revised by Apple Speech streaming
+        // (For example: spoken "Mười" initially parsed as 10, then updated to "11" / Jack or "Mười một" / "Mười hai" / "Mười ba")
+        if processedVoiceCardsCount > 0 && parsedCards.count == processedVoiceCardsCount {
+            let lastParsed = parsedCards[processedVoiceCardsCount - 1]
+            if let lastPlacedCard = currentSegmentPlacedCards.last {
+                let isSameRank = (lastParsed.rank == lastPlacedCard.rank)
+                let isSameSuit = (lastParsed.suit == lastPlacedCard.suit)
+                if !isSameRank || (!lastPlacedCard.isRankOnly && lastParsed.suit != nil && !isSameSuit) {
+                    removeCard(lastPlacedCard)
+                    currentSegmentPlacedCards.removeLast()
+                    processedVoiceCardsCount -= 1
+                }
+            }
+        }
+        
         if parsedCards.count > processedVoiceCardsCount {
             let newCards = parsedCards[processedVoiceCardsCount..<parsedCards.count]
             for item in newCards {
+                let countBefore = actionHistory.count
                 if item.isHidden {
                     onHiddenCardTapped()
                 } else if isRankOnlyActive || item.suit == nil {
@@ -495,6 +516,9 @@ public class GameViewModel: ObservableObject {
                     } else {
                         onRankTapped(item.rank)
                     }
+                }
+                if actionHistory.count > countBefore, let lastAction = actionHistory.last {
+                    currentSegmentPlacedCards.append(lastAction.card)
                 }
             }
             processedVoiceCardsCount = parsedCards.count

@@ -4,6 +4,13 @@ public struct SettingsView: View {
     @ObservedObject var viewModel: GameViewModel
     @Environment(\.presentationMode) var presentationMode
     
+    // Voice Training State for J - Q - K
+    @State private var selectedRankForTraining: Rank = .jack
+    @State private var isTrainingRecording: Bool = false
+    @State private var trainedSpokenText: String = ""
+    @State private var manualCustomKeyword: String = ""
+    @State private var customKeywordsVersion: Int = 0
+    
     public var body: some View {
         NavigationView {
             Form {
@@ -21,6 +28,120 @@ public struct SettingsView: View {
                     Text("Khi bật, toàn bộ bàn phím chọn lá bài sẽ được ẩn đi. Ứng dụng chỉ hiển thị icon micro to bản cùng các thao tác liên quan, giúp nhập bài bằng giọng nói nhanh chóng và rộng rãi.")
                         .font(.caption)
                         .foregroundColor(.secondary)
+                }
+                
+                Section(header: Text("🎙️ Bộ Lọc & Huấn Luyện Âm Đọc (J - Q - K)")) {
+                    Picker("Chọn lá bài", selection: $selectedRankForTraining) {
+                        Text("J (Bồi / 11)").tag(Rank.jack)
+                        Text("Q (Đầm / 12)").tag(Rank.queen)
+                        Text("K (Già / 13)").tag(Rank.king)
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .padding(.vertical, 2)
+                    
+                    // Danh sách từ khóa đã học
+                    let _ = customKeywordsVersion
+                    let words = VietnameseCardVoiceParser.getCustomKeywords(for: selectedRankForTraining)
+                    if !words.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Từ khóa riêng của bạn cho \(selectedRankForTraining.description):")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 8) {
+                                    ForEach(words, id: \.self) { word in
+                                        HStack(spacing: 4) {
+                                            Text(word)
+                                                .font(.subheadline.bold())
+                                            Button(action: {
+                                                VietnameseCardVoiceParser.removeCustomKeyword(word, for: selectedRankForTraining)
+                                                customKeywordsVersion += 1
+                                            }) {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .foregroundColor(.secondary)
+                                            }
+                                            .buttonStyle(PlainButtonStyle())
+                                        }
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(Color.blue.opacity(0.12))
+                                        .cornerRadius(12)
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.vertical, 2)
+                    } else {
+                        Text("Chưa có từ khóa riêng nào cho \(selectedRankForTraining.description). Hãy thu âm phát âm của bạn hoặc gõ từ bên dưới.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    // Khu vực thu âm huấn luyện
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Button(action: {
+                                toggleTrainingRecording()
+                            }) {
+                                HStack(spacing: 6) {
+                                    Image(systemName: isTrainingRecording ? "stop.circle.fill" : "mic.fill")
+                                        .foregroundColor(isTrainingRecording ? .red : .blue)
+                                    Text(isTrainingRecording ? "DỪNG THU" : "🎙️ Bấm & Đọc Thử")
+                                        .font(.subheadline.bold())
+                                        .foregroundColor(isTrainingRecording ? .red : .blue)
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 7)
+                                .background(isTrainingRecording ? Color.red.opacity(0.12) : Color.blue.opacity(0.12))
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            
+                            Spacer()
+                            
+                            if !trainedSpokenText.isEmpty {
+                                Button(action: {
+                                    saveTrainedWord(trainedSpokenText)
+                                }) {
+                                    Text("➕ Lưu từ này")
+                                        .font(.subheadline.bold())
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 7)
+                                        .background(Color.green)
+                                        .cornerRadius(8)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                        }
+                        
+                        if !trainedSpokenText.isEmpty {
+                            HStack {
+                                Text("Mic nghe được:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text("\"\(trainedSpokenText)\"")
+                                    .font(.subheadline.bold())
+                                    .foregroundColor(.primary)
+                            }
+                        }
+                        
+                        // Hoặc gõ chữ trực tiếp
+                        HStack {
+                            TextField("Hoặc gõ từ (vd: zi, dây, kiu...)", text: $manualCustomKeyword)
+                                .textFieldStyle(RoundedBorderTextFieldStyle())
+                            
+                            if !manualCustomKeyword.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                Button("Thêm") {
+                                    saveTrainedWord(manualCustomKeyword)
+                                    manualCustomKeyword = ""
+                                }
+                                .buttonStyle(BorderedProminentButtonStyle())
+                            }
+                        }
+                    }
+                    .padding(.vertical, 4)
                 }
                 
                 Section(header: Text("Tùy Chọn Bàn Phím Số A➔K (Liêng / Xì Dách / Sâm Lốc / Chắn TQ)")) {
@@ -67,10 +188,54 @@ public struct SettingsView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Xong") {
+                        if isTrainingRecording {
+                            viewModel.voiceService.stopRecording(callEndAudio: false)
+                            isTrainingRecording = false
+                        }
                         presentationMode.wrappedValue.dismiss()
                     }
                 }
             }
+            .onDisappear {
+                if isTrainingRecording {
+                    viewModel.voiceService.stopRecording(callEndAudio: false)
+                    isTrainingRecording = false
+                }
+            }
+        }
+    }
+    
+    private func toggleTrainingRecording() {
+        if isTrainingRecording {
+            viewModel.voiceService.stopRecording(callEndAudio: false)
+            isTrainingRecording = false
+        } else {
+            trainedSpokenText = ""
+            viewModel.voiceService.startRecording(
+                onResult: { text, _ in
+                    DispatchQueue.main.async {
+                        self.trainedSpokenText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                    }
+                },
+                onError: { _ in
+                    DispatchQueue.main.async {
+                        self.isTrainingRecording = false
+                    }
+                }
+            )
+            isTrainingRecording = true
+        }
+    }
+    
+    private func saveTrainedWord(_ rawWord: String) {
+        let clean = rawWord.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !clean.isEmpty else { return }
+        VietnameseCardVoiceParser.addCustomKeyword(clean, for: selectedRankForTraining)
+        trainedSpokenText = ""
+        customKeywordsVersion += 1
+        if isTrainingRecording {
+            viewModel.voiceService.stopRecording(callEndAudio: false)
+            isTrainingRecording = false
         }
     }
 }

@@ -26,8 +26,33 @@ public class SpeechRecognitionService: ObservableObject {
     // Unique session ID to invalidate trailing callbacks from previous sessions
     private var sessionID: UUID = UUID()
     
+    // Unique task ID to invalidate callbacks from superseded recognition tasks
+    private var currentTaskID: UUID = UUID()
+    
     // Incremental segment ID per recognition task to notify ViewModel on phrase/task resets
     private var segmentID: Int = 0
+    
+    public static func getContextualStrings() -> [String] {
+        var list = [
+            "Át", "Xì", "Át cơ", "Át rô", "Át tép", "Át chuồn", "Át bích",
+            "K", "Già", "Ka", "Ca", "Cây", "Da", "Dà",
+            "Q", "Đầm", "Quy", "Qui", "Kiu", "Huy",
+            "J", "Bồi", "Ri", "Dây", "Day", "Chây", "Bồi cơ", "Bồi rô", "Bồi tép", "Bồi chuồn", "Bồi bích", "Con bồi", "Lá bồi",
+            "Đôi", "Sám", "Tứ quý",
+            "11", "12", "13",
+            "Mười ba", "Mười hai", "Mười một", "Một một",
+            "Mười", "Chín", "Tám", "Bảy", "Sáu", "Năm", "Bốn", "Ba", "Hai", "Heo",
+            "Cơ", "Rô", "Tép", "Chuồn", "Bích",
+            "Bỏ", "Bỏ bài", "Bỏ qua", "Bài ẩn"
+        ]
+        let customWords = VietnameseCardVoiceParser.getAllCustomKeywords()
+        for word in customWords {
+            if !list.contains(word) {
+                list.append(word)
+            }
+        }
+        return list
+    }
     
     private var routeChangeObserver: NSObjectProtocol?
     
@@ -109,12 +134,14 @@ public class SpeechRecognitionService: ObservableObject {
         
         let newSessionID = UUID()
         self.sessionID = newSessionID
+        let initialTaskID = UUID()
+        self.currentTaskID = initialTaskID
         self.segmentID = 1
         let initialSegmentID = self.segmentID
         
         do {
             let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
+            try audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
             
             // Prefer Bluetooth microphone if connected
             if let availableInputs = audioSession.availableInputs {
@@ -132,22 +159,11 @@ public class SpeechRecognitionService: ObservableObject {
             let recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
             self.recognitionRequest = recognitionRequest
             recognitionRequest.shouldReportPartialResults = true
-            recognitionRequest.taskHint = .search
+            recognitionRequest.taskHint = .dictation
             if #available(iOS 16, *) {
                 recognitionRequest.addsPunctuation = false
             }
-            recognitionRequest.contextualStrings = [
-                "Át", "Xì", "Át cơ", "Át rô", "Át tép", "Át chuồn", "Át bích",
-                "K", "Già", "Ka", "Ca", "Cây", "Da", "Dà",
-                "Q", "Đầm", "Quy", "Qui", "Kiu", "Huy",
-                "J", "Bồi", "Ri", "Dây", "Day", "Chây", "Bồi cơ", "Bồi rô", "Bồi tép", "Bồi chuồn", "Bồi bích", "Con bồi", "Lá bồi",
-                "Đôi", "Sám", "Tứ quý",
-                "11", "12", "13",
-                "Mười ba", "Mười hai", "Mười một", "Một một",
-                "Mười", "Chín", "Tám", "Bảy", "Sáu", "Năm", "Bốn", "Ba", "Hai", "Heo",
-                "Cơ", "Rô", "Tép", "Chuồn", "Bích",
-                "Bỏ", "Bỏ bài", "Bỏ qua", "Bài ẩn"
-            ]
+            recognitionRequest.contextualStrings = Self.getContextualStrings()
             
             // Re-instantiate fresh AVAudioEngine per recording session
             let engine = AVAudioEngine()
@@ -171,8 +187,8 @@ public class SpeechRecognitionService: ObservableObject {
                 createdTask = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, error in
                     guard let self = self else { return }
                     
-                    // Ignore stale results from past sessions
-                    guard self.sessionID == newSessionID else { return }
+                    // Ignore stale results from past sessions or superseded tasks
+                    guard self.sessionID == newSessionID, self.currentTaskID == initialTaskID else { return }
                     
                     if let result = result {
                         let text = result.bestTranscription.formattedString
@@ -277,27 +293,19 @@ public class SpeechRecognitionService: ObservableObject {
         guard self.sessionID == newSessionID && self.isRecording else { return }
         guard let speechRecognizer = self.speechRecognizer, speechRecognizer.isAvailable else { return }
         
+        let newTaskID = UUID()
+        self.currentTaskID = newTaskID
+        
         self.segmentID += 1
         let currentSegmentID = self.segmentID
         
         let newRequest = SFSpeechAudioBufferRecognitionRequest()
         newRequest.shouldReportPartialResults = true
-        newRequest.taskHint = .search
+        newRequest.taskHint = .dictation
         if #available(iOS 16, *) {
             newRequest.addsPunctuation = false
         }
-        newRequest.contextualStrings = [
-            "Át", "Xì", "Át cơ", "Át rô", "Át tép", "Át chuồn", "Át bích",
-            "K", "Già", "Ka", "Ca", "Cây", "Da", "Dà",
-            "Q", "Đầm", "Quy", "Qui", "Kiu", "Huy",
-            "J", "Bồi", "Ri", "Dây", "Day", "Chây", "Bồi cơ", "Bồi rô", "Bồi tép", "Bồi chuồn", "Bồi bích", "Con bồi", "Lá bồi",
-            "Đôi", "Sám", "Tứ quý",
-            "11", "12", "13",
-            "Mười ba", "Mười hai", "Mười một", "Một một",
-            "Mười", "Chín", "Tám", "Bảy", "Sáu", "Năm", "Bốn", "Ba", "Hai", "Heo",
-            "Cơ", "Rô", "Tép", "Chuồn", "Bích",
-            "Bỏ", "Bỏ bài", "Bỏ qua", "Bài ẩn"
-        ]
+        newRequest.contextualStrings = Self.getContextualStrings()
         
         self.recognitionRequest = newRequest
         
@@ -308,7 +316,7 @@ public class SpeechRecognitionService: ObservableObject {
         var createdTask: SFSpeechRecognitionTask? = nil
         _ = ObjcTryCatch({
             createdTask = speechRecognizer.recognitionTask(with: newRequest) { [weak self] result, error in
-                guard let self = self, self.sessionID == newSessionID, self.isRecording else { return }
+                guard let self = self, self.sessionID == newSessionID, self.currentTaskID == newTaskID, self.isRecording else { return }
                 if let result = result {
                     let text = result.bestTranscription.formattedString
                     DispatchQueue.main.async {
@@ -320,12 +328,12 @@ public class SpeechRecognitionService: ObservableObject {
                 let isFinal = result?.isFinal ?? false
                 if let error = error {
                     let nsError = error as NSError
-                    if self.sessionID == newSessionID && self.isRecording && (nsError.code == 216 || nsError.code == 1110 || nsError.code == 203) {
+                    if self.sessionID == newSessionID && self.currentTaskID == newTaskID && self.isRecording && (nsError.code == 216 || nsError.code == 1110 || nsError.code == 203) {
                         self.restartRecognitionTask(newSessionID: newSessionID, onResult: onResult)
                     }
                 } else if isFinal {
                     DispatchQueue.main.async {
-                        guard self.sessionID == newSessionID, self.isRecording else { return }
+                        guard self.sessionID == newSessionID, self.currentTaskID == newTaskID, self.isRecording else { return }
                         self.restartRecognitionTask(newSessionID: newSessionID, onResult: onResult)
                     }
                 }

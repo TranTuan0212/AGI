@@ -1547,7 +1547,7 @@ class VietnameseCardVoiceParser {
 
   static fillerWords = new Set([
     'cho', 'tôi', 'toi', 'tao', 'mình', 'minh',
-    'con', 'lá', 'la', 'quân', 'quan', 'cây',
+    'con', 'lá', 'la', 'quân', 'quan',
     'nhà', 'nha', 'tụ', 'tu',
     'với', 'voi', 'và', 'va',
     'nhập', 'nhap', 'thêm', 'them', 'lấy', 'lay',
@@ -1555,6 +1555,42 @@ class VietnameseCardVoiceParser {
     'không', 'khong',
     '__pause__'
   ]);
+
+  static getCustomKeywords(rank) {
+    const key = rank === 11 ? 'custom_voice_keywords_jack' :
+                rank === 12 ? 'custom_voice_keywords_queen' :
+                rank === 13 ? 'custom_voice_keywords_king' : null;
+    if (!key) return [];
+    try {
+      return JSON.parse(localStorage.getItem(key) || '[]');
+    } catch {
+      return [];
+    }
+  }
+
+  static addCustomKeyword(rank, word) {
+    const clean = (word || '').trim().toLowerCase();
+    if (!clean) return;
+    const key = rank === 11 ? 'custom_voice_keywords_jack' :
+                rank === 12 ? 'custom_voice_keywords_queen' :
+                rank === 13 ? 'custom_voice_keywords_king' : null;
+    if (!key) return;
+    const words = this.getCustomKeywords(rank);
+    if (!words.includes(clean)) {
+      words.push(clean);
+      localStorage.setItem(key, JSON.stringify(words));
+    }
+  }
+
+  static removeCustomKeyword(rank, word) {
+    const clean = (word || '').trim().toLowerCase();
+    const key = rank === 11 ? 'custom_voice_keywords_jack' :
+                rank === 12 ? 'custom_voice_keywords_queen' :
+                rank === 13 ? 'custom_voice_keywords_king' : null;
+    if (!key) return;
+    const words = this.getCustomKeywords(rank).filter(w => w !== clean);
+    localStorage.setItem(key, JSON.stringify(words));
+  }
 
   static separateDigits(text) {
     if (!text || typeof text !== 'string') return '';
@@ -1622,6 +1658,11 @@ class VietnameseCardVoiceParser {
       .replace(/bài ẩn/g, '__hidden__')
       .replace(/bai an/g, '__hidden__');
 
+    const activeRankMap = { ...this.rankMap };
+    this.getCustomKeywords(11).forEach(w => activeRankMap[w] = 11);
+    this.getCustomKeywords(12).forEach(w => activeRankMap[w] = 12);
+    this.getCustomKeywords(13).forEach(w => activeRankMap[w] = 13);
+
     const tokens = normalized.split(' ').filter(Boolean);
     const result = [];
     let i = 0;
@@ -1659,8 +1700,14 @@ class VietnameseCardVoiceParser {
         continue;
       }
 
-      if (this.rankMap[token] !== undefined) {
-        const rawRank = this.rankMap[token];
+      // If token is "cây" and next token is another rank or hidden, treat as classifier
+      if ((token === 'cây' || token === 'cay') && i + 1 < tokens.length && (activeRankMap[tokens[i + 1]] !== undefined || tokens[i + 1] === 'bỏ' || tokens[i + 1] === '__hidden__')) {
+        i++;
+        continue;
+      }
+
+      if (activeRankMap[token] !== undefined) {
+        const rawRank = activeRankMap[token];
         let detectedSuit = null;
 
         if (i + 1 < tokens.length) {
@@ -1709,6 +1756,7 @@ class AppController {
     this.isVoiceRecording = false;
     this.processedVoiceCardsCount = 0;
     this.currentVoiceSegmentId = 0;
+    this.currentSegmentPlacedCards = [];
     this.recognition = null;
     try {
       this.history = JSON.parse(localStorage.getItem('card_game_history') || '[]');
@@ -1858,6 +1906,8 @@ class AppController {
 
     document.getElementById('btnCloseModal').addEventListener('click', () => this.closeResultModal());
     document.getElementById('btnCloseModalBottom').addEventListener('click', () => this.closeResultModal());
+
+    this.setupVoiceTrainerEvents();
   }
 
   renamePlayer(idx) {
@@ -1969,12 +2019,14 @@ class AppController {
 
     this.processedVoiceCardsCount = 0;
     this.currentVoiceSegmentId = 0;
+    this.currentSegmentPlacedCards = [];
   }
 
   processVoiceInput(text, segmentId = 0) {
     if (segmentId !== 0 && segmentId !== this.currentVoiceSegmentId) {
       this.currentVoiceSegmentId = segmentId;
       this.processedVoiceCardsCount = 0;
+      this.currentSegmentPlacedCards = [];
     }
 
     const unglued = VietnameseCardVoiceParser.separateDigits(text);
@@ -1984,9 +2036,26 @@ class AppController {
     }
 
     const parsed = VietnameseCardVoiceParser.parse(text);
+
+    // Tentative card revision: Check if the last card placed in this segment was revised by streaming speech
+    if (this.processedVoiceCardsCount > 0 && parsed.length === this.processedVoiceCardsCount) {
+      const lastParsed = parsed[this.processedVoiceCardsCount - 1];
+      const lastPlacedCard = this.currentSegmentPlacedCards[this.currentSegmentPlacedCards.length - 1];
+      if (lastPlacedCard) {
+        const isSameRank = (lastParsed.rank === lastPlacedCard.rank);
+        const isSameSuit = (lastParsed.suit === lastPlacedCard.suit);
+        if (!isSameRank || (!lastPlacedCard.isRankOnly && lastParsed.suit && !isSameSuit)) {
+          this.removeCard(lastPlacedCard.id);
+          this.currentSegmentPlacedCards.pop();
+          this.processedVoiceCardsCount--;
+        }
+      }
+    }
+
     if (parsed.length > this.processedVoiceCardsCount) {
       const newItems = parsed.slice(this.processedVoiceCardsCount);
       for (const item of newItems) {
+        const beforeCount = this.actionHistory.length;
         if (item.isHidden) {
           this.onHiddenCardClick();
         } else if (this.isRankOnlyActive() || !item.suit) {
@@ -2002,6 +2071,15 @@ class AppController {
             const rObj = RANKS.find(r => r.raw === item.rank);
             if (rObj) this.onRankClick(rObj);
           }
+        }
+        if (this.actionHistory.length > beforeCount) {
+          const lastAction = this.actionHistory[this.actionHistory.length - 1];
+          let placed = null;
+          for (const p of this.players) {
+            placed = p.cards.find(c => c.id === lastAction.cardId);
+            if (placed) break;
+          }
+          if (placed) this.currentSegmentPlacedCards.push(placed);
         }
       }
       this.processedVoiceCardsCount = parsed.length;
@@ -2376,6 +2454,7 @@ class AppController {
     });
     this.communityCards = [];
     this.actionHistory = [];
+    this.currentSegmentPlacedCards = [];
     this.roundRobinPointer = 0;
     this.selectedPlayerIndex = 0;
     this.isSelectingCommunity = false;
@@ -3175,6 +3254,115 @@ class AppController {
     document.getElementById('modalResult').style.display = 'none';
   }
 
+  renderTrainerKeywords() {
+    const listEl = document.getElementById('trainerKeywordsList');
+    if (!listEl) return;
+    const rank = this.currentTrainerRank || 11;
+    const words = VietnameseCardVoiceParser.getCustomKeywords(rank);
+    if (!words || words.length === 0) {
+      const sym = rank === 11 ? 'J' : (rank === 12 ? 'Q' : 'K');
+      listEl.innerHTML = `<span class="trainer-empty-msg">Chưa có từ khóa riêng nào cho ${sym}.</span>`;
+      return;
+    }
+    listEl.innerHTML = '';
+    words.forEach(w => {
+      const chip = document.createElement('span');
+      chip.className = 'trainer-chip';
+      chip.innerHTML = `${w} <button type="button" class="btn-del-chip" title="Xóa">✕</button>`;
+      chip.querySelector('.btn-del-chip').addEventListener('click', () => {
+        VietnameseCardVoiceParser.removeCustomKeyword(rank, w);
+        this.renderTrainerKeywords();
+      });
+      listEl.appendChild(chip);
+    });
+  }
+
+  setupVoiceTrainerEvents() {
+    this.currentTrainerRank = 11;
+    const tabs = document.querySelectorAll('.btn-tab-rank');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        this.currentTrainerRank = parseInt(tab.dataset.rank, 10);
+        this.renderTrainerKeywords();
+      });
+    });
+
+    const btnAdd = document.getElementById('btnTrainerAdd');
+    const txtWord = document.getElementById('txtTrainerWord');
+    if (btnAdd && txtWord) {
+      btnAdd.addEventListener('click', () => {
+        const val = txtWord.value.trim();
+        if (val) {
+          VietnameseCardVoiceParser.addCustomKeyword(this.currentTrainerRank, val);
+          txtWord.value = '';
+          this.renderTrainerKeywords();
+        }
+      });
+      txtWord.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          btnAdd.click();
+        }
+      });
+    }
+
+    const btnVoice = document.getElementById('btnTrainerVoice');
+    const statusEl = document.getElementById('trainerVoiceStatus');
+
+    if (btnVoice) {
+      btnVoice.addEventListener('click', () => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          alert("Trình duyệt không hỗ trợ Web Speech API.");
+          return;
+        }
+        if (btnVoice.classList.contains('recording')) {
+          if (this.trainerRec) {
+            try { this.trainerRec.stop(); } catch(e) {}
+          }
+          btnVoice.classList.remove('recording');
+          btnVoice.textContent = '🎙️ Bấm để nói thử';
+          return;
+        }
+
+        this.trainerRec = new SpeechRecognition();
+        this.trainerRec.lang = 'vi-VN';
+        this.trainerRec.interimResults = true;
+        this.trainerRec.continuous = false;
+
+        btnVoice.classList.add('recording');
+        btnVoice.textContent = '⏹️ Dừng thu';
+        if (statusEl) statusEl.textContent = 'Đang nghe...';
+
+        this.trainerRec.onresult = (ev) => {
+          const text = Array.from(ev.results).map(r => r[0].transcript).join('').trim();
+          if (statusEl) statusEl.textContent = `Nghe được: "${text}"`;
+          if (txtWord) txtWord.value = text;
+        };
+
+        this.trainerRec.onerror = () => {
+          btnVoice.classList.remove('recording');
+          btnVoice.textContent = '🎙️ Bấm để nói thử';
+          if (statusEl) statusEl.textContent = '';
+        };
+
+        this.trainerRec.onend = () => {
+          btnVoice.classList.remove('recording');
+          btnVoice.textContent = '🎙️ Bấm để nói thử';
+        };
+
+        try {
+          this.trainerRec.start();
+        } catch(e) {
+          btnVoice.classList.remove('recording');
+          btnVoice.textContent = '🎙️ Bấm để nói thử';
+        }
+      });
+    }
+  }
+
   openSettings() {
     const cfg = GAME_CONFIGS[this.currentGameType];
     document.getElementById('gameRuleDescription').textContent = cfg.desc;
@@ -3190,10 +3378,19 @@ class AppController {
       chkRank.checked = this.isRankOnlyMode;
     }
 
+    this.renderTrainerKeywords();
     document.getElementById('modalSettings').style.display = 'flex';
   }
 
   closeSettings() {
+    if (this.trainerRec) {
+      try { this.trainerRec.stop(); } catch(e) {}
+    }
+    const btnVoice = document.getElementById('btnTrainerVoice');
+    if (btnVoice) {
+      btnVoice.classList.remove('recording');
+      btnVoice.textContent = '🎙️ Bấm để nói thử';
+    }
     document.getElementById('modalSettings').style.display = 'none';
   }
 

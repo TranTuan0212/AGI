@@ -7,6 +7,17 @@ const appCode = fs.readFileSync('e:/appgame/preview/app.js', 'utf8');
 // Strip out window / document DOM stuff for node testing of logic classes
 const logicCode = appCode.split('// MARK: - State & App Controller')[0];
 
+// Mock localStorage for Node test environment
+if (typeof localStorage === 'undefined') {
+  global.localStorage = {
+    _data: {},
+    getItem(k) { return this._data[k] || null; },
+    setItem(k, v) { this._data[k] = String(v); },
+    removeItem(k) { delete this._data[k]; },
+    clear() { this._data = {}; }
+  };
+}
+
 vm.runInThisContext(logicCode);
 
 let passed = 0;
@@ -890,6 +901,109 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(appVoiceTest.players[1].cards.length === 2 && appVoiceTest.players[1].cards[1].rank === 11, 'Voice multi-segment: "11 12 13" -> Tụ 2 nhận 11 (J)');
   assert(appVoiceTest.players[2].cards.length === 2 && appVoiceTest.players[2].cards[1].rank === 12, 'Voice multi-segment: "11 12 13" -> Tụ 3 nhận 12 (Q)');
   assert(appVoiceTest.players[0].cards.length === 3 && appVoiceTest.players[0].cards[2].rank === 13, 'Voice multi-segment: "11 12 13" -> Tụ 1 nhận 13 (K)');
+
+  // Test cây as King vs cây as classifier
+  const resCayKing = VietnameseCardVoiceParser.parse('cây cơ');
+  assert(resCayKing.length === 1 && resCayKing[0].rank === 13 && resCayKing[0].suit === 'hearts', 'Voice Parser: "cây cơ" -> K cơ (13)');
+  const resCayClassifier = VietnameseCardVoiceParser.parse('cây ba');
+  assert(resCayClassifier.length === 1 && resCayClassifier[0].rank === 3, 'Voice Parser: "cây ba" -> 3 (cây làm lượng từ cho 3)');
+  const resCaySingle = VietnameseCardVoiceParser.parse('cây');
+  assert(resCaySingle.length === 1 && resCaySingle[0].rank === 13, 'Voice Parser: "cây" -> K (13)');
+
+  // Test Custom Voice Keyword Training
+  VietnameseCardVoiceParser.addCustomKeyword(11, 'chum');
+  const resChum = VietnameseCardVoiceParser.parse('chum tép');
+  assert(resChum.length === 1 && resChum[0].rank === 11 && resChum[0].suit === 'clubs', 'Voice Custom Trainer: Học từ khóa "chum" cho J -> "chum tép" nhận đúng J tép');
+
+  VietnameseCardVoiceParser.addCustomKeyword(12, 'hậu');
+  const resHau = VietnameseCardVoiceParser.parse('hậu bích');
+  assert(resHau.length === 1 && resHau[0].rank === 12 && resHau[0].suit === 'spades', 'Voice Custom Trainer: Học từ khóa "hậu" cho Q -> "hậu bích" nhận đúng Q bích');
+
+  VietnameseCardVoiceParser.addCustomKeyword(13, 'tướng');
+  const resTuong = VietnameseCardVoiceParser.parse('tướng rô');
+  assert(resTuong.length === 1 && resTuong[0].rank === 13 && resTuong[0].suit === 'diamonds', 'Voice Custom Trainer: Học từ khóa "tướng" cho K -> "tướng rô" nhận đúng K rô');
+
+  // Test xóa từ khóa đã học
+  VietnameseCardVoiceParser.removeCustomKeyword(11, 'chum');
+  const resChumRemoved = VietnameseCardVoiceParser.parse('chum tép');
+  assert(resChumRemoved.length === 0, 'Voice Custom Trainer: Xóa từ khóa "chum" -> không còn nhận diện thành J');
+
+  // Test Tentative Card Revision: Nói "mười" rồi nói tiếp "mười một" / "11" -> Thay thế lá 10 thành J (11) trên cùng 1 Tụ
+  const tentativeVoiceTest = {
+    processedVoiceCardsCount: 0,
+    currentVoiceSegmentId: 0,
+    currentSegmentPlacedCards: [],
+    players: [{ id: 'P0', cards: [] }, { id: 'P1', cards: [] }, { id: 'P2', cards: [] }],
+    pointer: 0,
+    actionHistory: [],
+    onRankClick: function(rObj) {
+      const card = { id: `c_${Date.now()}_${Math.random()}`, rank: rObj.raw, isRankOnly: true };
+      const pIdx = this.pointer % this.players.length;
+      this.players[pIdx].cards.push(card);
+      this.actionHistory.push({ cardId: card.id, target: pIdx });
+      this.pointer++;
+      return card;
+    },
+    removeCard: function(cardId) {
+      for (let i = 0; i < this.players.length; i++) {
+        const idx = this.players[i].cards.findIndex(c => c.id === cardId);
+        if (idx !== -1) {
+          this.players[i].cards.splice(idx, 1);
+          this.pointer = i; // Reset focus back to this player
+          break;
+        }
+      }
+    },
+    processVoiceInput: function(text, segmentId = 0) {
+      if (segmentId !== 0 && segmentId !== this.currentVoiceSegmentId) {
+        this.currentVoiceSegmentId = segmentId;
+        this.processedVoiceCardsCount = 0;
+        this.currentSegmentPlacedCards = [];
+      }
+      const parsed = VietnameseCardVoiceParser.parse(text);
+
+      // Tentative revision
+      if (this.processedVoiceCardsCount > 0 && parsed.length === this.processedVoiceCardsCount) {
+        const lastParsed = parsed[this.processedVoiceCardsCount - 1];
+        const lastPlacedCard = this.currentSegmentPlacedCards[this.currentSegmentPlacedCards.length - 1];
+        if (lastPlacedCard) {
+          const isSameRank = (lastParsed.rank === lastPlacedCard.rank);
+          const isSameSuit = (lastParsed.suit === lastPlacedCard.suit);
+          if (!isSameRank || (!lastPlacedCard.isRankOnly && lastParsed.suit && !isSameSuit)) {
+            this.removeCard(lastPlacedCard.id);
+            this.currentSegmentPlacedCards.pop();
+            this.processedVoiceCardsCount--;
+          }
+        }
+      }
+
+      if (parsed.length > this.processedVoiceCardsCount) {
+        const newItems = parsed.slice(this.processedVoiceCardsCount);
+        for (const item of newItems) {
+          const card = this.onRankClick({ raw: item.rank });
+          this.currentSegmentPlacedCards.push(card);
+        }
+        this.processedVoiceCardsCount = parsed.length;
+      }
+    }
+  };
+
+  // Bước 1: Người dùng nói "mười" -> Tụ 1 nhận tạm lá 10
+  tentativeVoiceTest.processVoiceInput('mười', 1);
+  assert(tentativeVoiceTest.players[0].cards.length === 1 && tentativeVoiceTest.players[0].cards[0].rank === 10, 'Tentative Revision: Đọc "mười" -> Tụ 1 tạm nhận lá 10');
+
+  // Bước 2: Người dùng nói xong "mười một" (Apple Speech cập nhật thành "11") -> Tụ 1 được sửa thành lá 11 (J), không bị kẹt lá 10!
+  tentativeVoiceTest.processVoiceInput('11', 1);
+  assert(tentativeVoiceTest.players[0].cards.length === 1 && tentativeVoiceTest.players[0].cards[0].rank === 11, 'Tentative Revision: Nối câu thành "11" -> Tụ 1 lập tức thay thế lá 10 bằng lá 11 (J)');
+
+  // Bước 3: Đọc tiếp "mười hai" -> Tụ 2 nhận lá 12 (Q)
+  tentativeVoiceTest.processVoiceInput('11 12', 1);
+  assert(tentativeVoiceTest.players[1].cards.length === 1 && tentativeVoiceTest.players[1].cards[0].rank === 12, 'Tentative Revision: Đọc tiếp "12" -> Tụ 2 nhận đúng lá 12 (Q)');
+
+  // Bước 4: Đọc tiếp "mười ba" -> Tụ 3 nhận lá 13 (K)
+  tentativeVoiceTest.processVoiceInput('11 12 13', 1);
+  assert(tentativeVoiceTest.players[2].cards.length === 1 && tentativeVoiceTest.players[2].cards[0].rank === 13, 'Tentative Revision: Đọc tiếp "13" -> Tụ 3 nhận đúng lá 13 (K)');
+  assert(!tentativeVoiceTest.players.some(p => p.cards.some(c => c.rank === 10)), 'Tentative Revision: Hoàn toàn không còn lá 10 nào bị kẹt lại trên bất kỳ tụ nào!');
 }
 
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);
