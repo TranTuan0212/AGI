@@ -260,6 +260,8 @@ public class SpeechRecognitionService: ObservableObject {
                 self.stopRecording(callEndAudio: false)
             }
         }
+    }
+    
     private func restartRecognitionTask(newSessionID: UUID, onResult: @escaping (String) -> Void) {
         guard self.sessionID == newSessionID && self.isRecording else { return }
         guard let speechRecognizer = self.speechRecognizer, speechRecognizer.isAvailable else { return }
