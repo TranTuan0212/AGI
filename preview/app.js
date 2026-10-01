@@ -1507,7 +1507,7 @@ class VietnameseCardVoiceParser {
     // Ace
     'át': 14, 'at': 14, 'ách': 14, 'ach': 14, 'xì': 14, 'xi': 14,
     'sì': 14, 'si': 14, 'mốt': 14, 'mot': 14, 'một': 14, 'a': 14, 'ace': 14,
-    'à': 14, 'á': 14, 'ây': 14, 'ay': 14, 'dách': 14, 'dach': 14,
+    'à': 14, 'á': 14, 'ây': 14, 'ay': 14, 'dách': 14, 'dach': 14, '1': 14,
     // 2
     'hai': 2, 'nhị': 2, 'nhi': 2, '2': 2,
     // 3
@@ -1551,9 +1551,32 @@ class VietnameseCardVoiceParser {
     'nữa', 'nua', 'nhé', 'nhe', 'rồi', 'roi'
   ]);
 
+  static separateDigits(text) {
+    if (!text || typeof text !== 'string') return '';
+    let s = text.replace(/10/g, ' <TEN> ');
+    let separated = '';
+    let prevCharWasDigit = false;
+    for (let i = 0; i < s.length; i++) {
+      const ch = s[i];
+      if (ch >= '0' && ch <= '9') {
+        if (prevCharWasDigit) {
+          separated += ' ';
+        }
+        separated += ch;
+        prevCharWasDigit = true;
+      } else {
+        separated += ch;
+        prevCharWasDigit = false;
+      }
+    }
+    separated = separated.replace(/<TEN>/g, '10');
+    return separated.replace(/\s+/g, ' ').trim();
+  }
+
   static parse(text) {
     if (!text || typeof text !== 'string') return [];
-    let cleaned = text.toLowerCase()
+    let unglued = this.separateDigits(text);
+    let cleaned = unglued.toLowerCase()
       .replace(/[,.:;?!/\-—_]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
@@ -1910,7 +1933,16 @@ class AppController {
   }
 
   processVoiceInput(text) {
+    const unglued = VietnameseCardVoiceParser.separateDigits(text);
+    const voiceTextEl = document.getElementById('voice-text');
+    if (voiceTextEl) {
+      voiceTextEl.textContent = `"${unglued}"`;
+    }
+
     const parsed = VietnameseCardVoiceParser.parse(text);
+    if (this.processedVoiceCardsCount > parsed.length) {
+      this.processedVoiceCardsCount = 0;
+    }
     if (parsed.length > this.processedVoiceCardsCount) {
       const newItems = parsed.slice(this.processedVoiceCardsCount);
       for (const item of newItems) {

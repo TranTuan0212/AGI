@@ -395,7 +395,8 @@ public class GameViewModel: ObservableObject {
     
     public func processSpokenVoice(_ text: String) {
         let parsedCards = VietnameseCardVoiceParser.parse(text)
-        voiceBannerText = "🎙️ \"\(text)\""
+        let displaySpoken = VietnameseCardVoiceParser.separateDigits(text)
+        voiceBannerText = "🎙️ \"\(displaySpoken)\""
         
         guard !parsedCards.isEmpty else { return }
         

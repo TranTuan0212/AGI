@@ -17,7 +17,7 @@ public struct VietnameseCardVoiceParser {
         // Ace
         "át": .ace, "at": .ace, "ách": .ace, "ach": .ace, "xì": .ace, "xi": .ace,
         "sì": .ace, "si": .ace, "mốt": .ace, "mot": .ace, "a": .ace, "ace": .ace,
-        "à": .ace, "á": .ace, "ây": .ace, "ay": .ace, "dách": .ace, "dach": .ace, "một": .ace,
+        "à": .ace, "á": .ace, "ây": .ace, "ay": .ace, "dách": .ace, "dach": .ace, "một": .ace, "1": .ace,
         
         // 2
         "hai": .two, "nhị": .two, "nhi": .two, "2": .two,
@@ -84,10 +84,37 @@ public struct VietnameseCardVoiceParser {
         "nữa", "nua", "nhé", "nhe", "rồi", "roi"
     ]
     
+    /// Tách các chuỗi số dính nhau thành các số bài riêng biệt có khoảng cách
+    /// Ví dụ: "123456789 10 11 23" -> "1 2 3 4 5 6 7 8 9 10 1 1 2 3"
+    public static func separateDigits(_ text: String) -> String {
+        guard !text.isEmpty else { return "" }
+        let s = text.replacingOccurrences(of: "10", with: " <TEN> ")
+        var separated = ""
+        var prevCharWasDigit = false
+        for ch in s {
+            if ch.isNumber {
+                if prevCharWasDigit {
+                    separated.append(" ")
+                }
+                separated.append(ch)
+                prevCharWasDigit = true
+            } else {
+                separated.append(ch)
+                prevCharWasDigit = false
+            }
+        }
+        let restored = separated.replacingOccurrences(of: "<TEN>", with: "10")
+        return restored
+            .split(separator: " ")
+            .joined(separator: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     /// Phân tích một chuỗi giọng nói tiếng Việt thành danh sách quân bài
     public static func parse(_ text: String) -> [ParsedVoiceCard] {
+        let unglued = separateDigits(text)
         let separators = CharacterSet(charactersIn: ",.:;?!/\\-—_~|\n\r\t\"'")
-        let cleaned = text.lowercased()
+        let cleaned = unglued.lowercased()
             .components(separatedBy: separators)
             .joined(separator: " ")
             .split(separator: " ")

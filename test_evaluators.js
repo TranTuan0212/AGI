@@ -706,6 +706,30 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
 
   const resXiDach = VietnameseCardVoiceParser.parse('xì dách cơ');
   assert(resXiDach.length === 1 && resXiDach[0].rank === 14 && resXiDach[0].suit === 'hearts', 'Voice Parser: "xì dách cơ" -> A cơ (hearts)');
+
+  // Test gỡ dính số và tạo khoảng ngắt (Digit Un-gluing)
+  const sep1 = VietnameseCardVoiceParser.separateDigits('123456789 10 11 23');
+  assert(sep1 === '1 2 3 4 5 6 7 8 9 10 1 1 2 3', 'Voice Parser: separateDigits tách chuẩn chuỗi dính "123456789 10 11 23"');
+
+  const resGlued = VietnameseCardVoiceParser.parse('123456789 10 11 23');
+  assert(resGlued.length === 14, 'Voice Parser: Nhận diện trọn vẹn 14 lá bài từ chuỗi dính "123456789 10 11 23"');
+  assert(resGlued[0].rank === 14, 'Voice Parser: 1 -> Át (Ace)');
+  assert(resGlued[1].rank === 2, 'Voice Parser: 2 -> Hai');
+  assert(resGlued[8].rank === 9, 'Voice Parser: 9 -> Chín');
+  assert(resGlued[9].rank === 10, 'Voice Parser: 10 -> Mười');
+  assert(resGlued[10].rank === 14, 'Voice Parser: 11 -> Át');
+  assert(resGlued[11].rank === 14, 'Voice Parser: 11 -> Át');
+  assert(resGlued[12].rank === 2, 'Voice Parser: 23 -> Hai');
+  assert(resGlued[13].rank === 3, 'Voice Parser: 23 -> Ba');
+
+  const res1010 = VietnameseCardVoiceParser.parse('1010');
+  assert(res1010.length === 2 && res1010[0].rank === 10 && res1010[1].rank === 10, 'Voice Parser: "1010" -> Hai lá 10');
+
+  const res102 = VietnameseCardVoiceParser.parse('102');
+  assert(res102.length === 2 && res102[0].rank === 10 && res102[1].rank === 2, 'Voice Parser: "102" -> Lá 10 và lá 2');
+
+  const res23Co = VietnameseCardVoiceParser.parse('23 cơ');
+  assert(res23Co.length === 2 && res23Co[0].rank === 2 && res23Co[1].rank === 3 && res23Co[1].suit === 'hearts', 'Voice Parser: "23 cơ" -> Lá 2 và lá 3 cơ');
 }
 
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);
