@@ -83,7 +83,8 @@ public struct VietnameseCardVoiceParser {
         "nhà", "nha", "tụ", "tu",
         "với", "voi", "và", "va",
         "nhập", "nhap", "thêm", "them", "lấy", "lay",
-        "nữa", "nua", "nhé", "nhe", "rồi", "roi"
+        "nữa", "nua", "nhé", "nhe", "rồi", "roi",
+        "không", "khong"
     ]
     
     /// Tách các chuỗi số dính nhau thành các số bài riêng biệt có khoảng cách
@@ -170,19 +171,12 @@ public struct VietnameseCardVoiceParser {
             .replacingOccurrences(of: "muoi mot", with: "11")
             .replacingOccurrences(of: "mười hai", with: "12")
             .replacingOccurrences(of: "muoi hai", with: "12")
-            .replacingOccurrences(of: "mười ba", with: "13")
             .replacingOccurrences(of: "bỏ bài", with: "__hidden__")
             .replacingOccurrences(of: "bo bai", with: "__hidden__")
             .replacingOccurrences(of: "bỏ qua", with: "__hidden__")
             .replacingOccurrences(of: "bo qua", with: "__hidden__")
-            .replacingOccurrences(of: "không thấy", with: "__hidden__")
-            .replacingOccurrences(of: "khong thay", with: "__hidden__")
-            .replacingOccurrences(of: "k thấy", with: "__hidden__")
-            .replacingOccurrences(of: "ko thấy", with: "__hidden__")
             .replacingOccurrences(of: "bài ẩn", with: "__hidden__")
             .replacingOccurrences(of: "bai an", with: "__hidden__")
-            .replacingOccurrences(of: "không", with: "__hidden__")
-            .replacingOccurrences(of: "khong", with: "__hidden__")
 
         
         let tokens = normalized.split(separator: " ").map { String($0) }
@@ -193,7 +187,7 @@ public struct VietnameseCardVoiceParser {
         while i < tokens.count {
             let token = tokens[i]
             
-            // Check hidden card ("bỏ", "bỏ bài", "bỏ qua", "không thấy", "không")
+            // Check hidden card ("bỏ", "bỏ bài", "bỏ qua")
             if token == "__hidden__" || token == "bỏ" || token == "bo" {
                 let countToAppend = multiplier
                 multiplier = 1

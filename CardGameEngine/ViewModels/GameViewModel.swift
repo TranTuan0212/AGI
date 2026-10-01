@@ -134,6 +134,7 @@ public class GameViewModel: ObservableObject {
     }
     
     public func resetTable() {
+        let shouldAutoRecord = isVoiceMode || voiceService.isRecording
         if voiceService.isRecording {
             voiceService.stopRecording(callEndAudio: false)
             voiceBannerText = nil
@@ -151,9 +152,16 @@ public class GameViewModel: ObservableObject {
         confrontationMatrix.removeAll()
         actionHistory.removeAll()
         processedVoiceCardsCount = 0
+        
+        if shouldAutoRecord {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self?.autoStartVoiceForNewRound()
+            }
+        }
     }
     
     public func startNewRound() {
+        let shouldAutoRecord = isVoiceMode || voiceService.isRecording
         if voiceService.isRecording {
             voiceService.stopRecording(callEndAudio: false)
             voiceBannerText = nil
@@ -171,6 +179,39 @@ public class GameViewModel: ObservableObject {
         roundRobinPointer = 0
         selectedPlayerIndex = 0
         processedVoiceCardsCount = 0
+        
+        if shouldAutoRecord {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self?.autoStartVoiceForNewRound()
+            }
+        }
+    }
+    
+    public func autoStartVoiceForNewRound() {
+        processedVoiceCardsCount = 0
+        voiceService.requestAuthorization { [weak self] authorized in
+            guard let self = self, authorized else { return }
+            self.voiceBannerText = "🎙️ Đang nghe [\(self.voiceService.currentInputDeviceName)]... Hãy đọc bài"
+            self.voiceService.startRecording(
+                onResult: { [weak self] spokenText in
+                    DispatchQueue.main.async {
+                        guard let self = self else { return }
+                        self.processSpokenVoice(spokenText)
+                    }
+                },
+                onError: { [weak self] errorMsg in
+                    DispatchQueue.main.async {
+                        guard let self = self else { return }
+                        self.voiceBannerText = errorMsg
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                            if self?.voiceService.isRecording == false {
+                                self?.voiceBannerText = nil
+                            }
+                        }
+                    }
+                }
+            )
+        }
     }
     
     // Check if a card is currently assigned

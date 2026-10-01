@@ -777,12 +777,12 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   const resBon = VietnameseCardVoiceParser.parse('bon cơ');
   assert(resBon.length === 1 && resBon[0].rank === 4 && resBon[0].suit === 'hearts', 'Voice Parser: "bon cơ" vẫn chuẩn là lá 4 cơ (không bị nhầm lẫn với "bo")');
 
-  // Test "không", "không thấy" -> Lá bài ẩn (vẫn tương thích ngược)
+  // Test "không", "không thấy" -> Đã bị loại bỏ (không sinh ra lá bài ẩn, đóng vai trò từ đệm)
   const resKhongThay = VietnameseCardVoiceParser.parse('không thấy');
-  assert(resKhongThay.length === 1 && resKhongThay[0].isHidden === true, 'Voice Parser: "không thấy" -> Lá bài ẩn (?)');
+  assert(resKhongThay.length === 0, 'Voice Parser: "không thấy" đã bị loại bỏ khỏi nhận diện bài ẩn');
 
   const resKhong = VietnameseCardVoiceParser.parse('không');
-  assert(resKhong.length === 1 && resKhong[0].isHidden === true, 'Voice Parser: "không" -> Lá bài ẩn (?)');
+  assert(resKhong.length === 0, 'Voice Parser: "không" được coi là từ đệm, không biến thành bài ẩn (?)');
 
   // Test "bồi" và biến thể -> J / Jack
   const resBoiCo = VietnameseCardVoiceParser.parse('bồi cơ');

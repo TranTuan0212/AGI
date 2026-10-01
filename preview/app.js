@@ -1548,7 +1548,8 @@ class VietnameseCardVoiceParser {
     'nhà', 'nha', 'tụ', 'tu',
     'với', 'voi', 'và', 'va',
     'nhập', 'nhap', 'thêm', 'them', 'lấy', 'lay',
-    'nữa', 'nua', 'nhé', 'nhe', 'rồi', 'roi'
+    'nữa', 'nua', 'nhé', 'nhe', 'rồi', 'roi',
+    'không', 'khong'
   ]);
 
   static separateDigits(text) {
@@ -1608,14 +1609,8 @@ class VietnameseCardVoiceParser {
       .replace(/bo bai/g, '__hidden__')
       .replace(/bỏ qua/g, '__hidden__')
       .replace(/bo qua/g, '__hidden__')
-      .replace(/không thấy/g, '__hidden__')
-      .replace(/khong thay/g, '__hidden__')
-      .replace(/k thấy/g, '__hidden__')
-      .replace(/ko thấy/g, '__hidden__')
       .replace(/bài ẩn/g, '__hidden__')
-      .replace(/bai an/g, '__hidden__')
-      .replace(/không/g, '__hidden__')
-      .replace(/khong/g, '__hidden__');
+      .replace(/bai an/g, '__hidden__');
 
     const tokens = normalized.split(' ').filter(Boolean);
     const result = [];
