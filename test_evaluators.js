@@ -751,6 +751,63 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
 
   const res11Aces = VietnameseCardVoiceParser.parse('1 1');
   assert(res11Aces.length === 2 && res11Aces[0].rank === 14 && res11Aces[1].rank === 14, 'Voice Parser: "1 1" -> Hai con xì [A, A]');
+
+  // Test heo (2), da/dà (K), huy (Q)
+  const resDialects = VietnameseCardVoiceParser.parse('heo cơ da bích dà rô huy tép');
+  assert(resDialects.length === 4, 'Voice Parser: Nhận diện đủ 4 lá phương ngữ "heo da dà huy"');
+  assert(resDialects[0].rank === 2 && resDialects[0].suit === 'hearts', 'Voice Parser: "heo cơ" -> 2 cơ');
+  assert(resDialects[1].rank === 13 && resDialects[1].suit === 'spades', 'Voice Parser: "da bích" -> K bích');
+  assert(resDialects[2].rank === 13 && resDialects[2].suit === 'diamonds', 'Voice Parser: "dà rô" -> K rô');
+  assert(resDialects[3].rank === 12 && resDialects[3].suit === 'clubs', 'Voice Parser: "huy tép" -> Q tép');
+
+  // Test "không", "không thấy" -> Lá bài ẩn
+  const resKhongThay = VietnameseCardVoiceParser.parse('không thấy');
+  assert(resKhongThay.length === 1 && resKhongThay[0].isHidden === true, 'Voice Parser: "không thấy" -> Lá bài ẩn (?)');
+
+  const resKhong = VietnameseCardVoiceParser.parse('không');
+  assert(resKhong.length === 1 && resKhong[0].isHidden === true, 'Voice Parser: "không" -> Lá bài ẩn (?)');
+
+  // Test chống nhảy 2 lần (No double jump on partial speech revision)
+  const appVoiceTest = {
+    processedVoiceCardsCount: 0,
+    players: [{ cards: [] }, { cards: [] }],
+    onRankClick: function(rObj) {
+      if (this.players[0].cards.length === 0) {
+        this.players[0].cards.push({ rank: rObj.raw });
+      } else {
+        this.players[1].cards.push({ rank: rObj.raw });
+      }
+    },
+    onHiddenCardClick: function() {
+      this.players[0].cards.push({ isHidden: true });
+    },
+    processVoiceInput: function(text) {
+      const parsed = VietnameseCardVoiceParser.parse(text);
+      if (parsed.length > this.processedVoiceCardsCount) {
+        const newItems = parsed.slice(this.processedVoiceCardsCount);
+        for (const item of newItems) {
+          if (item.isHidden) {
+            this.onHiddenCardClick();
+          } else {
+            this.onRankClick({ raw: item.rank });
+          }
+        }
+        this.processedVoiceCardsCount = parsed.length;
+      }
+    }
+  };
+
+  appVoiceTest.processVoiceInput('ba');
+  assert(appVoiceTest.players[0].cards.length === 1 && appVoiceTest.players[0].cards[0].rank === 3, 'Voice anti-double-jump: Nói "ba" -> Tụ 1 nhận đúng 1 lá 3');
+
+  // Giả lập Apple Speech flicker về rỗng hoặc câu ngắn
+  appVoiceTest.processVoiceInput('');
+  assert(appVoiceTest.players[0].cards.length === 1, 'Voice anti-double-jump: Gặp flicker tạm thời không làm mất counter');
+
+  // Giả lập câu nói hoàn tất "ba bốn"
+  appVoiceTest.processVoiceInput('ba bốn');
+  assert(appVoiceTest.players[0].cards.length === 1, 'Voice anti-double-jump: Tụ 1 vẫn chỉ có 1 lá 3 (không bị đúp 2 lần)');
+  assert(appVoiceTest.players[1].cards.length === 1 && appVoiceTest.players[1].cards[0].rank === 4, 'Voice anti-double-jump: Tụ 2 nhận lá 4');
 }
 
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);

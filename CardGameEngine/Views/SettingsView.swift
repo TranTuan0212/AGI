@@ -7,6 +7,14 @@ public struct SettingsView: View {
     public var body: some View {
         NavigationView {
             Form {
+                Section(header: Text("Chế Độ Giọng Nói (Voice Mode)")) {
+                    Toggle("Chế độ chuyên giọng nói (Ẩn bàn phím)", isOn: $viewModel.isVoiceMode)
+                    
+                    Text("Khi bật, toàn bộ bàn phím chọn lá bài sẽ được ẩn đi. Ứng dụng chỉ hiển thị icon micro to bản cùng các thao tác liên quan, giúp nhập bài bằng giọng nói nhanh chóng và rộng rãi.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
                 Section(header: Text("Tùy Chọn Bàn Phím Số A➔K (Liêng / Xì Dách / Sâm Lốc / Chắn TQ)")) {
                     Toggle("Chế độ không so chất (Bàn phím A➔K)", isOn: $viewModel.isRankOnlyMode)
                     

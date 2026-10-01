@@ -1509,7 +1509,7 @@ class VietnameseCardVoiceParser {
     'sì': 14, 'si': 14, 'mốt': 14, 'mot': 14, 'một': 14, 'a': 14, 'ace': 14,
     'à': 14, 'á': 14, 'ây': 14, 'ay': 14, 'dách': 14, 'dach': 14, '1': 14,
     // 2
-    'hai': 2, 'nhị': 2, 'nhi': 2, '2': 2,
+    'hai': 2, 'nhị': 2, 'nhi': 2, 'heo': 2, '2': 2,
     // 3
     'ba': 3, 'tam': 3, '3': 3,
     // 4
@@ -1529,10 +1529,10 @@ class VietnameseCardVoiceParser {
     // J
     '11': 11, 'bồi': 11, 'boi': 11, 'ri': 11, 'gi': 11, 'di': 11, 'gì': 11, 'ghi': 11, 'dê': 11, 'de': 11, 'j': 11, 'jack': 11,
     // Q
-    '12': 12, 'đầm': 12, 'dam': 12, 'quy': 12, 'q': 12, 'qui': 12, 'quê': 12, 'que': 12, 'nữ': 12, 'nu': 12, 'queen': 12,
+    '12': 12, 'đầm': 12, 'dam': 12, 'quy': 12, 'q': 12, 'qui': 12, 'huy': 12, 'húy': 12, 'hui': 12, 'quê': 12, 'que': 12, 'nữ': 12, 'nu': 12, 'queen': 12,
     // K
     '13': 13, 'già': 13, 'gia': 13, 'ka': 13, 'k': 13, 'ca': 13, 'cả': 13, 'cá': 13, 'cà': 13,
-    'kay': 13, 'cay': 13, 'vua': 13, 'king': 13
+    'da': 13, 'dà': 13, 'kay': 13, 'cay': 13, 'vua': 13, 'king': 13
   };
 
   static suitMap = {
@@ -1603,7 +1603,15 @@ class VietnameseCardVoiceParser {
       .replace(/mười hai/g, '12')
       .replace(/muoi hai/g, '12')
       .replace(/mười ba/g, '13')
-      .replace(/muoi ba/g, '13');
+      .replace(/muoi ba/g, '13')
+      .replace(/không thấy/g, '__hidden__')
+      .replace(/khong thay/g, '__hidden__')
+      .replace(/k thấy/g, '__hidden__')
+      .replace(/ko thấy/g, '__hidden__')
+      .replace(/bài ẩn/g, '__hidden__')
+      .replace(/bai an/g, '__hidden__')
+      .replace(/không/g, '__hidden__')
+      .replace(/khong/g, '__hidden__');
 
     const tokens = normalized.split(' ').filter(Boolean);
     const result = [];
@@ -1612,6 +1620,16 @@ class VietnameseCardVoiceParser {
 
     while (i < tokens.length) {
       const token = tokens[i];
+
+      // Check hidden card ("không thấy", "không")
+      if (token === '__hidden__') {
+        for (let k = 0; k < multiplier; k++) {
+          result.push({ isHidden: true });
+        }
+        multiplier = 1;
+        i++;
+        continue;
+      }
 
       if (token === 'tu_quy') {
         multiplier = 4;
@@ -1948,13 +1966,12 @@ class AppController {
     }
 
     const parsed = VietnameseCardVoiceParser.parse(text);
-    if (this.processedVoiceCardsCount > parsed.length) {
-      this.processedVoiceCardsCount = 0;
-    }
     if (parsed.length > this.processedVoiceCardsCount) {
       const newItems = parsed.slice(this.processedVoiceCardsCount);
       for (const item of newItems) {
-        if (this.isRankOnlyActive() || !item.suit) {
+        if (item.isHidden) {
+          this.onHiddenCardClick();
+        } else if (this.isRankOnlyActive() || !item.suit) {
           const rObj = RANKS.find(r => r.raw === item.rank);
           if (rObj) this.onRankClick(rObj);
         } else {
@@ -1970,6 +1987,12 @@ class AppController {
         }
       }
       this.processedVoiceCardsCount = parsed.length;
+
+      // Auto stop recording when all players full
+      if (this.isReady() && this.isVoiceRecording) {
+        this.stopVoiceRecording();
+        if (voiceTextEl) voiceTextEl.textContent = "✅ Đã chia đủ bài - Xong ván!";
+      }
     }
   }
 

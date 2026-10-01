@@ -113,115 +113,120 @@ public struct ContentView: View {
                 
                 // 3. LOWER: Pinned 52-Card Deck & Actions (Nhập ở dưới)
                 VStack(spacing: 6) {
-                    // Voice Banner Notification
-                    if let banner = viewModel.voiceBannerText {
-                        HStack(spacing: 6) {
-                            Image(systemName: viewModel.voiceService.isRecording ? "waveform" : "mic.fill")
-                                .font(.system(size: 11, weight: .bold))
-                            Text(banner)
-                                .font(.system(size: 11, weight: .semibold))
-                                .lineLimit(1)
-                        }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(viewModel.voiceService.isRecording ? Color.red : Color.blue)
-                        .cornerRadius(12)
-                        .animation(.easeInOut, value: viewModel.voiceService.isRecording)
-                    }
-                    
-                    // Action Buttons: Balanced Row (Hoàn tác - Giọng nói - KHÔNG THẤY - Làm mới)
-                    HStack(spacing: 6) {
-                        // Nút Hoàn tác
-                        Button(action: { viewModel.undoLastAction() }) {
-                            VStack(spacing: 2) {
-                                Image(systemName: "arrow.uturn.backward")
-                                    .font(.system(size: 13, weight: .bold))
-                                Text("Hoàn tác")
-                                    .font(.system(size: 10, weight: .medium))
-                            }
-                            .foregroundColor(.primary)
-                            .frame(minWidth: 54, maxWidth: 64, minHeight: 44)
-                            .background(Color(.secondarySystemBackground))
-                            .cornerRadius(9)
-                        }
-                        
-                        // Nút Giọng Nói Tiếng Việt
-                        Button(action: { viewModel.toggleVoiceRecognition() }) {
-                            VStack(spacing: 2) {
+                    if viewModel.isVoiceMode {
+                        VoiceOnlyControlView(viewModel: viewModel)
+                    } else {
+                        // Voice Banner Notification
+                        if let banner = viewModel.voiceBannerText {
+                            HStack(spacing: 6) {
                                 Image(systemName: viewModel.voiceService.isRecording ? "waveform" : "mic.fill")
-                                    .font(.system(size: 14, weight: .bold))
-                                Text(viewModel.voiceService.isRecording ? "Đang nghe" : "Nói bài")
-                                    .font(.system(size: 10, weight: .medium))
+                                    .font(.system(size: 11, weight: .bold))
+                                Text(banner)
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .lineLimit(1)
                             }
-                            .foregroundColor(viewModel.voiceService.isRecording ? .white : .blue)
-                            .frame(minWidth: 54, maxWidth: 64, minHeight: 44)
-                            .background(viewModel.voiceService.isRecording ? Color.red : Color.blue.opacity(0.12))
-                            .cornerRadius(9)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 9)
-                                    .stroke(viewModel.voiceService.isRecording ? Color.red : Color.blue.opacity(0.3), lineWidth: 1)
-                            )
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(viewModel.voiceService.isRecording ? Color.red : Color.blue)
+                            .cornerRadius(12)
+                            .animation(.easeInOut, value: viewModel.voiceService.isRecording)
                         }
                         
-                        // Nút chính ở giữa: KHÔNG THẤY (BÀI ẨN) / VÁN MỚI (To bản, nổi bật nhất)
-                        Group {
-                            if viewModel.hasCalculatedResults {
-                                Button(action: { viewModel.startNewRound() }) {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "arrow.clockwise.circle.fill")
-                                            .font(.system(size: 17, weight: .black))
-                                        Text("VÁN MỚI")
-                                            .font(.system(size: 14, weight: .black))
-                                    }
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity, minHeight: 44)
-                                    .background(
-                                        LinearGradient(colors: [Color.green, Color.teal], startPoint: .leading, endPoint: .trailing)
-                                    )
-                                    .cornerRadius(9)
-                                    .shadow(color: Color.green.opacity(0.35), radius: 3, x: 0, y: 1.5)
+                        // Action Buttons: Balanced Row (Hoàn tác - Giọng nói to bản - KHÔNG THẤY - Làm mới)
+                        HStack(spacing: 6) {
+                            // Nút Hoàn tác
+                            Button(action: { viewModel.undoLastAction() }) {
+                                VStack(spacing: 2) {
+                                    Image(systemName: "arrow.uturn.backward")
+                                        .font(.system(size: 13, weight: .bold))
+                                    Text("Hoàn tác")
+                                        .font(.system(size: 10, weight: .medium))
                                 }
-                            } else {
-                                Button(action: { viewModel.onHiddenCardTapped() }) {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "questionmark.circle.fill")
-                                            .font(.system(size: 17, weight: .black))
-                                        Text("KHÔNG THẤY")
-                                            .font(.system(size: 14, weight: .black))
+                                .foregroundColor(.primary)
+                                .frame(minWidth: 48, maxWidth: 58, minHeight: 44)
+                                .background(Color(.secondarySystemBackground))
+                                .cornerRadius(9)
+                            }
+                            
+                            // Nút Giọng Nói To Bản (Chạm để nói / Bấm lại để dừng)
+                            Button(action: { viewModel.toggleVoiceRecognition() }) {
+                                VStack(spacing: 2) {
+                                    Image(systemName: viewModel.voiceService.isRecording ? "stop.circle.fill" : "mic.fill")
+                                        .font(.system(size: 16, weight: .bold))
+                                    Text(viewModel.voiceService.isRecording ? "DỪNG" : "NÓI BÀI")
+                                        .font(.system(size: 10, weight: .black))
+                                }
+                                .foregroundColor(.white)
+                                .frame(minWidth: 64, maxWidth: 76, minHeight: 44)
+                                .background(
+                                    viewModel.voiceService.isRecording ?
+                                    LinearGradient(colors: [Color.red, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing) :
+                                    LinearGradient(colors: [Color.blue, Color.purple], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                )
+                                .cornerRadius(9)
+                                .shadow(color: (viewModel.voiceService.isRecording ? Color.red : Color.blue).opacity(0.35), radius: 3, y: 1.5)
+                            }
+                            
+                            // Nút chính ở giữa: KHÔNG THẤY (BÀI ẨN) / VÁN MỚI (To bản, nổi bật nhất)
+                            Group {
+                                if viewModel.hasCalculatedResults {
+                                    Button(action: { viewModel.startNewRound() }) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "arrow.clockwise.circle.fill")
+                                                .font(.system(size: 17, weight: .black))
+                                            Text("VÁN MỚI")
+                                                .font(.system(size: 14, weight: .black))
+                                        }
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity, minHeight: 44)
+                                        .background(
+                                            LinearGradient(colors: [Color.green, Color.teal], startPoint: .leading, endPoint: .trailing)
+                                        )
+                                        .cornerRadius(9)
+                                        .shadow(color: Color.green.opacity(0.35), radius: 3, x: 0, y: 1.5)
                                     }
-                                    .foregroundColor(.white)
-                                    .frame(maxWidth: .infinity, minHeight: 44)
-                                    .background(
-                                        LinearGradient(colors: [Color.orange, Color.red], startPoint: .leading, endPoint: .trailing)
-                                    )
-                                    .cornerRadius(9)
-                                    .shadow(color: Color.orange.opacity(0.35), radius: 3, x: 0, y: 1.5)
+                                } else {
+                                    Button(action: { viewModel.onHiddenCardTapped() }) {
+                                        HStack(spacing: 6) {
+                                            Image(systemName: "questionmark.circle.fill")
+                                                .font(.system(size: 17, weight: .black))
+                                            Text("KHÔNG THẤY")
+                                                .font(.system(size: 14, weight: .black))
+                                        }
+                                        .foregroundColor(.white)
+                                        .frame(maxWidth: .infinity, minHeight: 44)
+                                        .background(
+                                            LinearGradient(colors: [Color.orange, Color.red], startPoint: .leading, endPoint: .trailing)
+                                        )
+                                        .cornerRadius(9)
+                                        .shadow(color: Color.orange.opacity(0.35), radius: 3, x: 0, y: 1.5)
+                                    }
                                 }
                             }
-                        }
-                        
-                        // Nút phụ bên phải: Làm mới
-                        Button(action: { viewModel.resetTable() }) {
-                            VStack(spacing: 2) {
-                                Image(systemName: "trash")
-                                    .font(.system(size: 13, weight: .bold))
-                                Text("Làm mới")
-                                    .font(.system(size: 10, weight: .medium))
+                            
+                            // Nút phụ bên phải: Làm mới
+                            Button(action: { viewModel.resetTable() }) {
+                                VStack(spacing: 2) {
+                                    Image(systemName: "trash")
+                                        .font(.system(size: 13, weight: .bold))
+                                    Text("Làm mới")
+                                        .font(.system(size: 10, weight: .medium))
+                                }
+                                .foregroundColor(.red)
+                                .frame(minWidth: 48, maxWidth: 58, minHeight: 44)
+                                .background(Color.red.opacity(0.1))
+                                .cornerRadius(9)
                             }
-                            .foregroundColor(.red)
-                            .frame(minWidth: 54, maxWidth: 64, minHeight: 44)
-                            .background(Color.red.opacity(0.1))
-                            .cornerRadius(9)
                         }
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.top, 2)
-                    
-                    // 52-Card Deck Grid (Fixed at the bottom like a keyboard)
-                    Deck52GridView(viewModel: viewModel)
                         .padding(.horizontal, 8)
-                        .padding(.bottom, 6)
+                        .padding(.top, 2)
+                        
+                        // 52-Card Deck Grid (Fixed at the bottom like a keyboard)
+                        Deck52GridView(viewModel: viewModel)
+                            .padding(.horizontal, 8)
+                            .padding(.bottom, 6)
+                    }
                 }
                 .background(Color(.systemBackground))
                 .shadow(color: Color.black.opacity(0.06), radius: 3, x: 0, y: -2)
@@ -249,5 +254,138 @@ public struct ContentView: View {
         }
 
         .navigationViewStyle(StackNavigationViewStyle())
+    }
+}
+
+// MARK: - Voice Only Control View (Giao diện chuyên chế độ giọng nói to bản)
+struct VoiceOnlyControlView: View {
+    @ObservedObject var viewModel: GameViewModel
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            // Live transcription banner
+            if let banner = viewModel.voiceBannerText {
+                HStack(spacing: 6) {
+                    Image(systemName: viewModel.voiceService.isRecording ? "waveform" : "checkmark.circle.fill")
+                        .font(.system(size: 13, weight: .bold))
+                    Text(banner)
+                        .font(.system(size: 14, weight: .bold))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(viewModel.voiceService.isRecording ? Color.red : Color.blue)
+                .cornerRadius(16)
+                .shadow(color: (viewModel.voiceService.isRecording ? Color.red : Color.blue).opacity(0.3), radius: 4, y: 2)
+            } else {
+                Text(viewModel.voiceService.isRecording ? "🎙️ Đang nghe... Hãy đọc tên các lá bài" : "Chạm mic bên dưới để bắt đầu nói bài")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .padding(.vertical, 4)
+            }
+            
+            // Nút Micro Tròn To Bản (Chạm để bật, chạm lại để dừng)
+            Button(action: { viewModel.toggleVoiceRecognition() }) {
+                VStack(spacing: 4) {
+                    Image(systemName: viewModel.voiceService.isRecording ? "stop.circle.fill" : "mic.fill")
+                        .font(.system(size: 34, weight: .bold))
+                        .foregroundColor(.white)
+                    
+                    Text(viewModel.voiceService.isRecording ? "DỪNG LẠI" : "NÓI BÀI")
+                        .font(.system(size: 11, weight: .black))
+                        .foregroundColor(.white)
+                }
+                .frame(width: 82, height: 82)
+                .background(
+                    Circle().fill(
+                        viewModel.voiceService.isRecording ?
+                        LinearGradient(colors: [Color.red, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing) :
+                        LinearGradient(colors: [Color.blue, Color.purple], startPoint: .topLeading, endPoint: .bottomTrailing)
+                    )
+                )
+                .overlay(
+                    Circle()
+                        .stroke(Color.white.opacity(0.4), lineWidth: 3)
+                )
+                .shadow(
+                    color: (viewModel.voiceService.isRecording ? Color.red : Color.blue).opacity(0.4),
+                    radius: viewModel.voiceService.isRecording ? 10 : 5,
+                    x: 0,
+                    y: 4
+                )
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            // Action Buttons Row (Hoàn tác - KHÔNG THẤY / VÁN MỚI - Làm mới)
+            HStack(spacing: 8) {
+                // Hoàn tác
+                Button(action: { viewModel.undoLastAction() }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.uturn.backward")
+                            .font(.system(size: 12, weight: .bold))
+                        Text("Hoàn tác")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundColor(.primary)
+                    .frame(maxWidth: .infinity, minHeight: 42)
+                    .background(Color(.secondarySystemBackground))
+                    .cornerRadius(10)
+                }
+                
+                // KHÔNG THẤY hoặc VÁN MỚI
+                if viewModel.hasCalculatedResults {
+                    Button(action: { viewModel.startNewRound() }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.clockwise.circle.fill")
+                                .font(.system(size: 16, weight: .black))
+                            Text("VÁN MỚI")
+                                .font(.system(size: 13, weight: .black))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity, minHeight: 42)
+                        .background(
+                            LinearGradient(colors: [Color.green, Color.teal], startPoint: .leading, endPoint: .trailing)
+                        )
+                        .cornerRadius(10)
+                        .shadow(color: Color.green.opacity(0.3), radius: 3, y: 1.5)
+                    }
+                } else {
+                    Button(action: { viewModel.onHiddenCardTapped() }) {
+                        HStack(spacing: 6) {
+                            Image(systemName: "questionmark.circle.fill")
+                                .font(.system(size: 16, weight: .black))
+                            Text("KHÔNG THẤY")
+                                .font(.system(size: 13, weight: .black))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity, minHeight: 42)
+                        .background(
+                            LinearGradient(colors: [Color.orange, Color.red], startPoint: .leading, endPoint: .trailing)
+                        )
+                        .cornerRadius(10)
+                        .shadow(color: Color.orange.opacity(0.3), radius: 3, y: 1.5)
+                    }
+                }
+                
+                // Làm mới
+                Button(action: { viewModel.resetTable() }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "trash")
+                            .font(.system(size: 12, weight: .bold))
+                        Text("Làm mới")
+                            .font(.system(size: 12, weight: .semibold))
+                    }
+                    .foregroundColor(.red)
+                    .frame(maxWidth: .infinity, minHeight: 42)
+                    .background(Color.red.opacity(0.1))
+                    .cornerRadius(10)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.bottom, 6)
+        }
+        .padding(.top, 4)
     }
 }

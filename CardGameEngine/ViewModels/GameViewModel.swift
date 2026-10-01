@@ -72,6 +72,13 @@ public class GameViewModel: ObservableObject {
         }
     }
     
+    // Voice-Only Mode (Hides keyboard, shows large mic & voice actions)
+    @Published public var isVoiceMode: Bool {
+        didSet {
+            UserDefaults.standard.set(isVoiceMode, forKey: "isVoiceMode")
+        }
+    }
+    
     public var isRankOnlyActive: Bool {
         return isRankOnlyMode && (gameType == .lieng3 || gameType == .xiDach2 || gameType == .samLoc10 || gameType == .chan19)
     }
@@ -93,6 +100,7 @@ public class GameViewModel: ObservableObject {
     
     public init() {
         self.isRankOnlyMode = UserDefaults.standard.bool(forKey: "isRankOnlyMode")
+        self.isVoiceMode = UserDefaults.standard.bool(forKey: "isVoiceMode")
         setupInitialPlayers()
     }
     
@@ -114,6 +122,10 @@ public class GameViewModel: ObservableObject {
     }
     
     public func resetTable() {
+        if voiceService.isRecording {
+            voiceService.stopRecording(callEndAudio: false)
+            voiceBannerText = nil
+        }
         for i in 0..<players.count {
             players[i].clearCards()
         }
@@ -130,6 +142,10 @@ public class GameViewModel: ObservableObject {
     }
     
     public func startNewRound() {
+        if voiceService.isRecording {
+            voiceService.stopRecording(callEndAudio: false)
+            voiceBannerText = nil
+        }
         for i in 0..<players.count {
             players[i].clearCards()
         }
@@ -354,7 +370,8 @@ public class GameViewModel: ObservableObject {
     // MARK: - Voice Recognition Handling
     public func toggleVoiceRecognition() {
         if voiceService.isRecording {
-            voiceService.stopRecording()
+            voiceService.stopRecording(callEndAudio: false)
+            voiceBannerText = "⏹️ Đã dừng ghi âm"
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
                 if self?.voiceService.isRecording == false {
                     self?.voiceBannerText = nil
@@ -366,7 +383,7 @@ public class GameViewModel: ObservableObject {
             voiceService.requestAuthorization { [weak self] authorized in
                 guard let self = self else { return }
                 if authorized {
-                    self.voiceBannerText = "🎙️ Đang lắng nghe... Hãy đọc tên các lá bài"
+                    self.voiceBannerText = "🎙️ Đang lắng nghe... Hãy đọc bài"
                     self.voiceService.startRecording(
                         onResult: { [weak self] spokenText in
                             DispatchQueue.main.async {
@@ -400,15 +417,12 @@ public class GameViewModel: ObservableObject {
         
         guard !parsedCards.isEmpty else { return }
         
-        // Defensive check: reset counter if transcription updated with a different or shortened sequence
-        if processedVoiceCardsCount > parsedCards.count {
-            processedVoiceCardsCount = 0
-        }
-        
         if parsedCards.count > processedVoiceCardsCount {
             let newCards = parsedCards[processedVoiceCardsCount..<parsedCards.count]
             for item in newCards {
-                if isRankOnlyActive || item.suit == nil {
+                if item.isHidden {
+                    onHiddenCardTapped()
+                } else if isRankOnlyActive || item.suit == nil {
                     onRankTapped(item.rank)
                 } else if let suit = item.suit {
                     let card = Card(rank: item.rank, suit: suit)
@@ -420,6 +434,17 @@ public class GameViewModel: ObservableObject {
                 }
             }
             processedVoiceCardsCount = parsedCards.count
+            
+            // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)
+            if isReadyToCalculate && voiceService.isRecording {
+                voiceService.stopRecording(callEndAudio: false)
+                self.voiceBannerText = "✅ Đã chia đủ bài - Xong ván!"
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                    if self?.voiceService.isRecording == false {
+                        self?.voiceBannerText = nil
+                    }
+                }
+            }
         }
     }
     

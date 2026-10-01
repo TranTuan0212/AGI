@@ -3,10 +3,12 @@ import Foundation
 public struct ParsedVoiceCard: Equatable {
     public let rank: Rank
     public let suit: Suit?
+    public let isHidden: Bool
     
-    public init(rank: Rank, suit: Suit? = nil) {
+    public init(rank: Rank = .two, suit: Suit? = nil, isHidden: Bool = false) {
         self.rank = rank
         self.suit = suit
+        self.isHidden = isHidden
     }
 }
 
@@ -20,7 +22,7 @@ public struct VietnameseCardVoiceParser {
         "à": .ace, "á": .ace, "ây": .ace, "ay": .ace, "dách": .ace, "dach": .ace, "một": .ace, "1": .ace,
         
         // 2
-        "hai": .two, "nhị": .two, "nhi": .two, "2": .two,
+        "hai": .two, "nhị": .two, "nhi": .two, "heo": .two, "2": .two,
         
         // 3
         "ba": .three, "tam": .three, "3": .three,
@@ -52,11 +54,11 @@ public struct VietnameseCardVoiceParser {
         
         // Q
         "12": .queen, "đầm": .queen, "dam": .queen, "quy": .queen, "q": .queen, "qui": .queen,
-        "quê": .queen, "que": .queen, "nữ": .queen, "nu": .queen, "queen": .queen,
+        "huy": .queen, "húy": .queen, "hui": .queen, "quê": .queen, "que": .queen, "nữ": .queen, "nu": .queen, "queen": .queen,
         
         // K
         "13": .king, "già": .king, "gia": .king, "ka": .king, "k": .king, "ca": .king, "cả": .king, "cá": .king, "cà": .king,
-        "kay": .king, "cay": .king, "vua": .king, "king": .king
+        "da": .king, "dà": .king, "kay": .king, "cay": .king, "vua": .king, "king": .king
     ]
     
     // Normalized synonym mapping for suits
@@ -170,6 +172,14 @@ public struct VietnameseCardVoiceParser {
             .replacingOccurrences(of: "muoi hai", with: "12")
             .replacingOccurrences(of: "mười ba", with: "13")
             .replacingOccurrences(of: "muoi ba", with: "13")
+            .replacingOccurrences(of: "không thấy", with: "__hidden__")
+            .replacingOccurrences(of: "khong thay", with: "__hidden__")
+            .replacingOccurrences(of: "k thấy", with: "__hidden__")
+            .replacingOccurrences(of: "ko thấy", with: "__hidden__")
+            .replacingOccurrences(of: "bài ẩn", with: "__hidden__")
+            .replacingOccurrences(of: "bai an", with: "__hidden__")
+            .replacingOccurrences(of: "không", with: "__hidden__")
+            .replacingOccurrences(of: "khong", with: "__hidden__")
 
         
         let tokens = normalized.split(separator: " ").map { String($0) }
@@ -179,6 +189,17 @@ public struct VietnameseCardVoiceParser {
         
         while i < tokens.count {
             let token = tokens[i]
+            
+            // Check hidden card ("không thấy", "không")
+            if token == "__hidden__" {
+                let countToAppend = multiplier
+                multiplier = 1
+                for _ in 0..<countToAppend {
+                    result.append(ParsedVoiceCard(isHidden: true))
+                }
+                i += 1
+                continue
+            }
             
             // Check quantity
             if token == "tu_quy" {
