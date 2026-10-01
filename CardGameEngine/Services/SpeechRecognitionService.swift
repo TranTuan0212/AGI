@@ -66,8 +66,9 @@ public class SpeechRecognitionService: ObservableObject {
             recognitionRequest.shouldReportPartialResults = true
             recognitionRequest.contextualStrings = [
                 "Át", "Xì", "Át cơ", "Át rô", "Át tép", "Át chuồn", "Át bích",
-                "K", "Già", "Ka", "Ca", "Q", "Đầm", "Quy", "J", "Bồi", "Ri",
+                "K", "Già", "Ka", "Ca", "Q", "Đầm", "Quy", "Qui", "J", "Bồi", "Ri",
                 "Đôi", "Sám", "Tứ quý",
+                "Mười ba", "Mười hai", "Mười một", "Một một",
                 "Mười", "Chín", "Tám", "Bảy", "Sáu", "Năm", "Bốn", "Ba", "Hai",
                 "Cơ", "Rô", "Tép", "Chuồn", "Bích"
             ]

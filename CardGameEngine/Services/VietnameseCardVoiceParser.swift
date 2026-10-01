@@ -47,15 +47,15 @@ public struct VietnameseCardVoiceParser {
         "mười": .ten, "muoi": .ten, "chục": .ten, "chuc": .ten, "10": .ten,
         
         // J
-        "bồi": .jack, "boi": .jack, "ri": .jack, "gi": .jack, "di": .jack,
+        "11": .jack, "bồi": .jack, "boi": .jack, "ri": .jack, "gi": .jack, "di": .jack,
         "gì": .jack, "ghi": .jack, "dê": .jack, "de": .jack, "j": .jack, "jack": .jack,
         
         // Q
-        "đầm": .queen, "dam": .queen, "quy": .queen, "q": .queen, "qui": .queen,
+        "12": .queen, "đầm": .queen, "dam": .queen, "quy": .queen, "q": .queen, "qui": .queen,
         "quê": .queen, "que": .queen, "nữ": .queen, "nu": .queen, "queen": .queen,
         
         // K
-        "già": .king, "gia": .king, "ka": .king, "k": .king, "ca": .king, "cả": .king, "cá": .king, "cà": .king,
+        "13": .king, "già": .king, "gia": .king, "ka": .king, "k": .king, "ca": .king, "cả": .king, "cá": .king, "cà": .king,
         "kay": .king, "cay": .king, "vua": .king, "king": .king
     ]
     
@@ -85,26 +85,53 @@ public struct VietnameseCardVoiceParser {
     ]
     
     /// Tách các chuỗi số dính nhau thành các số bài riêng biệt có khoảng cách
-    /// Ví dụ: "123456789 10 11 23" -> "1 2 3 4 5 6 7 8 9 10 1 1 2 3"
+    /// Bảo tồn 10, 11 (J), 12 (Q), 13 (K); các số khác hoặc chuỗi dài được tách thông minh
+    /// Ví dụ: "123456789 10 11 23" -> "1 2 3 4 5 6 7 8 9 10 11 2 3"
     public static func separateDigits(_ text: String) -> String {
         guard !text.isEmpty else { return "" }
-        let s = text.replacingOccurrences(of: "10", with: " <TEN> ")
-        var separated = ""
-        var prevCharWasDigit = false
-        for ch in s {
-            if ch.isNumber {
-                if prevCharWasDigit {
-                    separated.append(" ")
-                }
-                separated.append(ch)
-                prevCharWasDigit = true
+        
+        var result = ""
+        var currentDigits = ""
+        
+        func flushDigits() {
+            guard !currentDigits.isEmpty else { return }
+            if currentDigits == "10" || currentDigits == "11" || currentDigits == "12" || currentDigits == "13" {
+                result.append(currentDigits)
+            } else if currentDigits.count == 2 {
+                let first = currentDigits.prefix(1)
+                let second = currentDigits.suffix(1)
+                result.append("\(first) \(second)")
             } else {
-                separated.append(ch)
-                prevCharWasDigit = false
+                var res: [String] = []
+                var i = currentDigits.startIndex
+                while i < currentDigits.endIndex {
+                    if currentDigits[i] == "1" {
+                        let nextIndex = currentDigits.index(after: i)
+                        if nextIndex < currentDigits.endIndex && currentDigits[nextIndex] == "0" {
+                            res.append("10")
+                            i = currentDigits.index(after: nextIndex)
+                            continue
+                        }
+                    }
+                    res.append(String(currentDigits[i]))
+                    i = currentDigits.index(after: i)
+                }
+                result.append(res.joined(separator: " "))
+            }
+            currentDigits = ""
+        }
+        
+        for ch in text {
+            if ch.isNumber {
+                currentDigits.append(ch)
+            } else {
+                flushDigits()
+                result.append(ch)
             }
         }
-        let restored = separated.replacingOccurrences(of: "<TEN>", with: "10")
-        return restored
+        flushDigits()
+        
+        return result
             .split(separator: " ")
             .joined(separator: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -137,6 +164,12 @@ public struct VietnameseCardVoiceParser {
             .replacingOccurrences(of: "ách xì", with: "xì")
             .replacingOccurrences(of: "xì dách", with: "xì")
             .replacingOccurrences(of: "sì dách", with: "xì")
+            .replacingOccurrences(of: "mười một", with: "11")
+            .replacingOccurrences(of: "muoi mot", with: "11")
+            .replacingOccurrences(of: "mười hai", with: "12")
+            .replacingOccurrences(of: "muoi hai", with: "12")
+            .replacingOccurrences(of: "mười ba", with: "13")
+            .replacingOccurrences(of: "muoi ba", with: "13")
 
         
         let tokens = normalized.split(separator: " ").map { String($0) }

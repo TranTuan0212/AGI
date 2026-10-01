@@ -1527,11 +1527,11 @@ class VietnameseCardVoiceParser {
     // 10
     'mười': 10, 'muoi': 10, 'chục': 10, 'chuc': 10, '10': 10,
     // J
-    'bồi': 11, 'boi': 11, 'ri': 11, 'gi': 11, 'di': 11, 'gì': 11, 'ghi': 11, 'dê': 11, 'de': 11, 'j': 11, 'jack': 11,
+    '11': 11, 'bồi': 11, 'boi': 11, 'ri': 11, 'gi': 11, 'di': 11, 'gì': 11, 'ghi': 11, 'dê': 11, 'de': 11, 'j': 11, 'jack': 11,
     // Q
-    'đầm': 12, 'dam': 12, 'quy': 12, 'q': 12, 'qui': 12, 'quê': 12, 'que': 12, 'nữ': 12, 'nu': 12, 'queen': 12,
+    '12': 12, 'đầm': 12, 'dam': 12, 'quy': 12, 'q': 12, 'qui': 12, 'quê': 12, 'que': 12, 'nữ': 12, 'nu': 12, 'queen': 12,
     // K
-    'già': 13, 'gia': 13, 'ka': 13, 'k': 13, 'ca': 13, 'cả': 13, 'cá': 13, 'cà': 13,
+    '13': 13, 'già': 13, 'gia': 13, 'ka': 13, 'k': 13, 'ca': 13, 'cả': 13, 'cá': 13, 'cà': 13,
     'kay': 13, 'cay': 13, 'vua': 13, 'king': 13
   };
 
@@ -1553,24 +1553,26 @@ class VietnameseCardVoiceParser {
 
   static separateDigits(text) {
     if (!text || typeof text !== 'string') return '';
-    let s = text.replace(/10/g, ' <TEN> ');
-    let separated = '';
-    let prevCharWasDigit = false;
-    for (let i = 0; i < s.length; i++) {
-      const ch = s[i];
-      if (ch >= '0' && ch <= '9') {
-        if (prevCharWasDigit) {
-          separated += ' ';
-        }
-        separated += ch;
-        prevCharWasDigit = true;
-      } else {
-        separated += ch;
-        prevCharWasDigit = false;
+    return text.replace(/\d+/g, (match) => {
+      if (['10', '11', '12', '13'].includes(match)) {
+        return match;
       }
-    }
-    separated = separated.replace(/<TEN>/g, '10');
-    return separated.replace(/\s+/g, ' ').trim();
+      if (match.length === 2) {
+        return match[0] + ' ' + match[1];
+      }
+      let res = [];
+      let i = 0;
+      while (i < match.length) {
+        if (match[i] === '1' && i + 1 < match.length && match[i+1] === '0') {
+          res.push('10');
+          i += 2;
+        } else {
+          res.push(match[i]);
+          i++;
+        }
+      }
+      return res.join(' ');
+    }).replace(/\s+/g, ' ').trim();
   }
 
   static parse(text) {
@@ -1595,7 +1597,13 @@ class VietnameseCardVoiceParser {
       .replace(/hắt xì/g, 'xì')
       .replace(/ách xì/g, 'xì')
       .replace(/xì dách/g, 'xì')
-      .replace(/sì dách/g, 'xì');
+      .replace(/sì dách/g, 'xì')
+      .replace(/mười một/g, '11')
+      .replace(/muoi mot/g, '11')
+      .replace(/mười hai/g, '12')
+      .replace(/muoi hai/g, '12')
+      .replace(/mười ba/g, '13')
+      .replace(/muoi ba/g, '13');
 
     const tokens = normalized.split(' ').filter(Boolean);
     const result = [];
