@@ -16,7 +16,8 @@ public struct VietnameseCardVoiceParser {
     private static let rankMap: [String: Rank] = [
         // Ace
         "át": .ace, "at": .ace, "ách": .ace, "ach": .ace, "xì": .ace, "xi": .ace,
-        "mốt": .ace, "mot": .ace, "a": .ace, "ace": .ace, "một": .ace,
+        "sì": .ace, "si": .ace, "mốt": .ace, "mot": .ace, "a": .ace, "ace": .ace,
+        "à": .ace, "á": .ace, "ây": .ace, "ay": .ace, "dách": .ace, "dach": .ace, "một": .ace,
         
         // 2
         "hai": .two, "nhị": .two, "nhi": .two, "2": .two,
@@ -47,14 +48,15 @@ public struct VietnameseCardVoiceParser {
         
         // J
         "bồi": .jack, "boi": .jack, "ri": .jack, "gi": .jack, "di": .jack,
-        "ghi": .jack, "j": .jack, "jack": .jack,
+        "gì": .jack, "ghi": .jack, "dê": .jack, "de": .jack, "j": .jack, "jack": .jack,
         
         // Q
         "đầm": .queen, "dam": .queen, "quy": .queen, "q": .queen, "qui": .queen,
-        "nữ": .queen, "nu": .queen, "queen": .queen,
+        "quê": .queen, "que": .queen, "nữ": .queen, "nu": .queen, "queen": .queen,
         
         // K
-        "già": .king, "gia": .king, "ka": .king, "k": .king, "vua": .king, "king": .king
+        "già": .king, "gia": .king, "ka": .king, "k": .king, "ca": .king, "cả": .king, "cá": .king, "cà": .king,
+        "kay": .king, "cay": .king, "vua": .king, "king": .king
     ]
     
     // Normalized synonym mapping for suits
@@ -75,7 +77,7 @@ public struct VietnameseCardVoiceParser {
     // Filler words to ignore safely
     private static let fillerWords: Set<String> = [
         "cho", "tôi", "toi", "tao", "mình", "minh",
-        "con", "lá", "la", "quân", "quan", "cây", "cay",
+        "con", "lá", "la", "quân", "quan", "cây",
         "nhà", "nha", "tụ", "tu",
         "với", "voi", "và", "va",
         "nhập", "nhap", "thêm", "them", "lấy", "lay",
@@ -94,7 +96,7 @@ public struct VietnameseCardVoiceParser {
         
         guard !cleaned.isEmpty else { return [] }
         
-        // Handle multi-word quantity phrases like "tứ quý", "ba con", "bốn con"
+        // Handle multi-word quantity phrases and card phrases
         var normalized = cleaned
             .replacingOccurrences(of: "tứ quý", with: "tu_quy")
             .replacingOccurrences(of: "tu quy", with: "tu_quy")
@@ -104,6 +106,11 @@ public struct VietnameseCardVoiceParser {
             .replacingOccurrences(of: "ba lá", with: "sám")
             .replacingOccurrences(of: "bốn con", with: "tu_quy")
             .replacingOccurrences(of: "bốn lá", with: "tu_quy")
+            .replacingOccurrences(of: "hắt xì", with: "xì")
+            .replacingOccurrences(of: "ách xì", with: "xì")
+            .replacingOccurrences(of: "xì dách", with: "xì")
+            .replacingOccurrences(of: "sì dách", with: "xì")
+
         
         let tokens = normalized.split(separator: " ").map { String($0) }
         var result: [ParsedVoiceCard] = []

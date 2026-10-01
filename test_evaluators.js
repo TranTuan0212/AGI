@@ -693,6 +693,19 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(res8.length === 6, 'Voice Parser: Nhận diện đúng cụm "hai con mười với bốn con át" -> 6 lá');
   assert(res8[0].rank === 10 && res8[1].rank === 10, 'Voice Parser: Hai con mười -> [10, 10]');
   assert(res8.slice(2).every(c => c.rank === 14), 'Voice Parser: Bốn con át -> [A, A, A, A]');
+
+  // Test các biến thể âm thanh thực tế của Apple Speech: "à" (A), "cả" / "ca" (K), "sì" / "xì dách" (Xì/A)
+  const resPhonetic = VietnameseCardVoiceParser.parse('à cả ca sì gì quê');
+  assert(resPhonetic.length === 6, 'Voice Parser: Nhận diện trọn vẹn 6 lá ngữ âm "à cả ca sì gì quê"');
+  assert(resPhonetic[0].rank === 14, 'Voice Parser: "à" -> Át / Ace (14)');
+  assert(resPhonetic[1].rank === 13, 'Voice Parser: "cả" -> K / King (13)');
+  assert(resPhonetic[2].rank === 13, 'Voice Parser: "ca" -> K / King (13)');
+  assert(resPhonetic[3].rank === 14, 'Voice Parser: "sì" -> Xì / Ace (14)');
+  assert(resPhonetic[4].rank === 11, 'Voice Parser: "gì" -> J / Jack (11)');
+  assert(resPhonetic[5].rank === 12, 'Voice Parser: "quê" -> Q / Queen (12)');
+
+  const resXiDach = VietnameseCardVoiceParser.parse('xì dách cơ');
+  assert(resXiDach.length === 1 && resXiDach[0].rank === 14 && resXiDach[0].suit === 'hearts', 'Voice Parser: "xì dách cơ" -> A cơ (hearts)');
 }
 
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);

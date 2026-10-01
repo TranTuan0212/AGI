@@ -1505,7 +1505,9 @@ class SamLocEvaluator {
 class VietnameseCardVoiceParser {
   static rankMap = {
     // Ace
-    'át': 14, 'at': 14, 'ách': 14, 'ach': 14, 'xì': 14, 'xi': 14, 'mốt': 14, 'mot': 14, 'một': 14, 'a': 14, 'ace': 14,
+    'át': 14, 'at': 14, 'ách': 14, 'ach': 14, 'xì': 14, 'xi': 14,
+    'sì': 14, 'si': 14, 'mốt': 14, 'mot': 14, 'một': 14, 'a': 14, 'ace': 14,
+    'à': 14, 'á': 14, 'ây': 14, 'ay': 14, 'dách': 14, 'dach': 14,
     // 2
     'hai': 2, 'nhị': 2, 'nhi': 2, '2': 2,
     // 3
@@ -1525,11 +1527,12 @@ class VietnameseCardVoiceParser {
     // 10
     'mười': 10, 'muoi': 10, 'chục': 10, 'chuc': 10, '10': 10,
     // J
-    'bồi': 11, 'boi': 11, 'ri': 11, 'gi': 11, 'di': 11, 'ghi': 11, 'j': 11, 'jack': 11,
+    'bồi': 11, 'boi': 11, 'ri': 11, 'gi': 11, 'di': 11, 'gì': 11, 'ghi': 11, 'dê': 11, 'de': 11, 'j': 11, 'jack': 11,
     // Q
-    'đầm': 12, 'dam': 12, 'quy': 12, 'q': 12, 'qui': 12, 'nữ': 12, 'nu': 12, 'queen': 12,
+    'đầm': 12, 'dam': 12, 'quy': 12, 'q': 12, 'qui': 12, 'quê': 12, 'que': 12, 'nữ': 12, 'nu': 12, 'queen': 12,
     // K
-    'già': 13, 'gia': 13, 'ka': 13, 'k': 13, 'vua': 13, 'king': 13
+    'già': 13, 'gia': 13, 'ka': 13, 'k': 13, 'ca': 13, 'cả': 13, 'cá': 13, 'cà': 13,
+    'kay': 13, 'cay': 13, 'vua': 13, 'king': 13
   };
 
   static suitMap = {
@@ -1541,7 +1544,7 @@ class VietnameseCardVoiceParser {
 
   static fillerWords = new Set([
     'cho', 'tôi', 'toi', 'tao', 'mình', 'minh',
-    'con', 'lá', 'la', 'quân', 'quan', 'cây', 'cay',
+    'con', 'lá', 'la', 'quân', 'quan', 'cây',
     'nhà', 'nha', 'tụ', 'tu',
     'với', 'voi', 'và', 'va',
     'nhập', 'nhap', 'thêm', 'them', 'lấy', 'lay',
@@ -1565,7 +1568,11 @@ class VietnameseCardVoiceParser {
       .replace(/ba con/g, 'sám')
       .replace(/ba lá/g, 'sám')
       .replace(/bốn con/g, 'tu_quy')
-      .replace(/bốn lá/g, 'tu_quy');
+      .replace(/bốn lá/g, 'tu_quy')
+      .replace(/hắt xì/g, 'xì')
+      .replace(/ách xì/g, 'xì')
+      .replace(/xì dách/g, 'xì')
+      .replace(/sì dách/g, 'xì');
 
     const tokens = normalized.split(' ').filter(Boolean);
     const result = [];

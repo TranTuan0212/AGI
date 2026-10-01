@@ -64,6 +64,13 @@ public class SpeechRecognitionService: ObservableObject {
             let recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
             self.recognitionRequest = recognitionRequest
             recognitionRequest.shouldReportPartialResults = true
+            recognitionRequest.contextualStrings = [
+                "Át", "Xì", "Át cơ", "Át rô", "Át tép", "Át chuồn", "Át bích",
+                "K", "Già", "Ka", "Ca", "Q", "Đầm", "Quy", "J", "Bồi", "Ri",
+                "Đôi", "Sám", "Tứ quý",
+                "Mười", "Chín", "Tám", "Bảy", "Sáu", "Năm", "Bốn", "Ba", "Hai",
+                "Cơ", "Rô", "Tép", "Chuồn", "Bích"
+            ]
             
             // Re-instantiate fresh AVAudioEngine per recording session
             let engine = AVAudioEngine()
