@@ -171,7 +171,10 @@ public struct VietnameseCardVoiceParser {
             .replacingOccurrences(of: "mười hai", with: "12")
             .replacingOccurrences(of: "muoi hai", with: "12")
             .replacingOccurrences(of: "mười ba", with: "13")
-            .replacingOccurrences(of: "muoi ba", with: "13")
+            .replacingOccurrences(of: "bỏ bài", with: "__hidden__")
+            .replacingOccurrences(of: "bo bai", with: "__hidden__")
+            .replacingOccurrences(of: "bỏ qua", with: "__hidden__")
+            .replacingOccurrences(of: "bo qua", with: "__hidden__")
             .replacingOccurrences(of: "không thấy", with: "__hidden__")
             .replacingOccurrences(of: "khong thay", with: "__hidden__")
             .replacingOccurrences(of: "k thấy", with: "__hidden__")
@@ -190,8 +193,8 @@ public struct VietnameseCardVoiceParser {
         while i < tokens.count {
             let token = tokens[i]
             
-            // Check hidden card ("không thấy", "không")
-            if token == "__hidden__" {
+            // Check hidden card ("bỏ", "bỏ bài", "bỏ qua", "không thấy", "không")
+            if token == "__hidden__" || token == "bỏ" || token == "bo" {
                 let countToAppend = multiplier
                 multiplier = 1
                 for _ in 0..<countToAppend {

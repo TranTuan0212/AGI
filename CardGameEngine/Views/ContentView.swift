@@ -154,11 +154,11 @@ public struct ContentView: View {
                                 VStack(spacing: 2) {
                                     Image(systemName: viewModel.voiceService.isRecording ? "stop.circle.fill" : "mic.fill")
                                         .font(.system(size: 16, weight: .bold))
-                                    Text(viewModel.voiceService.isRecording ? "DỪNG" : "NÓI BÀI")
+                                    Text(viewModel.voiceService.isRecording ? "DỪNG LẠI" : "NÓI BÀI")
                                         .font(.system(size: 10, weight: .black))
                                 }
                                 .foregroundColor(.white)
-                                .frame(minWidth: 64, maxWidth: 76, minHeight: 44)
+                                .frame(minWidth: 64, maxWidth: 80, minHeight: 44)
                                 .background(
                                     viewModel.voiceService.isRecording ?
                                     LinearGradient(colors: [Color.red, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing) :
@@ -166,6 +166,7 @@ public struct ContentView: View {
                                 )
                                 .cornerRadius(9)
                                 .shadow(color: (viewModel.voiceService.isRecording ? Color.red : Color.blue).opacity(0.35), radius: 3, y: 1.5)
+                                .animation(.easeInOut(duration: 0.15), value: viewModel.voiceService.isRecording)
                             }
                             
                             // Nút chính ở giữa: KHÔNG THẤY (BÀI ẨN) / VÁN MỚI (To bản, nổi bật nhất)

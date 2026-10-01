@@ -760,7 +760,24 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(resDialects[2].rank === 13 && resDialects[2].suit === 'diamonds', 'Voice Parser: "dà rô" -> K rô');
   assert(resDialects[3].rank === 12 && resDialects[3].suit === 'clubs', 'Voice Parser: "huy tép" -> Q tép');
 
-  // Test "không", "không thấy" -> Lá bài ẩn
+  // Test "bỏ", "bỏ bài", "bỏ qua", "bo" -> Lá bài ẩn
+  const resBo = VietnameseCardVoiceParser.parse('bỏ');
+  assert(resBo.length === 1 && resBo[0].isHidden === true, 'Voice Parser: "bỏ" -> Lá bài ẩn (?)');
+
+  const resBoBai = VietnameseCardVoiceParser.parse('bỏ bài');
+  assert(resBoBai.length === 1 && resBoBai[0].isHidden === true, 'Voice Parser: "bỏ bài" -> Lá bài ẩn (?)');
+
+  const resBoQua = VietnameseCardVoiceParser.parse('bỏ qua');
+  assert(resBoQua.length === 1 && resBoQua[0].isHidden === true, 'Voice Parser: "bỏ qua" -> Lá bài ẩn (?)');
+
+  const resBoRaw = VietnameseCardVoiceParser.parse('bo');
+  assert(resBoRaw.length === 1 && resBoRaw[0].isHidden === true, 'Voice Parser: "bo" -> Lá bài ẩn (?)');
+
+  // Verify "bon" (4) is unaffected by "bo"
+  const resBon = VietnameseCardVoiceParser.parse('bon cơ');
+  assert(resBon.length === 1 && resBon[0].rank === 4 && resBon[0].suit === 'hearts', 'Voice Parser: "bon cơ" vẫn chuẩn là lá 4 cơ (không bị nhầm lẫn với "bo")');
+
+  // Test "không", "không thấy" -> Lá bài ẩn (vẫn tương thích ngược)
   const resKhongThay = VietnameseCardVoiceParser.parse('không thấy');
   assert(resKhongThay.length === 1 && resKhongThay[0].isHidden === true, 'Voice Parser: "không thấy" -> Lá bài ẩn (?)');
 

@@ -1604,6 +1604,10 @@ class VietnameseCardVoiceParser {
       .replace(/muoi hai/g, '12')
       .replace(/mười ba/g, '13')
       .replace(/muoi ba/g, '13')
+      .replace(/bỏ bài/g, '__hidden__')
+      .replace(/bo bai/g, '__hidden__')
+      .replace(/bỏ qua/g, '__hidden__')
+      .replace(/bo qua/g, '__hidden__')
       .replace(/không thấy/g, '__hidden__')
       .replace(/khong thay/g, '__hidden__')
       .replace(/k thấy/g, '__hidden__')
@@ -1621,8 +1625,8 @@ class VietnameseCardVoiceParser {
     while (i < tokens.length) {
       const token = tokens[i];
 
-      // Check hidden card ("không thấy", "không")
-      if (token === '__hidden__') {
+      // Check hidden card ("bỏ", "bỏ bài", "bỏ qua", "không thấy", "không")
+      if (token === '__hidden__' || token === 'bỏ' || token === 'bo') {
         for (let k = 0; k < multiplier; k++) {
           result.push({ isHidden: true });
         }
