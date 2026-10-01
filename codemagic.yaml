@@ -22,7 +22,7 @@ workflows:
         script: |
           set -e
           echo "Starting xcodebuild archive..."
-          xcodebuild clean archive \
+          xcodebuild archive \
             -project "$XCODE_PROJECT" \
             -scheme "$XCODE_SCHEME" \
             -configuration Release \
@@ -46,7 +46,7 @@ workflows:
           echo "SUCCESS: IPA created at build/output/GiaLapSoBai.ipa"
     artifacts:
       - build/output/*.ipa
-      - build/*.xcarchive
+
 
   ios-app-signed:
     name: Build iOS Signed IPA (App Store / TestFlight / Ad-Hoc)
