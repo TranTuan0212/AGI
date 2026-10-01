@@ -367,12 +367,25 @@ public class GameViewModel: ObservableObject {
                 guard let self = self else { return }
                 if authorized {
                     self.voiceBannerText = "🎙️ Đang lắng nghe... Hãy đọc tên các lá bài"
-                    self.voiceService.startRecording { [weak self] spokenText in
-                        DispatchQueue.main.async {
-                            guard let self = self else { return }
-                            self.processSpokenVoice(spokenText)
+                    self.voiceService.startRecording(
+                        onResult: { [weak self] spokenText in
+                            DispatchQueue.main.async {
+                                guard let self = self else { return }
+                                self.processSpokenVoice(spokenText)
+                            }
+                        },
+                        onError: { [weak self] errorMsg in
+                            DispatchQueue.main.async {
+                                guard let self = self else { return }
+                                self.voiceBannerText = errorMsg
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) { [weak self] in
+                                    if self?.voiceService.isRecording == false {
+                                        self?.voiceBannerText = nil
+                                    }
+                                }
+                            }
                         }
-                    }
+                    )
                 } else {
                     self.voiceBannerText = "Chưa cấp quyền microphone/nhận diện giọng nói."
                 }
