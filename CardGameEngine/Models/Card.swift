@@ -91,7 +91,13 @@ public enum Rank: Int, CaseIterable, Identifiable, Codable, Comparable {
     public static func < (lhs: Rank, rhs: Rank) -> Bool {
         return lhs.rawValue < rhs.rawValue
     }
+    
+    public var description: String {
+        return displaySymbol
+    }
 }
+
+extension Rank: CustomStringConvertible {}
 
 // MARK: - Card
 public struct Card: Identifiable, Hashable, Codable, Comparable {

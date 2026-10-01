@@ -40,17 +40,15 @@ public struct SettingsView: View {
                     .padding(.vertical, 2)
                     
                     // Danh sách từ khóa đã học
-                    let _ = customKeywordsVersion
-                    let words = VietnameseCardVoiceParser.getCustomKeywords(for: selectedRankForTraining)
-                    if !words.isEmpty {
+                    if !currentLearnedKeywords.isEmpty {
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Từ khóa riêng của bạn cho \(selectedRankForTraining.description):")
+                            Text("Từ khóa riêng của bạn cho \(selectedRankForTraining.displaySymbol):")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                             
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 8) {
-                                    ForEach(words, id: \.self) { word in
+                                    ForEach(currentLearnedKeywords, id: \.self) { word in
                                         HStack(spacing: 4) {
                                             Text(word)
                                                 .font(.subheadline.bold())
@@ -73,7 +71,7 @@ public struct SettingsView: View {
                         }
                         .padding(.vertical, 2)
                     } else {
-                        Text("Chưa có từ khóa riêng nào cho \(selectedRankForTraining.description). Hãy thu âm phát âm của bạn hoặc gõ từ bên dưới.")
+                        Text("Chưa có từ khóa riêng nào cho \(selectedRankForTraining.displaySymbol). Hãy thu âm phát âm của bạn hoặc gõ từ bên dưới.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
@@ -203,6 +201,11 @@ public struct SettingsView: View {
                 }
             }
         }
+    }
+    
+    private var currentLearnedKeywords: [String] {
+        _ = customKeywordsVersion
+        return VietnameseCardVoiceParser.getCustomKeywords(for: selectedRankForTraining)
     }
     
     private func toggleTrainingRecording() {
