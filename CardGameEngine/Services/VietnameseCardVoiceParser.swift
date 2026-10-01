@@ -16,7 +16,7 @@ public struct VietnameseCardVoiceParser {
     private static let rankMap: [String: Rank] = [
         // Ace
         "át": .ace, "at": .ace, "ách": .ace, "ach": .ace, "xì": .ace, "xi": .ace,
-        "mốt": .ace, "mot": .ace, "a": .ace, "ace": .ace, "một": .ace, "mot": .ace,
+        "mốt": .ace, "mot": .ace, "a": .ace, "ace": .ace, "một": .ace,
         
         // 2
         "hai": .two, "nhị": .two, "nhi": .two, "2": .two,
