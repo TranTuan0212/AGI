@@ -26,6 +26,9 @@ public class SpeechRecognitionService: ObservableObject {
     // Unique session ID to invalidate trailing callbacks from previous sessions
     private var sessionID: UUID = UUID()
     
+    // Incremental segment ID per recognition task to notify ViewModel on phrase/task resets
+    private var segmentID: Int = 0
+    
     private var routeChangeObserver: NSObjectProtocol?
     
     public init() {
@@ -90,6 +93,10 @@ public class SpeechRecognitionService: ObservableObject {
     }
     
     public func startRecording(onResult: @escaping (String) -> Void, onError: ((String) -> Void)? = nil) {
+        startRecording(onResult: { text, _ in onResult(text) }, onError: onError)
+    }
+    
+    public func startRecording(onResult: @escaping (String, Int) -> Void, onError: ((String) -> Void)? = nil) {
         // Cancel and clean up any previous task safely
         stopRecording()
         
@@ -102,6 +109,8 @@ public class SpeechRecognitionService: ObservableObject {
         
         let newSessionID = UUID()
         self.sessionID = newSessionID
+        self.segmentID = 1
+        let initialSegmentID = self.segmentID
         
         do {
             let audioSession = AVAudioSession.sharedInstance()
@@ -168,7 +177,7 @@ public class SpeechRecognitionService: ObservableObject {
                         DispatchQueue.main.async {
                             guard self.sessionID == newSessionID else { return }
                             self.recognizedText = text
-                            onResult(text)
+                            onResult(text, initialSegmentID)
                         }
                     }
                     
@@ -262,9 +271,12 @@ public class SpeechRecognitionService: ObservableObject {
         }
     }
     
-    private func restartRecognitionTask(newSessionID: UUID, onResult: @escaping (String) -> Void) {
+    private func restartRecognitionTask(newSessionID: UUID, onResult: @escaping (String, Int) -> Void) {
         guard self.sessionID == newSessionID && self.isRecording else { return }
         guard let speechRecognizer = self.speechRecognizer, speechRecognizer.isAvailable else { return }
+        
+        self.segmentID += 1
+        let currentSegmentID = self.segmentID
         
         let newRequest = SFSpeechAudioBufferRecognitionRequest()
         newRequest.shouldReportPartialResults = true
@@ -298,7 +310,7 @@ public class SpeechRecognitionService: ObservableObject {
                     DispatchQueue.main.async {
                         guard self.sessionID == newSessionID, self.isRecording else { return }
                         self.recognizedText = text
-                        onResult(text)
+                        onResult(text, currentSegmentID)
                     }
                 }
                 let isFinal = result?.isFinal ?? false

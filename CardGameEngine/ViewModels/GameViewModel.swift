@@ -61,6 +61,7 @@ public class GameViewModel: ObservableObject {
     @Published public var voiceService = SpeechRecognitionService()
     @Published public var voiceBannerText: String? = nil
     private var processedVoiceCardsCount: Int = 0
+    private var currentVoiceSegmentID: Int = 0
     
     // Rank-Only Mode (A->K) for 3 Cây & 2 Lá
     @Published public var isRankOnlyMode: Bool {
@@ -152,6 +153,7 @@ public class GameViewModel: ObservableObject {
         confrontationMatrix.removeAll()
         actionHistory.removeAll()
         processedVoiceCardsCount = 0
+        currentVoiceSegmentID = 0
         
         if shouldAutoRecord {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
@@ -179,6 +181,7 @@ public class GameViewModel: ObservableObject {
         roundRobinPointer = 0
         selectedPlayerIndex = 0
         processedVoiceCardsCount = 0
+        currentVoiceSegmentID = 0
         
         if shouldAutoRecord {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
@@ -189,14 +192,15 @@ public class GameViewModel: ObservableObject {
     
     public func autoStartVoiceForNewRound() {
         processedVoiceCardsCount = 0
+        currentVoiceSegmentID = 0
         voiceService.requestAuthorization { [weak self] authorized in
             guard let self = self, authorized else { return }
             self.voiceBannerText = "🎙️ Đang nghe [\(self.voiceService.currentInputDeviceName)]... Hãy đọc bài"
             self.voiceService.startRecording(
-                onResult: { [weak self] spokenText in
+                onResult: { [weak self] spokenText, segmentID in
                     DispatchQueue.main.async {
                         guard let self = self else { return }
-                        self.processSpokenVoice(spokenText)
+                        self.processSpokenVoice(spokenText, segmentID: segmentID)
                     }
                 },
                 onError: { [weak self] errorMsg in
@@ -431,17 +435,19 @@ public class GameViewModel: ObservableObject {
                 }
             }
             processedVoiceCardsCount = 0
+            currentVoiceSegmentID = 0
         } else {
             processedVoiceCardsCount = 0
+            currentVoiceSegmentID = 0
             voiceService.requestAuthorization { [weak self] authorized in
                 guard let self = self else { return }
                 if authorized {
                     self.voiceBannerText = "🎙️ Đang nghe [\(self.voiceService.currentInputDeviceName)]... Hãy đọc bài"
                     self.voiceService.startRecording(
-                        onResult: { [weak self] spokenText in
+                        onResult: { [weak self] spokenText, segmentID in
                             DispatchQueue.main.async {
                                 guard let self = self else { return }
-                                self.processSpokenVoice(spokenText)
+                                self.processSpokenVoice(spokenText, segmentID: segmentID)
                             }
                         },
                         onError: { [weak self] errorMsg in
@@ -463,7 +469,12 @@ public class GameViewModel: ObservableObject {
         }
     }
     
-    public func processSpokenVoice(_ text: String) {
+    public func processSpokenVoice(_ text: String, segmentID: Int = 0) {
+        if segmentID != 0 && segmentID != currentVoiceSegmentID {
+            currentVoiceSegmentID = segmentID
+            processedVoiceCardsCount = 0
+        }
+        
         let parsedCards = VietnameseCardVoiceParser.parse(text)
         let displaySpoken = VietnameseCardVoiceParser.separateDigits(text)
         voiceBannerText = "🎙️ \"\(displaySpoken)\""

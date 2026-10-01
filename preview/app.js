@@ -1699,6 +1699,7 @@ class AppController {
     this.history = [];
     this.isVoiceRecording = false;
     this.processedVoiceCardsCount = 0;
+    this.currentVoiceSegmentId = 0;
     this.recognition = null;
     try {
       this.history = JSON.parse(localStorage.getItem('card_game_history') || '[]');
@@ -1733,6 +1734,8 @@ class AppController {
 
     this.roundRobinPointer = 0;
     this.selectedPlayerIndex = 0;
+    this.currentVoiceSegmentId = 0;
+    this.processedVoiceCardsCount = 0;
 
     this.renderDeck();
     this.renderPlayers();
@@ -1956,9 +1959,15 @@ class AppController {
     }
 
     this.processedVoiceCardsCount = 0;
+    this.currentVoiceSegmentId = 0;
   }
 
-  processVoiceInput(text) {
+  processVoiceInput(text, segmentId = 0) {
+    if (segmentId !== 0 && segmentId !== this.currentVoiceSegmentId) {
+      this.currentVoiceSegmentId = segmentId;
+      this.processedVoiceCardsCount = 0;
+    }
+
     const unglued = VietnameseCardVoiceParser.separateDigits(text);
     const voiceTextEl = document.getElementById('voice-text');
     if (voiceTextEl) {

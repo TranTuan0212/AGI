@@ -817,21 +817,25 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(resBoiVariants[1].rank === 11 && resBoiVariants[1].suit === 'clubs', 'Voice Parser: "bồ tép" -> J tép (11)');
   assert(resBoiVariants[2].rank === 11, 'Voice Parser: "bội" -> J (11)');
 
-  // Test chống nhảy 2 lần (No double jump on partial speech revision)
+  // Test chống nhảy 2 lần (No double jump on partial speech revision) & Phân đoạn liên tục (Multi-segment)
   const appVoiceTest = {
     processedVoiceCardsCount: 0,
-    players: [{ cards: [] }, { cards: [] }],
+    currentVoiceSegmentId: 0,
+    players: [{ cards: [] }, { cards: [] }, { cards: [] }],
+    pointer: 0,
     onRankClick: function(rObj) {
-      if (this.players[0].cards.length === 0) {
-        this.players[0].cards.push({ rank: rObj.raw });
-      } else {
-        this.players[1].cards.push({ rank: rObj.raw });
-      }
+      this.players[this.pointer % this.players.length].cards.push({ rank: rObj.raw });
+      this.pointer++;
     },
     onHiddenCardClick: function() {
-      this.players[0].cards.push({ isHidden: true });
+      this.players[this.pointer % this.players.length].cards.push({ isHidden: true });
+      this.pointer++;
     },
-    processVoiceInput: function(text) {
+    processVoiceInput: function(text, segmentId = 0) {
+      if (segmentId !== 0 && segmentId !== this.currentVoiceSegmentId) {
+        this.currentVoiceSegmentId = segmentId;
+        this.processedVoiceCardsCount = 0;
+      }
       const parsed = VietnameseCardVoiceParser.parse(text);
       if (parsed.length > this.processedVoiceCardsCount) {
         const newItems = parsed.slice(this.processedVoiceCardsCount);
@@ -847,17 +851,31 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
     }
   };
 
-  appVoiceTest.processVoiceInput('ba');
+  appVoiceTest.processVoiceInput('ba', 1);
   assert(appVoiceTest.players[0].cards.length === 1 && appVoiceTest.players[0].cards[0].rank === 3, 'Voice anti-double-jump: Nói "ba" -> Tụ 1 nhận đúng 1 lá 3');
 
-  // Giả lập Apple Speech flicker về rỗng hoặc câu ngắn
-  appVoiceTest.processVoiceInput('');
+  // Giả lập Apple Speech flicker về rỗng hoặc câu ngắn trong cùng segment 1
+  appVoiceTest.processVoiceInput('', 1);
   assert(appVoiceTest.players[0].cards.length === 1, 'Voice anti-double-jump: Gặp flicker tạm thời không làm mất counter');
 
-  // Giả lập câu nói hoàn tất "ba bốn"
-  appVoiceTest.processVoiceInput('ba bốn');
+  // Giả lập câu nói hoàn tất "ba bốn" trong cùng segment 1
+  appVoiceTest.processVoiceInput('ba bốn', 1);
   assert(appVoiceTest.players[0].cards.length === 1, 'Voice anti-double-jump: Tụ 1 vẫn chỉ có 1 lá 3 (không bị đúp 2 lần)');
   assert(appVoiceTest.players[1].cards.length === 1 && appVoiceTest.players[1].cards[0].rank === 4, 'Voice anti-double-jump: Tụ 2 nhận lá 4');
+
+  // Test phân đoạn mới (Segment 2): Nói "bồi" sau khi ngắt câu
+  appVoiceTest.processVoiceInput('bồi', 2);
+  assert(appVoiceTest.players[2].cards.length === 1 && appVoiceTest.players[2].cards[0].rank === 11, 'Voice multi-segment: Nói "bồi" ngắt câu -> Tụ 3 nhận chuẩn lá J (11)');
+
+  // Test phân đoạn mới tiếp theo (Segment 3): Nói "bồi" lần nữa không bị chặn bởi counter cũ
+  appVoiceTest.processVoiceInput('bồi', 3);
+  assert(appVoiceTest.players[0].cards.length === 2 && appVoiceTest.players[0].cards[1].rank === 11, 'Voice multi-segment: Nói "bồi" lần 2 ngắt câu -> Tiếp tục nhảy lá J cho Tụ 1 (không bị kẹt)');
+
+  // Test phân đoạn mới tiếp theo (Segment 4): Đọc "11 12 13" trọn vẹn không bị nuốt lá
+  appVoiceTest.processVoiceInput('11 12 13', 4);
+  assert(appVoiceTest.players[1].cards.length === 2 && appVoiceTest.players[1].cards[1].rank === 11, 'Voice multi-segment: "11 12 13" -> Tụ 2 nhận 11 (J)');
+  assert(appVoiceTest.players[2].cards.length === 2 && appVoiceTest.players[2].cards[1].rank === 12, 'Voice multi-segment: "11 12 13" -> Tụ 3 nhận 12 (Q)');
+  assert(appVoiceTest.players[0].cards.length === 3 && appVoiceTest.players[0].cards[2].rank === 13, 'Voice multi-segment: "11 12 13" -> Tụ 1 nhận 13 (K)');
 }
 
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);
