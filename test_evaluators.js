@@ -817,6 +817,20 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(resBoiVariants[1].rank === 11 && resBoiVariants[1].suit === 'clubs', 'Voice Parser: "bồ tép" -> J tép (11)');
   assert(resBoiVariants[2].rank === 11, 'Voice Parser: "bội" -> J (11)');
 
+  // Test các âm đọc tiếng Việt cho J, Q, K (Dây -> J, Kiu -> Q)
+  const resDayKiu = VietnameseCardVoiceParser.parse('dây cơ kiu bích chây tép');
+  assert(resDayKiu.length === 3, 'Voice Parser: Nhận diện đủ 3 lá "dây cơ kiu bích chây tép"');
+  assert(resDayKiu[0].rank === 11 && resDayKiu[0].suit === 'hearts', 'Voice Parser: "dây cơ" -> J cơ (11)');
+  assert(resDayKiu[1].rank === 12 && resDayKiu[1].suit === 'spades', 'Voice Parser: "kiu bích" -> Q bích (12)');
+  assert(resDayKiu[2].rank === 11 && resDayKiu[2].suit === 'clubs', 'Voice Parser: "chây tép" -> J tép (11)');
+
+  // Test dạng chữ số Apple Speech trả về: "mười 1 mười 2 mười 3" -> J, Q, K
+  const resMuoiDigits = VietnameseCardVoiceParser.parse('mười 1 mười 2 mười 3');
+  assert(resMuoiDigits.length === 3, 'Voice Parser: "mười 1 mười 2 mười 3" -> Nhận đủ 3 lá');
+  assert(resMuoiDigits[0].rank === 11, 'Voice Parser: "mười 1" -> J (11)');
+  assert(resMuoiDigits[1].rank === 12, 'Voice Parser: "mười 2" -> Q (12)');
+  assert(resMuoiDigits[2].rank === 13, 'Voice Parser: "mười 3" -> K (13)');
+
   // Test chống nhảy 2 lần (No double jump on partial speech revision) & Phân đoạn liên tục (Multi-segment)
   const appVoiceTest = {
     processedVoiceCardsCount: 0,

@@ -1527,12 +1527,15 @@ class VietnameseCardVoiceParser {
     // 10
     'mười': 10, 'muoi': 10, 'chục': 10, 'chuc': 10, '10': 10,
     // J
-    '11': 11, 'bồi': 11, 'boi': 11, 'bôi': 11, 'bồ': 11, 'bội': 11, 'ri': 11, 'gi': 11, 'di': 11, 'gì': 11, 'ghi': 11, 'dê': 11, 'de': 11, 'j': 11, 'jack': 11,
+    '11': 11, 'bồi': 11, 'boi': 11, 'bôi': 11, 'bồ': 11, 'bội': 11, 'ri': 11, 'gi': 11, 'di': 11,
+    'dây': 11, 'day': 11, 'chây': 11, 'chay': 11, 'zi': 11,
+    'gì': 11, 'ghi': 11, 'dê': 11, 'de': 11, 'j': 11, 'jack': 11,
     // Q
-    '12': 12, 'đầm': 12, 'dam': 12, 'quy': 12, 'q': 12, 'qui': 12, 'huy': 12, 'húy': 12, 'hui': 12, 'quê': 12, 'que': 12, 'nữ': 12, 'nu': 12, 'queen': 12,
+    '12': 12, 'đầm': 12, 'dam': 12, 'quy': 12, 'q': 12, 'qui': 12, 'kiu': 12, 'kêu': 12, 'cui': 12,
+    'huy': 12, 'húy': 12, 'hui': 12, 'quê': 12, 'que': 12, 'nữ': 12, 'nu': 12, 'queen': 12,
     // K
     '13': 13, 'già': 13, 'gia': 13, 'ka': 13, 'k': 13, 'ca': 13, 'cả': 13, 'cá': 13, 'cà': 13,
-    'da': 13, 'dà': 13, 'kay': 13, 'cay': 13, 'vua': 13, 'king': 13
+    'cây': 13, 'da': 13, 'dà': 13, 'kay': 13, 'cay': 13, 'vua': 13, 'king': 13
   };
 
   static suitMap = {
@@ -1602,10 +1605,16 @@ class VietnameseCardVoiceParser {
       .replace(/sì dách/g, 'xì')
       .replace(/mười một/g, '11')
       .replace(/muoi mot/g, '11')
+      .replace(/mười 1/g, '11')
+      .replace(/muoi 1/g, '11')
       .replace(/mười hai/g, '12')
       .replace(/muoi hai/g, '12')
+      .replace(/mười 2/g, '12')
+      .replace(/muoi 2/g, '12')
       .replace(/mười ba/g, '13')
       .replace(/muoi ba/g, '13')
+      .replace(/mười 3/g, '13')
+      .replace(/muoi 3/g, '13')
       .replace(/bỏ bài/g, '__hidden__')
       .replace(/bo bai/g, '__hidden__')
       .replace(/bỏ qua/g, '__hidden__')

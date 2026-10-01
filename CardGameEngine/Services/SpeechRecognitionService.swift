@@ -114,7 +114,7 @@ public class SpeechRecognitionService: ObservableObject {
         
         do {
             let audioSession = AVAudioSession.sharedInstance()
-            try audioSession.setCategory(.playAndRecord, mode: .voiceChat, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
+            try audioSession.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
             
             // Prefer Bluetooth microphone if connected
             if let availableInputs = audioSession.availableInputs {
@@ -138,9 +138,11 @@ public class SpeechRecognitionService: ObservableObject {
             }
             recognitionRequest.contextualStrings = [
                 "Át", "Xì", "Át cơ", "Át rô", "Át tép", "Át chuồn", "Át bích",
-                "K", "Già", "Ka", "Ca", "Da", "Dà", "Q", "Đầm", "Quy", "Qui", "Huy",
-                "J", "Bồi", "Ri", "Bồi cơ", "Bồi rô", "Bồi tép", "Bồi chuồn", "Bồi bích", "Con bồi", "Lá bồi",
+                "K", "Già", "Ka", "Ca", "Cây", "Da", "Dà",
+                "Q", "Đầm", "Quy", "Qui", "Kiu", "Huy",
+                "J", "Bồi", "Ri", "Dây", "Day", "Chây", "Bồi cơ", "Bồi rô", "Bồi tép", "Bồi chuồn", "Bồi bích", "Con bồi", "Lá bồi",
                 "Đôi", "Sám", "Tứ quý",
+                "11", "12", "13",
                 "Mười ba", "Mười hai", "Mười một", "Một một",
                 "Mười", "Chín", "Tám", "Bảy", "Sáu", "Năm", "Bốn", "Ba", "Hai", "Heo",
                 "Cơ", "Rô", "Tép", "Chuồn", "Bích",
@@ -286,9 +288,11 @@ public class SpeechRecognitionService: ObservableObject {
         }
         newRequest.contextualStrings = [
             "Át", "Xì", "Át cơ", "Át rô", "Át tép", "Át chuồn", "Át bích",
-            "K", "Già", "Ka", "Ca", "Da", "Dà", "Q", "Đầm", "Quy", "Qui", "Huy",
-            "J", "Bồi", "Ri", "Bồi cơ", "Bồi rô", "Bồi tép", "Bồi chuồn", "Bồi bích", "Con bồi", "Lá bồi",
+            "K", "Già", "Ka", "Ca", "Cây", "Da", "Dà",
+            "Q", "Đầm", "Quy", "Qui", "Kiu", "Huy",
+            "J", "Bồi", "Ri", "Dây", "Day", "Chây", "Bồi cơ", "Bồi rô", "Bồi tép", "Bồi chuồn", "Bồi bích", "Con bồi", "Lá bồi",
             "Đôi", "Sám", "Tứ quý",
+            "11", "12", "13",
             "Mười ba", "Mười hai", "Mười một", "Một một",
             "Mười", "Chín", "Tám", "Bảy", "Sáu", "Năm", "Bốn", "Ba", "Hai", "Heo",
             "Cơ", "Rô", "Tép", "Chuồn", "Bích",

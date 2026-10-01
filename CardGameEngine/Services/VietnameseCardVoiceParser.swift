@@ -50,15 +50,16 @@ public struct VietnameseCardVoiceParser {
         
         // J
         "11": .jack, "bồi": .jack, "boi": .jack, "bôi": .jack, "bồ": .jack, "bội": .jack, "ri": .jack, "gi": .jack, "di": .jack,
+        "dây": .jack, "day": .jack, "chây": .jack, "chay": .jack, "zi": .jack,
         "gì": .jack, "ghi": .jack, "dê": .jack, "de": .jack, "j": .jack, "jack": .jack,
         
         // Q
-        "12": .queen, "đầm": .queen, "dam": .queen, "quy": .queen, "q": .queen, "qui": .queen,
+        "12": .queen, "đầm": .queen, "dam": .queen, "quy": .queen, "q": .queen, "qui": .queen, "kiu": .queen, "kêu": .queen, "cui": .queen,
         "huy": .queen, "húy": .queen, "hui": .queen, "quê": .queen, "que": .queen, "nữ": .queen, "nu": .queen, "queen": .queen,
         
         // K
         "13": .king, "già": .king, "gia": .king, "ka": .king, "k": .king, "ca": .king, "cả": .king, "cá": .king, "cà": .king,
-        "da": .king, "dà": .king, "kay": .king, "cay": .king, "vua": .king, "king": .king
+        "cây": .king, "cay": .king, "da": .king, "dà": .king, "kay": .king, "vua": .king, "king": .king
     ]
     
     // Normalized synonym mapping for suits
@@ -170,10 +171,16 @@ public struct VietnameseCardVoiceParser {
             .replacingOccurrences(of: "sì dách", with: "xì")
             .replacingOccurrences(of: "mười một", with: "11")
             .replacingOccurrences(of: "muoi mot", with: "11")
+            .replacingOccurrences(of: "mười 1", with: "11")
+            .replacingOccurrences(of: "muoi 1", with: "11")
             .replacingOccurrences(of: "mười hai", with: "12")
             .replacingOccurrences(of: "muoi hai", with: "12")
+            .replacingOccurrences(of: "mười 2", with: "12")
+            .replacingOccurrences(of: "muoi 2", with: "12")
             .replacingOccurrences(of: "mười ba", with: "13")
             .replacingOccurrences(of: "muoi ba", with: "13")
+            .replacingOccurrences(of: "mười 3", with: "13")
+            .replacingOccurrences(of: "muoi 3", with: "13")
             .replacingOccurrences(of: "bỏ bài", with: "__hidden__")
             .replacingOccurrences(of: "bo bai", with: "__hidden__")
             .replacingOccurrences(of: "bỏ qua", with: "__hidden__")
