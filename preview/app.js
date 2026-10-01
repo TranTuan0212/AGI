@@ -1549,7 +1549,8 @@ class VietnameseCardVoiceParser {
     'với', 'voi', 'và', 'va',
     'nhập', 'nhap', 'thêm', 'them', 'lấy', 'lay',
     'nữa', 'nua', 'nhé', 'nhe', 'rồi', 'roi',
-    'không', 'khong'
+    'không', 'khong',
+    '__pause__'
   ]);
 
   static separateDigits(text) {
@@ -1580,7 +1581,7 @@ class VietnameseCardVoiceParser {
     if (!text || typeof text !== 'string') return [];
     let unglued = this.separateDigits(text);
     let cleaned = unglued.toLowerCase()
-      .replace(/[,.:;?!/\-—_]/g, ' ')
+      .replace(/[,.:;?!/\-—_~|\n\r\t"']/g, ' __pause__ ')
       .replace(/\s+/g, ' ')
       .trim();
 

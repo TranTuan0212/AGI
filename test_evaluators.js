@@ -738,12 +738,32 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(resJQK[2].rank === 13 && resJQK[2].suit === 'spades', 'Voice Parser: 13 bích -> K bích');
   assert(resJQK[3].rank === 12 && resJQK[3].suit === 'clubs', 'Voice Parser: qui tép -> Q tép');
 
-  // Test mười một, mười hai, mười ba
+  // Test đọc nhanh (không ngắt): mười một -> J, mười hai -> Q, mười ba -> K
   const resMuoiWords = VietnameseCardVoiceParser.parse('mười một mười hai mười ba');
-  assert(resMuoiWords.length === 3, 'Voice Parser: Nhận diện 3 lá "mười một mười hai mười ba"');
-  assert(resMuoiWords[0].rank === 11, 'Voice Parser: mười một -> J');
-  assert(resMuoiWords[1].rank === 12, 'Voice Parser: mười hai -> Q');
-  assert(resMuoiWords[2].rank === 13, 'Voice Parser: mười ba -> K');
+  assert(resMuoiWords.length === 3, 'Voice Parser: Đọc nhanh "mười một mười hai mười ba" -> 3 lá J, Q, K');
+  assert(resMuoiWords[0].rank === 11, 'Voice Parser: Đọc nhanh mười một -> J (11)');
+  assert(resMuoiWords[1].rank === 12, 'Voice Parser: Đọc nhanh mười hai -> Q (12)');
+  assert(resMuoiWords[2].rank === 13, 'Voice Parser: Đọc nhanh mười ba -> K (13)');
+
+  // Test đọc chậm có khoảng ngắt (dấu phẩy / pause):
+  const resSlow1 = VietnameseCardVoiceParser.parse('mười, một');
+  assert(resSlow1.length === 2 && resSlow1[0].rank === 10 && resSlow1[1].rank === 14, 'Voice Parser: Đọc chậm "mười, một" -> [10, Át]');
+
+  const resSlow2 = VietnameseCardVoiceParser.parse('mười, hai');
+  assert(resSlow2.length === 2 && resSlow2[0].rank === 10 && resSlow2[1].rank === 2, 'Voice Parser: Đọc chậm "mười, hai" -> [10, 2]');
+
+  const resSlow3 = VietnameseCardVoiceParser.parse('mười, ba');
+  assert(resSlow3.length === 2 && resSlow3[0].rank === 10 && resSlow3[1].rank === 3, 'Voice Parser: Đọc chậm "mười, ba" -> [10, 3]');
+
+  // Test dạng số tách rời: "10 1" -> [10, Át], "10 2" -> [10, 2], "10 3" -> [10, 3]
+  const resDigits1 = VietnameseCardVoiceParser.parse('10 1');
+  assert(resDigits1.length === 2 && resDigits1[0].rank === 10 && resDigits1[1].rank === 14, 'Voice Parser: "10 1" -> [10, Át]');
+
+  const resDigits2 = VietnameseCardVoiceParser.parse('10 2');
+  assert(resDigits2.length === 2 && resDigits2[0].rank === 10 && resDigits2[1].rank === 2, 'Voice Parser: "10 2" -> [10, 2]');
+
+  const resDigits3 = VietnameseCardVoiceParser.parse('10 3');
+  assert(resDigits3.length === 2 && resDigits3[0].rank === 10 && resDigits3[1].rank === 3, 'Voice Parser: "10 3" -> [10, 3]');
 
   // Test hai con xì liên tục: "một một" hoặc "1 1"
   const resMotMot = VietnameseCardVoiceParser.parse('một một');

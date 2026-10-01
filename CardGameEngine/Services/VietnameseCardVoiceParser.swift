@@ -84,7 +84,8 @@ public struct VietnameseCardVoiceParser {
         "với", "voi", "và", "va",
         "nhập", "nhap", "thêm", "them", "lấy", "lay",
         "nữa", "nua", "nhé", "nhe", "rồi", "roi",
-        "không", "khong"
+        "không", "khong",
+        "__pause__"
     ]
     
     /// Tách các chuỗi số dính nhau thành các số bài riêng biệt có khoảng cách
@@ -146,7 +147,7 @@ public struct VietnameseCardVoiceParser {
         let separators = CharacterSet(charactersIn: ",.:;?!/\\-—_~|\n\r\t\"'")
         let cleaned = unglued.lowercased()
             .components(separatedBy: separators)
-            .joined(separator: " ")
+            .joined(separator: " __pause__ ")
             .split(separator: " ")
             .joined(separator: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
@@ -171,6 +172,8 @@ public struct VietnameseCardVoiceParser {
             .replacingOccurrences(of: "muoi mot", with: "11")
             .replacingOccurrences(of: "mười hai", with: "12")
             .replacingOccurrences(of: "muoi hai", with: "12")
+            .replacingOccurrences(of: "mười ba", with: "13")
+            .replacingOccurrences(of: "muoi ba", with: "13")
             .replacingOccurrences(of: "bỏ bài", with: "__hidden__")
             .replacingOccurrences(of: "bo bai", with: "__hidden__")
             .replacingOccurrences(of: "bỏ qua", with: "__hidden__")
