@@ -4,11 +4,13 @@ public struct ParsedVoiceCard: Equatable {
     public let rank: Rank
     public let suit: Suit?
     public let isHidden: Bool
+    public let wasMultiplied: Bool
     
-    public init(rank: Rank = .two, suit: Suit? = nil, isHidden: Bool = false) {
+    public init(rank: Rank = .two, suit: Suit? = nil, isHidden: Bool = false, wasMultiplied: Bool = false) {
         self.rank = rank
         self.suit = suit
         self.isHidden = isHidden
+        self.wasMultiplied = wasMultiplied
     }
 }
 
@@ -31,7 +33,7 @@ public struct VietnameseCardVoiceParser {
         "bốn": .four, "bon": .four, "tư": .four, "tu": .four, "bóng": .four, "bón": .four, "4": .four,
         
         // 5
-        "năm": .five, "nam": .five, "ngũ": .five, "ngu": .five, "5": .five,
+        "năm": .five, "ngũ": .five, "ngu": .five, "5": .five,
         
         // 6
         "sáu": .six, "sau": .six, "lục": .six, "luc": .six, "6": .six,
@@ -304,16 +306,24 @@ public struct VietnameseCardVoiceParser {
         var result: [ParsedVoiceCard] = []
         var i = 0
         var multiplier = 1
+        var hadPauseSinceLastCard = false
         
         while i < tokens.count {
             let token = tokens[i]
+            
+            if token == "__pause__" {
+                hadPauseSinceLastCard = true
+                i += 1
+                continue
+            }
             
             // Check hidden card ("bỏ", "bỏ bài", "bỏ qua")
             if token == "__hidden__" || token == "bỏ" || token == "bo" {
                 let countToAppend = multiplier
                 multiplier = 1
+                hadPauseSinceLastCard = false
                 for _ in 0..<countToAppend {
-                    result.append(ParsedVoiceCard(isHidden: true))
+                    result.append(ParsedVoiceCard(isHidden: true, wasMultiplied: countToAppend > 1))
                 }
                 i += 1
                 continue
@@ -362,8 +372,21 @@ public struct VietnameseCardVoiceParser {
                 let countToAppend = multiplier
                 multiplier = 1 // reset multiplier
                 
+                // Chống nói vấp / nói lặp sửa sai tổng quát:
+                // Nếu không có từ số lượng (countToAppend == 1), không có chất (detectedSuit == nil),
+                // và lá trước đó cũng cùng rank, không có chất, VÀ từ lá trước đến lá này KHÔNG CÓ dấu ngắt nhịp (__pause__)
+                // -> Bỏ qua vì đây là từ nói lặp dính liền / ngắc ngứ sửa sai!
+                if countToAppend == 1 && detectedSuit == nil && !hadPauseSinceLastCard && !result.isEmpty {
+                    let lastCard = result[result.count - 1]
+                    if !lastCard.isHidden && lastCard.rank == rank && lastCard.suit == nil {
+                        i += 1
+                        continue
+                    }
+                }
+
+                hadPauseSinceLastCard = false
                 for _ in 0..<countToAppend {
-                    result.append(ParsedVoiceCard(rank: rank, suit: detectedSuit))
+                    result.append(ParsedVoiceCard(rank: rank, suit: detectedSuit, wasMultiplied: countToAppend > 1))
                 }
             }
             

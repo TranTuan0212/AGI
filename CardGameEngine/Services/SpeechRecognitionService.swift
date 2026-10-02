@@ -10,6 +10,10 @@ public class SpeechRecognitionService: ObservableObject {
     @Published public var currentInputDeviceName: String = "📱 Micro thân máy"
     @Published public var isBluetoothInput: Bool = false
     
+    @Published public var audioLevel: Float = 0.0
+    @Published public var clarityStatus: String = "⚪ Sẵn sàng"
+    @Published public var clarityColor: String = "gray"
+    
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "vi-VN"))
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
@@ -164,6 +168,9 @@ public class SpeechRecognitionService: ObservableObject {
             self.recognitionRequest = recognitionRequest
             recognitionRequest.shouldReportPartialResults = true
             recognitionRequest.taskHint = .search
+            if #available(iOS 13, *), speechRecognizer.supportsOnDeviceRecognition {
+                recognitionRequest.requiresOnDeviceRecognition = true
+            }
             if #available(iOS 16, *) {
                 recognitionRequest.addsPunctuation = false
             }
@@ -258,6 +265,35 @@ public class SpeechRecognitionService: ObservableObject {
             // Thread-safe audio tap: wrapped in ObjcTryCatch to prevent crash on late buffer delivery
             inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
                 guard let self = self else { return }
+                
+                // Real-time audio RMS level & clarity status calculation
+                if let channelData = buffer.floatChannelData?[0] {
+                    let frameLength = Int(buffer.frameLength)
+                    if frameLength > 0 {
+                        var sum: Float = 0.0
+                        for i in 0..<frameLength {
+                            let sample = channelData[i]
+                            sum += sample * sample
+                        }
+                        let rms = sqrt(sum / Float(frameLength))
+                        
+                        DispatchQueue.main.async {
+                            guard self.isRecording else { return }
+                            self.audioLevel = rms
+                            if rms > 0.08 {
+                                self.clarityStatus = "🟢 Nghe rất rõ ▂▃▅"
+                                self.clarityColor = "green"
+                            } else if rms > 0.02 {
+                                self.clarityStatus = "🟡 Hơi nhỏ ▂_ _"
+                                self.clarityColor = "yellow"
+                            } else {
+                                self.clarityStatus = "⚪ Đang chờ tiếng..."
+                                self.clarityColor = "gray"
+                            }
+                        }
+                    }
+                }
+                
                 self.lock.lock()
                 guard self.isAcceptingAudio, let request = self.activeRequest else {
                     self.lock.unlock()
@@ -312,6 +348,9 @@ public class SpeechRecognitionService: ObservableObject {
         
         self.segmentID += 1
         let currentSegmentID = self.segmentID
+        DispatchQueue.main.async {
+            self.recognizedText = ""
+        }
         
         // Wait 80ms for Apple XPC connection to release clean state
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
@@ -321,6 +360,9 @@ public class SpeechRecognitionService: ObservableObject {
             let newRequest = SFSpeechAudioBufferRecognitionRequest()
             newRequest.shouldReportPartialResults = true
             newRequest.taskHint = .search
+            if #available(iOS 13, *), speechRecognizer.supportsOnDeviceRecognition {
+                newRequest.requiresOnDeviceRecognition = true
+            }
             if #available(iOS 16, *) {
                 newRequest.addsPunctuation = false
             }
@@ -387,6 +429,9 @@ public class SpeechRecognitionService: ObservableObject {
         // Instant 0ms UI update on main thread
         DispatchQueue.main.async {
             self.isRecording = false
+            self.audioLevel = 0.0
+            self.clarityStatus = "⚪ Sẵn sàng"
+            self.clarityColor = "gray"
         }
         
         let engineToStop = self.audioEngine

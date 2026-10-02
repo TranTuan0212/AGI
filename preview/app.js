@@ -1515,7 +1515,7 @@ class VietnameseCardVoiceParser {
     // 4
     'bốn': 4, 'bon': 4, 'tư': 4, 'tu': 4, 'bóng': 4, 'bón': 4, '4': 4,
     // 5
-    'năm': 5, 'nam': 5, 'ngũ': 5, 'ngu': 5, '5': 5,
+    'năm': 5, 'ngũ': 5, 'ngu': 5, '5': 5,
     // 6
     'sáu': 6, 'sau': 6, 'lục': 6, 'luc': 6, '6': 6,
     // 7
@@ -1701,9 +1701,16 @@ class VietnameseCardVoiceParser {
     const result = [];
     let i = 0;
     let multiplier = 1;
+    let hadPauseSinceLastCard = false;
 
     while (i < tokens.length) {
       const token = tokens[i];
+
+      if (token === '__pause__') {
+        hadPauseSinceLastCard = true;
+        i++;
+        continue;
+      }
 
       // Check hidden card ("bỏ", "bỏ bài", "bỏ qua", "không thấy", "không")
       if (token === '__hidden__' || token === 'bỏ' || token === 'bo') {
@@ -1711,6 +1718,7 @@ class VietnameseCardVoiceParser {
           result.push({ isHidden: true });
         }
         multiplier = 1;
+        hadPauseSinceLastCard = false;
         i++;
         continue;
       }
@@ -1754,10 +1762,25 @@ class VietnameseCardVoiceParser {
 
         const count = multiplier;
         multiplier = 1;
+
+        // Chống nói vấp / nói lặp sửa sai tổng quát:
+        // Nếu không có từ chỉ số lượng (count === 1) và không có chất bài riêng (detectedSuit === null),
+        // và lá bài trước đó có cùng rank và cũng không có chất, VÀ từ lá trước đến lá này KHÔNG CÓ dấu ngắt nhịp (__pause__)
+        // -> Bỏ qua vì đây là từ nói lặp dính liền / ngắc ngứ sửa sai!
+        if (count === 1 && !detectedSuit && !hadPauseSinceLastCard && result.length > 0) {
+          const lastCard = result[result.length - 1];
+          if (lastCard && !lastCard.isHidden && lastCard.rank === rawRank && !lastCard.suit && !lastCard.wasMultiplied) {
+            i++;
+            continue;
+          }
+        }
+
+        hadPauseSinceLastCard = false;
         for (let c = 0; c < count; c++) {
           result.push({
             rank: rawRank,
-            suit: detectedSuit
+            suit: detectedSuit,
+            wasMultiplied: count > 1
           });
         }
       }
@@ -2004,6 +2027,59 @@ class AppController {
 
     this.isVoiceRecording = true;
 
+    // Khởi tạo bộ đo cường độ sóng âm thời gian thực (AudioContext AnalyserNode)
+    const clarityBadge = document.getElementById('voiceClarityBadge');
+    if (clarityBadge) {
+      clarityBadge.style.display = 'inline-flex';
+      clarityBadge.className = 'voice-clarity-badge silent';
+      clarityBadge.innerHTML = '⚪ Đang lắng nghe...';
+    }
+
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (AudioCtx) {
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+          if (!this.isVoiceRecording) {
+            stream.getTracks().forEach(t => t.stop());
+            return;
+          }
+          this.voiceAudioStream = stream;
+          this.voiceAudioCtx = new AudioCtx();
+          const source = this.voiceAudioCtx.createMediaStreamSource(stream);
+          const analyser = this.voiceAudioCtx.createAnalyser();
+          analyser.fftSize = 128;
+          source.connect(analyser);
+          this.voiceAnalyser = analyser;
+          const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+          const updateClarity = () => {
+            if (!this.isVoiceRecording || !this.voiceAnalyser) return;
+            this.voiceAnalyser.getByteFrequencyData(dataArray);
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+            const avg = sum / dataArray.length; // 0..255
+
+            if (clarityBadge) {
+              if (avg > 25) {
+                clarityBadge.className = 'voice-clarity-badge clear';
+                clarityBadge.innerHTML = '🟢 Nghe rất rõ <span class="wave-bars">▂▃▅</span>';
+              } else if (avg > 7) {
+                clarityBadge.className = 'voice-clarity-badge low';
+                clarityBadge.innerHTML = '🟡 Hơi nhỏ <span class="wave-bars">▂_ _</span>';
+              } else {
+                clarityBadge.className = 'voice-clarity-badge silent';
+                clarityBadge.innerHTML = '⚪ Đang lắng nghe...';
+              }
+            }
+            this.clarityAnimFrame = requestAnimationFrame(updateClarity);
+          };
+          updateClarity();
+        }).catch(err => {
+          console.warn("Không thể mở micro để đo sóng âm:", err);
+        });
+      }
+    } catch (_) {}
+
     this.recognition.onresult = (event) => {
       let fullTranscript = '';
       for (let i = 0; i < event.results.length; i++) {
@@ -2012,6 +2088,10 @@ class AppController {
       const trimmed = fullTranscript.trim();
       if (trimmed) {
         if (bannerTxt) bannerTxt.textContent = `🎙️ "${trimmed}"`;
+        if (clarityBadge) {
+          clarityBadge.className = 'voice-clarity-badge clear';
+          clarityBadge.innerHTML = '✅ Đang nhận diện...';
+        }
         this.processVoiceInput(trimmed);
       }
     };
@@ -2041,6 +2121,24 @@ class AppController {
     if (this.recognition) {
       try { this.recognition.stop(); } catch(e) {}
       this.recognition = null;
+    }
+
+    if (this.clarityAnimFrame) {
+      cancelAnimationFrame(this.clarityAnimFrame);
+      this.clarityAnimFrame = null;
+    }
+    if (this.voiceAudioStream) {
+      try { this.voiceAudioStream.getTracks().forEach(t => t.stop()); } catch(_) {}
+      this.voiceAudioStream = null;
+    }
+    if (this.voiceAudioCtx) {
+      try { this.voiceAudioCtx.close(); } catch(_) {}
+      this.voiceAudioCtx = null;
+    }
+    const clarityBadge = document.getElementById('voiceClarityBadge');
+    if (clarityBadge) {
+      clarityBadge.style.display = 'none';
+      clarityBadge.className = 'voice-clarity-badge';
     }
 
     const banner = document.getElementById('voiceBanner');
@@ -2079,59 +2177,81 @@ class AppController {
       this.isTenLocked = false;
     }
 
-    const unglued = VietnameseCardVoiceParser.separateDigits(text);
     const voiceTextEl = document.getElementById('voice-text');
-    if (voiceTextEl) {
-      voiceTextEl.textContent = `"${unglued}"`;
+    let parsed = VietnameseCardVoiceParser.parse(text, this.isTenLocked);
+    if (!parsed || parsed.length === 0) {
+      const unglued = VietnameseCardVoiceParser.separateDigits(text);
+      if (voiceTextEl) voiceTextEl.textContent = `"${unglued}"`;
+      return;
     }
 
-    let parsed = VietnameseCardVoiceParser.parse(text, this.isTenLocked);
+    // Trích xuất quân bài hoặc combo mục tiêu duy nhất trong lượt nói này
+    // (Trong 1 lần hội thoại chỉ có 1 quân bài hoặc 1 combo được chia)
+    const lastCard = parsed[parsed.length - 1];
+    let targetCards = [];
+    if (lastCard.wasMultiplied) {
+      for (let k = parsed.length - 1; k >= 0; k--) {
+        const c = parsed[k];
+        if (c.wasMultiplied && c.rank === lastCard.rank && c.suit === lastCard.suit && Boolean(c.isHidden) === Boolean(lastCard.isHidden)) {
+          targetCards.unshift(c);
+        } else {
+          break;
+        }
+      }
+    } else {
+      targetCards = [lastCard];
+    }
 
-    const now = (typeof timestamp === 'number') ? timestamp : Date.now();
-    const elapsed = (this.lastVoiceCardPlacedTime > 0) ? ((now - this.lastVoiceCardPlacedTime) / 1000) : 999;
-    const canReviseTen = this.isLastCardTenTentative && elapsed <= 0.5;
+    // Cập nhật banner hiển thị chuẩn xác lá bài mục tiêu (không bị đúp chữ từ chuỗi nhận diện vấp)
+    if (voiceTextEl) {
+      if (lastCard.isHidden) {
+        voiceTextEl.textContent = '"Bỏ / Ẩn"';
+      } else if (lastCard.wasMultiplied) {
+        const countLabel = targetCards.length === 2 ? 'Đôi' : (targetCards.length === 3 ? 'Sám' : 'Tứ quý');
+        const sym = RANKS.find(r => r.raw === lastCard.rank)?.sym || lastCard.rank;
+        voiceTextEl.textContent = `"${countLabel} ${sym}"`;
+      } else {
+        const sym = RANKS.find(r => r.raw === lastCard.rank)?.sym || lastCard.rank;
+        const sSym = lastCard.suit ? (SUITS.find(s => s.id === lastCard.suit)?.symbol || '') : '';
+        voiceTextEl.textContent = `"${sym}${sSym}"`;
+      }
+    }
 
-    // Hard-lock decomposition:
-    // If previous card was 1 (Ace) and is committed/locked (elapsed > 0.5s or isTenLocked),
-    // and speech engine returns '12' (parsed as Queen), '13' (King), or '11' (Jack):
-    // decompose it into [Ace, 2/3/1] so that the new card is dealt to the next player mat!
-    if (this.processedVoiceCardsCount > 0 && this.currentSegmentPlacedCards.length > 0) {
-      const lastPlacedCard = this.currentSegmentPlacedCards[this.currentSegmentPlacedCards.length - 1];
-      if (lastPlacedCard && lastPlacedCard.rank === 14 && (elapsed > 0.5 || this.isTenLocked)) {
-        if (parsed.length === this.processedVoiceCardsCount) {
-          const lastParsed = parsed[parsed.length - 1];
-          if (lastParsed.rank === 12) {
-            parsed.splice(parsed.length - 1, 1, { rank: 14, suit: lastPlacedCard.suit }, { rank: 2, suit: lastParsed.suit });
-          } else if (lastParsed.rank === 13) {
-            parsed.splice(parsed.length - 1, 1, { rank: 14, suit: lastPlacedCard.suit }, { rank: 3, suit: lastParsed.suit });
-          } else if (lastParsed.rank === 11) {
-            parsed.splice(parsed.length - 1, 1, { rank: 14, suit: lastPlacedCard.suit }, { rank: 14, suit: lastParsed.suit });
+    // Kiểm tra xem các lá bài mục tiêu có trùng khớp với lá bài đã chia trong segment này không
+    let isMatching = (this.currentSegmentPlacedCards.length > 0 && this.currentSegmentPlacedCards.length === targetCards.length);
+    if (isMatching) {
+      for (let k = 0; k < targetCards.length; k++) {
+        const placed = this.currentSegmentPlacedCards[k];
+        const target = targetCards[k];
+        if (Boolean(target.isHidden) !== Boolean(placed.isHidden)) {
+          isMatching = false;
+          break;
+        }
+        if (!target.isHidden) {
+          if (target.rank !== placed.rank) {
+            isMatching = false;
+            break;
+          }
+          if (target.suit && !placed.isRankOnly && target.suit !== placed.suit) {
+            isMatching = false;
+            break;
           }
         }
       }
     }
 
-    // Tentative card revision: only when previous card was an unconfirmed 10 and elapsed <= 0.5s
-    if (this.processedVoiceCardsCount > 0 && parsed.length === this.processedVoiceCardsCount && canReviseTen) {
-      const lastParsed = parsed[this.processedVoiceCardsCount - 1];
-      const lastPlacedCard = this.currentSegmentPlacedCards[this.currentSegmentPlacedCards.length - 1];
-      if (lastPlacedCard) {
-        const isSameRank = (lastParsed.rank === lastPlacedCard.rank);
-        const isSameSuit = (lastParsed.suit === lastPlacedCard.suit);
-        if (!isSameRank || (!lastPlacedCard.isRankOnly && lastParsed.suit && !isSameSuit)) {
-          this.removeCard(lastPlacedCard.id);
-          this.currentSegmentPlacedCards.pop();
-          this.processedVoiceCardsCount--;
-          this.isLastCardTenTentative = false;
-          if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
-          this.voiceCommitTimer = null;
+    // Nếu khác nhau: thực hiện thu hồi lá cũ đã chia trong segment và chia lá bài mới
+    if (!isMatching) {
+      // Thu hồi các lá đã chia dở trong lượt nói này (đưa con trỏ chia bài về lại đúng người chơi đó)
+      while (this.currentSegmentPlacedCards.length > 0) {
+        const placed = this.currentSegmentPlacedCards.pop();
+        if (placed && placed.id) {
+          this.removeCard(placed.id);
         }
       }
-    }
 
-    if (parsed.length > this.processedVoiceCardsCount) {
-      const newItems = parsed.slice(this.processedVoiceCardsCount);
-      for (const item of newItems) {
+      // Chia lá bài mục tiêu mới
+      for (const item of targetCards) {
         const beforeCount = this.actionHistory.length;
         if (item.isHidden) {
           this.onHiddenCardClick();
@@ -2159,47 +2279,30 @@ class AppController {
           if (placed) this.currentSegmentPlacedCards.push(placed);
         }
       }
-      this.processedVoiceCardsCount = parsed.length;
+    }
 
-      const lastPlaced = this.currentSegmentPlacedCards[this.currentSegmentPlacedCards.length - 1];
-      this.lastVoiceCardPlacedTime = now;
-      if (lastPlaced && lastPlaced.rank === 10) {
-        // Lá 10: chờ 0.45s để đón "mười một/hai/ba"
-        this.isLastCardTenTentative = true;
-        this.isTenLocked = false;
+    // Làm mới (reset) bộ đếm thời gian chốt dứt câu:
+    // Đảm bảo không bị ngắt ngang khi nhận diện stream hoặc người dùng còn đang nói
+    if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
+    this.voiceCommitTimer = null;
 
-        if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
-        this.voiceCommitTimer = setTimeout(() => {
-          this.isLastCardTenTentative = false;
-          this.isTenLocked = true;
-          this.resetVoiceSegment();
-        }, 450);
-      } else if (lastPlaced && (lastPlaced.rank === 11 || lastPlaced.rank === 12 || lastPlaced.rank === 13)) {
-        // Cứ thấy 11 (J), 12 (Q), 13 (K) thì khóa cứng ngay lập tức (0ms delay), từ tiếp theo không bị nhảy
-        this.isLastCardTenTentative = false;
-        this.isTenLocked = true;
-        if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
-        this.voiceCommitTimer = setTimeout(() => {
-          this.resetVoiceSegment();
-        }, 350);
-      } else {
-        // Các số 1->9: khóa cứng tụ sau 0.35s và reset segment bộ đệm
-        this.isLastCardTenTentative = false;
-        this.isTenLocked = false;
-        if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
-        this.voiceCommitTimer = setTimeout(() => {
-          this.isTenLocked = true;
-          this.resetVoiceSegment();
-        }, 350);
-      }
+    const lastPlaced = this.currentSegmentPlacedCards[this.currentSegmentPlacedCards.length - 1];
+    const commitInterval = (lastPlaced && lastPlaced.rank === 10) ? 1000 : 800;
+    this.isLastCardTenTentative = (lastPlaced && lastPlaced.rank === 10);
+    this.isTenLocked = false;
 
-      // Auto stop recording when all players full
-      if (this.isReady() && this.isVoiceRecording) {
-        if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
-        this.voiceCommitTimer = null;
-        this.stopVoiceRecording();
-        if (voiceTextEl) voiceTextEl.textContent = "✅ Đã chia đủ bài - Xong ván!";
-      }
+    this.voiceCommitTimer = setTimeout(() => {
+      this.isLastCardTenTentative = false;
+      this.isTenLocked = true;
+      this.resetVoiceSegment();
+    }, commitInterval);
+
+    // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)
+    if (this.isReady() && this.isVoiceRecording) {
+      if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
+      this.voiceCommitTimer = null;
+      this.stopVoiceRecording();
+      if (voiceTextEl) voiceTextEl.textContent = "✅ Đã chia đủ bài - Xong ván!";
     }
   }
 

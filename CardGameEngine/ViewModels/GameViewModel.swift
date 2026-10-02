@@ -504,62 +504,73 @@ public class GameViewModel: ObservableObject {
         }
         
         var parsedCards = VietnameseCardVoiceParser.parse(text, isTenLocked: isTenLocked)
-        let displaySpoken = VietnameseCardVoiceParser.separateDigits(text)
-        voiceBannerText = "🎙️ \"\(displaySpoken)\""
+        guard !parsedCards.isEmpty else {
+            let displaySpoken = VietnameseCardVoiceParser.separateDigits(text)
+            voiceBannerText = "🎙️ \"\(displaySpoken)\""
+            return
+        }
         
-        guard !parsedCards.isEmpty else { return }
+        // Trích xuất quân bài hoặc combo mục tiêu duy nhất trong lượt nói này
+        // (Trong 1 lần hội thoại chỉ có 1 quân bài hoặc 1 combo được chia)
+        let lastCard = parsedCards[parsedCards.count - 1]
+        var targetCards: [ParsedVoiceCard] = []
+        if lastCard.wasMultiplied {
+            for card in parsedCards.reversed() {
+                if card.wasMultiplied && card.rank == lastCard.rank && card.suit == lastCard.suit && card.isHidden == lastCard.isHidden {
+                    targetCards.insert(card, at: 0)
+                } else {
+                    break
+                }
+            }
+        } else {
+            targetCards = [lastCard]
+        }
         
-        let now = CFAbsoluteTimeGetCurrent()
-        let elapsed = (lastVoiceCardPlacedTime > 0) ? (now - lastVoiceCardPlacedTime) : 999.0
-        let canReviseTen = isLastCardTenTentative && elapsed <= 0.5
+        // Cập nhật banner hiển thị chuẩn xác lá bài mục tiêu (không bị đúp chữ từ chuỗi nhận diện vấp)
+        if lastCard.isHidden {
+            voiceBannerText = "🎙️ \"Bỏ / Ẩn\""
+        } else if lastCard.wasMultiplied {
+            let countLabel = targetCards.count == 2 ? "Đôi" : (targetCards.count == 3 ? "Sám" : "Tứ quý")
+            voiceBannerText = "🎙️ \"\(countLabel) \(lastCard.rank.displaySymbol)\""
+        } else if let suit = lastCard.suit {
+            voiceBannerText = "🎙️ \"\(lastCard.rank.displaySymbol)\(suit.rawValue)\""
+        } else {
+            voiceBannerText = "🎙️ \"\(lastCard.rank.displaySymbol)\""
+        }
         
-        // Hard-lock decomposition:
-        // If previous card was 1 (Ace) and is committed/locked (elapsed > 0.5s or isTenLocked),
-        // and speech engine returns '12' (parsed as Queen), '13' (King), or '11' (Jack):
-        // decompose it into [Ace, 2/3/1] so that the new card is dealt to the next player mat!
-        if processedVoiceCardsCount > 0 && !currentSegmentPlacedCards.isEmpty {
-            let lastPlacedCard = currentSegmentPlacedCards[currentSegmentPlacedCards.count - 1]
-            if lastPlacedCard.rank == .ace && (elapsed > 0.5 || isTenLocked) {
-                if parsedCards.count == processedVoiceCardsCount {
-                    let lastParsed = parsedCards[parsedCards.count - 1]
-                    if lastParsed.rank == .queen {
-                        parsedCards.remove(at: parsedCards.count - 1)
-                        parsedCards.append(ParsedVoiceCard(rank: .ace, suit: lastPlacedCard.suit))
-                        parsedCards.append(ParsedVoiceCard(rank: .two, suit: lastParsed.suit))
-                    } else if lastParsed.rank == .king {
-                        parsedCards.remove(at: parsedCards.count - 1)
-                        parsedCards.append(ParsedVoiceCard(rank: .ace, suit: lastPlacedCard.suit))
-                        parsedCards.append(ParsedVoiceCard(rank: .three, suit: lastParsed.suit))
-                    } else if lastParsed.rank == .jack {
-                        parsedCards.remove(at: parsedCards.count - 1)
-                        parsedCards.append(ParsedVoiceCard(rank: .ace, suit: lastPlacedCard.suit))
-                        parsedCards.append(ParsedVoiceCard(rank: .ace, suit: lastParsed.suit))
+        // Kiểm tra xem các lá bài mục tiêu có trùng khớp với lá bài đã chia trong segment này không
+        var isMatching = (!currentSegmentPlacedCards.isEmpty && currentSegmentPlacedCards.count == targetCards.count)
+        if isMatching {
+            for idx in 0..<targetCards.count {
+                let placed = currentSegmentPlacedCards[idx]
+                let target = targetCards[idx]
+                if target.isHidden != placed.isHidden {
+                    isMatching = false
+                    break
+                }
+                if !target.isHidden {
+                    if target.rank != placed.rank {
+                        isMatching = false
+                        break
+                    }
+                    if let tSuit = target.suit, !placed.isRankOnly, tSuit != placed.suit {
+                        isMatching = false
+                        break
                     }
                 }
             }
         }
         
-        // Tentative card revision: only when previous card was an unconfirmed 10 and elapsed <= 0.5s
-        // (For example: spoken "Mười" initially parsed as 10, then quickly followed by "một" / "hai" / "ba" -> 11, 12, 13)
-        if processedVoiceCardsCount > 0 && parsedCards.count == processedVoiceCardsCount && canReviseTen {
-            let lastParsed = parsedCards[processedVoiceCardsCount - 1]
-            if let lastPlacedCard = currentSegmentPlacedCards.last {
-                let isSameRank = (lastParsed.rank == lastPlacedCard.rank)
-                let isSameSuit = (lastParsed.suit == lastPlacedCard.suit)
-                if !isSameRank || (!lastPlacedCard.isRankOnly && lastParsed.suit != nil && !isSameSuit) {
-                    removeCard(lastPlacedCard)
-                    currentSegmentPlacedCards.removeLast()
-                    processedVoiceCardsCount -= 1
-                    isLastCardTenTentative = false
-                    voiceCommitTimer?.invalidate()
-                    voiceCommitTimer = nil
-                }
+        // Nếu khác nhau: thực hiện thu hồi lá cũ đã chia trong segment và chia lá bài mới
+        if !isMatching {
+            // Thu hồi các lá đã chia dở trong lượt nói này (đưa con trỏ chia bài về lại đúng người chơi đó)
+            for placedCard in currentSegmentPlacedCards.reversed() {
+                removeCard(placedCard)
             }
-        }
-        
-        if parsedCards.count > processedVoiceCardsCount {
-            let newCards = parsedCards[processedVoiceCardsCount..<parsedCards.count]
-            for item in newCards {
+            currentSegmentPlacedCards.removeAll()
+            
+            // Chia lá bài mục tiêu mới
+            for item in targetCards {
                 let countBefore = actionHistory.count
                 if item.isHidden {
                     onHiddenCardTapped()
@@ -577,65 +588,38 @@ public class GameViewModel: ObservableObject {
                     currentSegmentPlacedCards.append(lastAction.card)
                 }
             }
-            processedVoiceCardsCount = parsedCards.count
-            
-            let lastPlaced = currentSegmentPlacedCards.last
-            lastVoiceCardPlacedTime = now
-            if let last = lastPlaced, last.rank == .ten {
-                // Lá 10: chờ 0.45s để đón "mười một/hai/ba"
-                isLastCardTenTentative = true
-                isTenLocked = false
-                
-                voiceCommitTimer?.invalidate()
-                voiceCommitTimer = Timer.scheduledTimer(withTimeInterval: 0.45, repeats: false) { [weak self] _ in
-                    DispatchQueue.main.async {
-                        guard let self = self else { return }
-                        self.isLastCardTenTentative = false
-                        self.isTenLocked = true
-                        if self.voiceService.isRecording {
-                            self.voiceService.commitCurrentSegment()
-                        }
-                    }
-                }
-            } else if let last = lastPlaced, (last.rank == .jack || last.rank == .queen || last.rank == .king) {
-                // Cứ thấy 11 (J), 12 (Q), 13 (K) thì khóa cứng ngay lập tức (0ms delay), từ tiếp theo không bị nhảy
-                isLastCardTenTentative = false
-                isTenLocked = true
-                voiceCommitTimer?.invalidate()
-                voiceCommitTimer = Timer.scheduledTimer(withTimeInterval: 0.35, repeats: false) { [weak self] _ in
-                    DispatchQueue.main.async {
-                        guard let self = self else { return }
-                        if self.voiceService.isRecording {
-                            self.voiceService.commitCurrentSegment()
-                        }
-                    }
-                }
-            } else {
-                // Các số 1->9: khóa cứng tụ sau 0.35s và reset segment bộ đệm
-                isLastCardTenTentative = false
-                isTenLocked = false
-                voiceCommitTimer?.invalidate()
-                voiceCommitTimer = Timer.scheduledTimer(withTimeInterval: 0.35, repeats: false) { [weak self] _ in
-                    DispatchQueue.main.async {
-                        guard let self = self else { return }
-                        self.isTenLocked = true
-                        if self.voiceService.isRecording {
-                            self.voiceService.commitCurrentSegment()
-                        }
-                    }
+        }
+        
+        // Làm mới (reset) bộ đếm thời gian chốt dứt câu:
+        // Đảm bảo không bị ngắt ngang khi Apple đang stream hoặc người dùng còn đang nói
+        voiceCommitTimer?.invalidate()
+        voiceCommitTimer = nil
+        
+        let lastPlaced = currentSegmentPlacedCards.last
+        let commitInterval = (lastPlaced?.rank == .ten) ? 1.0 : 0.8
+        isLastCardTenTentative = (lastPlaced?.rank == .ten)
+        isTenLocked = false
+        
+        voiceCommitTimer = Timer.scheduledTimer(withTimeInterval: commitInterval, repeats: false) { [weak self] _ in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.isLastCardTenTentative = false
+                self.isTenLocked = true
+                if self.voiceService.isRecording {
+                    self.voiceService.commitCurrentSegment()
                 }
             }
-            
-            // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)
-            if isReadyToCalculate && voiceService.isRecording {
-                voiceCommitTimer?.invalidate()
-                voiceCommitTimer = nil
-                voiceService.stopRecording(callEndAudio: false)
-                self.voiceBannerText = "✅ Đã chia đủ bài - Xong ván!"
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
-                    if self?.voiceService.isRecording == false {
-                        self?.voiceBannerText = nil
-                    }
+        }
+        
+        // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)
+        if isReadyToCalculate && voiceService.isRecording {
+            voiceCommitTimer?.invalidate()
+            voiceCommitTimer = nil
+            voiceService.stopRecording(callEndAudio: false)
+            self.voiceBannerText = "✅ Đã chia đủ bài - Xong ván!"
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                if self?.voiceService.isRecording == false {
+                    self?.voiceBannerText = nil
                 }
             }
         }

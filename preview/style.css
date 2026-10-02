@@ -1244,6 +1244,43 @@ body {
   to { opacity: 1; transform: translateY(0); }
 }
 
+/* Voice Clarity Live Indicator */
+.voice-clarity-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 10.5px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.08);
+  color: #8E8E93;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.voice-clarity-badge.clear {
+  background: rgba(52, 199, 89, 0.16);
+  color: #34C759;
+  border: 1px solid rgba(52, 199, 89, 0.35);
+}
+
+.voice-clarity-badge.low {
+  background: rgba(255, 149, 0, 0.16);
+  color: #FF9500;
+  border: 1px solid rgba(255, 149, 0, 0.35);
+}
+
+.voice-clarity-badge.silent {
+  background: rgba(142, 142, 147, 0.12);
+  color: #8E8E93;
+}
+
+.wave-bars {
+  letter-spacing: -1px;
+  font-family: monospace;
+}
+
 /* Voice Trainer in Settings */
 .voice-trainer-wrap {
   display: flex;

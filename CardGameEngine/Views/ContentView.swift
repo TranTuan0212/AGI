@@ -321,19 +321,33 @@ struct VoiceOnlyControlView: View {
             }
             .buttonStyle(PlainButtonStyle())
             
-            // Device Input Indicator Badge
-            HStack(spacing: 5) {
-                Circle()
-                    .fill(voiceService.isRecording ? Color.green : Color.gray)
-                    .frame(width: 6, height: 6)
-                Text("Đầu vào: \(voiceService.currentInputDeviceName)")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.secondary)
+            // Device Input & Clarity Status Badges
+            HStack(spacing: 8) {
+                // Device Input Indicator Badge
+                HStack(spacing: 5) {
+                    Circle()
+                        .fill(voiceService.isRecording ? Color.green : Color.gray)
+                        .frame(width: 6, height: 6)
+                    Text("Đầu vào: \(voiceService.currentInputDeviceName)")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 3)
+                .background(Color(.secondarySystemBackground))
+                .cornerRadius(10)
+                
+                // Clarity Status Badge
+                if voiceService.isRecording {
+                    Text(voiceService.clarityStatus)
+                        .font(.system(size: 11, weight: .bold))
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 3)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(10)
+                        .transition(.opacity)
+                }
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 3)
-            .background(Color(.secondarySystemBackground))
-            .cornerRadius(10)
             
             // Action Buttons Row (Hoàn tác - KHÔNG THẤY / VÁN MỚI - Làm mới)
             HStack(spacing: 8) {
