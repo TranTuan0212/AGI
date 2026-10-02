@@ -1208,6 +1208,75 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Instant Lock 13: Đọc 13, 2 -> Tụ 2 = 2');
 }
 
+// 20. Test Giải pháp 1: Reset phiên âm thanh sau mỗi từ (Auto-Reset Segment per Word/Card)
+{
+  const appCodeFull = fs.readFileSync('preview/app.js', 'utf8');
+  const sandbox = {
+    window: { addEventListener: () => {} },
+    document: {
+      getElementById: () => ({ style: {}, innerHTML: '', textContent: '', appendChild: () => {}, classList: { add: () => {}, remove: () => {} }, querySelector: () => ({ addEventListener: () => {} }), addEventListener: () => {} }),
+      querySelectorAll: () => [],
+      createElement: () => ({ style: {}, dataset: {}, appendChild: () => {}, addEventListener: () => {}, querySelector: () => ({ addEventListener: () => {} }), setAttribute: () => {} })
+    },
+    localStorage: { getItem: () => null, setItem: () => {} },
+    console: console,
+    setTimeout: (fn, ms) => setTimeout(fn, ms),
+    clearTimeout: (id) => clearTimeout(id),
+    Date: Date
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(appCodeFull, sandbox);
+  const AppCtrl = vm.runInContext('AppController', sandbox);
+
+  const app = new AppCtrl();
+  app.currentGameType = 'samLoc10'; // Giả lập đúng ván Sâm Lốc như trong ảnh
+  app.playerCount = 3;
+  app.initPlayers();
+  app.isRankOnlyMode = true;
+
+  // Bước 1: Người dùng đọc "một" trong Segment 1
+  app.processVoiceInput('một', 1, 1000);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 14, 'Giải pháp 1: Đọc "một" (Segment 1) -> Tụ 1 nhận Át (1)');
+
+  // Hết nhịp nói, timer kích hoạt reset phiên âm thanh sang Segment 2:
+  app.resetVoiceSegment();
+  assert(app.currentVoiceSegmentId === 2, 'Giải pháp 1: Tự động reset sang Segment 2 sạch sẽ');
+  assert(app.processedVoiceCardsCount === 0, 'Giải pháp 1: Counter reset về 0 cho segment mới');
+
+  // Bước 2: Người dùng đọc "hai" trong Segment 2 (Apple Speech CHỈ gửi "2", KHÔNG có "12" cũ!)
+  app.processVoiceInput('hai', 2, 2000);
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Giải pháp 1: Đọc "hai" (Segment 2) -> Tụ 2 nhận lá 2 chuẩn xác, không bị ghép 12!');
+
+  // Hết nhịp nói, timer kích hoạt reset phiên âm thanh sang Segment 3:
+  app.resetVoiceSegment();
+  assert(app.currentVoiceSegmentId === 3, 'Giải pháp 1: Tự động reset sang Segment 3 sạch sẽ');
+
+  // Bước 3: Người dùng đọc "ba" trong Segment 3 (Apple Speech CHỈ gửi "3", KHÔNG bị "12 3" làm nuốt lá!)
+  app.processVoiceInput('ba', 3, 3000);
+  assert(app.players[2].cards.length === 1 && app.players[2].cards[0].rank === 3, 'Giải pháp 1: Đọc "ba" (Segment 3) -> Tụ 3 nhận ngay lá 3, giải quyết dứt điểm lỗi nuốt lá!');
+
+  // Kiểm tra tổng thể ván bài:
+  assert(app.players[0].cards[0].rank === 14, 'Giải pháp 1: Tụ 1 = Át (1)');
+  assert(app.players[1].cards[0].rank === 2, 'Giải pháp 1: Tụ 2 = 2');
+  assert(app.players[2].cards[0].rank === 3, 'Giải pháp 1: Tụ 3 = 3');
+
+  // Bước 4: Test đọc 12 (Q) rồi đọc 2 (Hai)
+  app.startNewRound();
+  app.currentGameType = 'lieng3';
+  app.playerCount = 3;
+  app.initPlayers();
+
+  app.processVoiceInput('12', 1, 5000);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 12, 'Giải pháp 1: Đọc "12" (Segment 1) -> Tụ 1 nhận Q');
+
+  // Reset sang Segment 2
+  app.resetVoiceSegment();
+
+  // Đọc "hai" ở Segment 2 (Apple Speech gửi đúng "2", hoàn toàn không thể ra 1222 hay 10 22)
+  app.processVoiceInput('hai', 2, 6000);
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Giải pháp 1: Đọc "hai" (Segment 2) -> Tụ 2 nhận lá 2, triệt tiêu hoàn toàn lỗi 1222 / 10 22!');
+}
+
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);
 
 

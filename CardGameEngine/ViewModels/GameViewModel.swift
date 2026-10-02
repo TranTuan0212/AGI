@@ -582,16 +582,19 @@ public class GameViewModel: ObservableObject {
             let lastPlaced = currentSegmentPlacedCards.last
             lastVoiceCardPlacedTime = now
             if let last = lastPlaced, last.rank == .ten {
-                // Lá 10: chờ 0.5s để đón "mười một/hai/ba"
+                // Lá 10: chờ 0.45s để đón "mười một/hai/ba"
                 isLastCardTenTentative = true
                 isTenLocked = false
                 
                 voiceCommitTimer?.invalidate()
-                voiceCommitTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in
+                voiceCommitTimer = Timer.scheduledTimer(withTimeInterval: 0.45, repeats: false) { [weak self] _ in
                     DispatchQueue.main.async {
                         guard let self = self else { return }
                         self.isLastCardTenTentative = false
                         self.isTenLocked = true
+                        if self.voiceService.isRecording {
+                            self.voiceService.commitCurrentSegment()
+                        }
                     }
                 }
             } else if let last = lastPlaced, (last.rank == .jack || last.rank == .queen || last.rank == .king) {
@@ -599,16 +602,26 @@ public class GameViewModel: ObservableObject {
                 isLastCardTenTentative = false
                 isTenLocked = true
                 voiceCommitTimer?.invalidate()
-                voiceCommitTimer = nil
+                voiceCommitTimer = Timer.scheduledTimer(withTimeInterval: 0.35, repeats: false) { [weak self] _ in
+                    DispatchQueue.main.async {
+                        guard let self = self else { return }
+                        if self.voiceService.isRecording {
+                            self.voiceService.commitCurrentSegment()
+                        }
+                    }
+                }
             } else {
-                // Các số 1->9: khóa cứng tụ sau 0.5s
+                // Các số 1->9: khóa cứng tụ sau 0.35s và reset segment bộ đệm
                 isLastCardTenTentative = false
                 isTenLocked = false
                 voiceCommitTimer?.invalidate()
-                voiceCommitTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in
+                voiceCommitTimer = Timer.scheduledTimer(withTimeInterval: 0.35, repeats: false) { [weak self] _ in
                     DispatchQueue.main.async {
                         guard let self = self else { return }
                         self.isTenLocked = true
+                        if self.voiceService.isRecording {
+                            self.voiceService.commitCurrentSegment()
+                        }
                     }
                 }
             }

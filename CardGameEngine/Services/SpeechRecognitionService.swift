@@ -368,6 +368,10 @@ public class SpeechRecognitionService: ObservableObject {
         self.restartRecognitionTask(newSessionID: self.sessionID, onResult: onResult)
     }
     
+    public func resetSegment() {
+        commitCurrentSegment()
+    }
+    
     public func stopRecording(callEndAudio: Bool = true) {
         self.currentOnResult = nil
         // Step 1: Immediately cut off buffer delivery under lock

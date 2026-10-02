@@ -2164,7 +2164,7 @@ class AppController {
       const lastPlaced = this.currentSegmentPlacedCards[this.currentSegmentPlacedCards.length - 1];
       this.lastVoiceCardPlacedTime = now;
       if (lastPlaced && lastPlaced.rank === 10) {
-        // Lá 10: chờ 0.5s để đón "mười một/hai/ba"
+        // Lá 10: chờ 0.45s để đón "mười một/hai/ba"
         this.isLastCardTenTentative = true;
         this.isTenLocked = false;
 
@@ -2172,21 +2172,25 @@ class AppController {
         this.voiceCommitTimer = setTimeout(() => {
           this.isLastCardTenTentative = false;
           this.isTenLocked = true;
-        }, 500);
+          this.resetVoiceSegment();
+        }, 450);
       } else if (lastPlaced && (lastPlaced.rank === 11 || lastPlaced.rank === 12 || lastPlaced.rank === 13)) {
         // Cứ thấy 11 (J), 12 (Q), 13 (K) thì khóa cứng ngay lập tức (0ms delay), từ tiếp theo không bị nhảy
         this.isLastCardTenTentative = false;
         this.isTenLocked = true;
         if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
-        this.voiceCommitTimer = null;
+        this.voiceCommitTimer = setTimeout(() => {
+          this.resetVoiceSegment();
+        }, 350);
       } else {
-        // Các số 1->9: khóa cứng tụ sau 0.5s
+        // Các số 1->9: khóa cứng tụ sau 0.35s và reset segment bộ đệm
         this.isLastCardTenTentative = false;
         this.isTenLocked = false;
         if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
         this.voiceCommitTimer = setTimeout(() => {
           this.isTenLocked = true;
-        }, 500);
+          this.resetVoiceSegment();
+        }, 350);
       }
 
       // Auto stop recording when all players full
@@ -2197,6 +2201,14 @@ class AppController {
         if (voiceTextEl) voiceTextEl.textContent = "✅ Đã chia đủ bài - Xong ván!";
       }
     }
+  }
+
+  resetVoiceSegment() {
+    this.currentVoiceSegmentId++;
+    this.processedVoiceCardsCount = 0;
+    this.currentSegmentPlacedCards = [];
+    this.isLastCardTenTentative = false;
+    this.isTenLocked = false;
   }
 
   getCardOwner(cardId) {
