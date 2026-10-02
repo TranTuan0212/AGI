@@ -112,6 +112,27 @@ public struct VietnameseCardVoiceParser {
                     let third = currentDigits.suffix(1)
                     result.append("\(prefix2) \(third)")
                 } else {
+                    let suffix2 = String(currentDigits.suffix(2))
+                    if suffix2 == "10" || suffix2 == "11" || suffix2 == "12" || suffix2 == "13" {
+                        let first = currentDigits.prefix(1)
+                        result.append("\(first) \(suffix2)")
+                    } else {
+                        var res: [String] = []
+                        for ch in currentDigits { res.append(String(ch)) }
+                        result.append(res.joined(separator: " "))
+                    }
+                }
+            } else if currentDigits.count == 4 {
+                let p2 = String(currentDigits.prefix(2))
+                let s2 = String(currentDigits.suffix(2))
+                let valid = ["10", "11", "12", "13"]
+                if valid.contains(p2) && valid.contains(s2) {
+                    result.append("\(p2) \(s2)")
+                } else if valid.contains(p2) {
+                    let c3 = currentDigits[currentDigits.index(currentDigits.startIndex, offsetBy: 2)]
+                    let c4 = currentDigits[currentDigits.index(currentDigits.startIndex, offsetBy: 3)]
+                    result.append("\(p2) \(c3) \(c4)")
+                } else {
                     var res: [String] = []
                     for ch in currentDigits { res.append(String(ch)) }
                     result.append(res.joined(separator: " "))

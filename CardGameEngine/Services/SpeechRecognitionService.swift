@@ -35,16 +35,18 @@ public class SpeechRecognitionService: ObservableObject {
     
     public static func getContextualStrings() -> [String] {
         var list = [
-            "Át", "Xì", "Át cơ", "Át rô", "Át tép", "Át chuồn", "Át bích",
-            "K", "Già", "Ka", "Ca", "Cây", "Da", "Dà",
-            "Q", "Đầm", "Quy", "Qui", "Kiu", "Huy",
+            "Át", "Xì", "Át cơ", "Át rô", "Át tép", "Át chuồn", "Át bích", "át", "xì", "át cơ", "át rô", "át tép", "át chuồn", "át bích",
+            "K", "Già", "Ka", "Ca", "Cây", "Da", "Dà", "k", "già", "ka", "ca", "cây", "da", "dà",
+            "Q", "Đầm", "Quy", "Qui", "Kiu", "Huy", "q", "đầm", "quy", "qui", "kiu", "huy",
             "J", "Bồi", "Ri", "Dây", "Day", "Chây", "Bồi cơ", "Bồi rô", "Bồi tép", "Bồi chuồn", "Bồi bích", "Con bồi", "Lá bồi",
-            "Đôi", "Sám", "Tứ quý",
-            "11", "12", "13",
-            "Mười ba", "Mười hai", "Mười một", "Một một",
-            "Mười", "Chín", "Tám", "Bảy", "Sáu", "Năm", "Bốn", "Ba", "Hai", "Heo",
-            "Cơ", "Rô", "Tép", "Chuồn", "Bích",
-            "Bỏ", "Bỏ bài", "Bỏ qua", "Bài ẩn"
+            "j", "bồi", "ri", "dây", "day", "chây", "bồi cơ", "bồi rô", "bồi tép", "bồi chuồn", "bồi bích",
+            "Đôi", "Sám", "Tứ quý", "đôi", "sám", "tứ quý",
+            "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13",
+            "Mười ba", "Mười hai", "Mười một", "Một một", "mười ba", "mười hai", "mười một", "một một",
+            "Mười", "Chín", "Tám", "Bảy", "Sáu", "Năm", "Bốn", "Ba", "Hai", "Heo", "Một",
+            "mười", "chín", "tám", "bảy", "sáu", "năm", "bốn", "ba", "hai", "heo", "một",
+            "Cơ", "Rô", "Tép", "Chuồn", "Bích", "cơ", "rô", "tép", "chuồn", "bích",
+            "Bỏ", "Bỏ bài", "Bỏ qua", "Bài ẩn", "bỏ", "bỏ bài", "bỏ qua", "bài ẩn"
         ]
         let customWords = VietnameseCardVoiceParser.getAllCustomKeywords()
         for word in customWords {
@@ -161,7 +163,7 @@ public class SpeechRecognitionService: ObservableObject {
             let recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
             self.recognitionRequest = recognitionRequest
             recognitionRequest.shouldReportPartialResults = true
-            recognitionRequest.taskHint = .dictation
+            recognitionRequest.taskHint = .search
             if #available(iOS 16, *) {
                 recognitionRequest.addsPunctuation = false
             }
@@ -318,7 +320,7 @@ public class SpeechRecognitionService: ObservableObject {
             
             let newRequest = SFSpeechAudioBufferRecognitionRequest()
             newRequest.shouldReportPartialResults = true
-            newRequest.taskHint = .dictation
+            newRequest.taskHint = .search
             if #available(iOS 16, *) {
                 newRequest.addsPunctuation = false
             }

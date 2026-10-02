@@ -1606,6 +1606,20 @@ class VietnameseCardVoiceParser {
         if (['10', '11', '12', '13'].includes(prefix2)) {
           return prefix2 + ' ' + match[2];
         }
+        const suffix2 = match.slice(1, 3);
+        if (['10', '11', '12', '13'].includes(suffix2)) {
+          return match[0] + ' ' + suffix2;
+        }
+      }
+      if (match.length === 4) {
+        const p2 = match.slice(0, 2);
+        const s2 = match.slice(2, 4);
+        if (['10', '11', '12', '13'].includes(p2) && ['10', '11', '12', '13'].includes(s2)) {
+          return p2 + ' ' + s2;
+        }
+        if (['10', '11', '12', '13'].includes(p2)) {
+          return p2 + ' ' + match[2] + ' ' + match[3];
+        }
       }
       let res = [];
       let i = 0;
@@ -2071,11 +2085,31 @@ class AppController {
       voiceTextEl.textContent = `"${unglued}"`;
     }
 
-    const parsed = VietnameseCardVoiceParser.parse(text, this.isTenLocked);
+    let parsed = VietnameseCardVoiceParser.parse(text, this.isTenLocked);
 
     const now = (typeof timestamp === 'number') ? timestamp : Date.now();
     const elapsed = (this.lastVoiceCardPlacedTime > 0) ? ((now - this.lastVoiceCardPlacedTime) / 1000) : 999;
     const canReviseTen = this.isLastCardTenTentative && elapsed <= 0.5;
+
+    // Hard-lock decomposition:
+    // If previous card was 1 (Ace) and is committed/locked (elapsed > 0.5s or isTenLocked),
+    // and speech engine returns '12' (parsed as Queen), '13' (King), or '11' (Jack):
+    // decompose it into [Ace, 2/3/1] so that the new card is dealt to the next player mat!
+    if (this.processedVoiceCardsCount > 0 && this.currentSegmentPlacedCards.length > 0) {
+      const lastPlacedCard = this.currentSegmentPlacedCards[this.currentSegmentPlacedCards.length - 1];
+      if (lastPlacedCard && lastPlacedCard.rank === 14 && (elapsed > 0.5 || this.isTenLocked)) {
+        if (parsed.length === this.processedVoiceCardsCount) {
+          const lastParsed = parsed[parsed.length - 1];
+          if (lastParsed.rank === 12) {
+            parsed.splice(parsed.length - 1, 1, { rank: 14, suit: lastPlacedCard.suit }, { rank: 2, suit: lastParsed.suit });
+          } else if (lastParsed.rank === 13) {
+            parsed.splice(parsed.length - 1, 1, { rank: 14, suit: lastPlacedCard.suit }, { rank: 3, suit: lastParsed.suit });
+          } else if (lastParsed.rank === 11) {
+            parsed.splice(parsed.length - 1, 1, { rank: 14, suit: lastPlacedCard.suit }, { rank: 14, suit: lastParsed.suit });
+          }
+        }
+      }
+    }
 
     // Tentative card revision: only when previous card was an unconfirmed 10 and elapsed <= 0.5s
     if (this.processedVoiceCardsCount > 0 && parsed.length === this.processedVoiceCardsCount && canReviseTen) {
@@ -2127,25 +2161,32 @@ class AppController {
       }
       this.processedVoiceCardsCount = parsed.length;
 
-      // Kiểu từ 1->9 và J, Q, K trực tiếp thì chốt ngay lập tức (0ms độ trễ).
-      // Riêng khi thấy "mười" (10) thì mới đếm trực tiếp qua 0.5s:
       const lastPlaced = this.currentSegmentPlacedCards[this.currentSegmentPlacedCards.length - 1];
+      this.lastVoiceCardPlacedTime = now;
       if (lastPlaced && lastPlaced.rank === 10) {
+        // Lá 10: chờ 0.5s để đón "mười một/hai/ba"
         this.isLastCardTenTentative = true;
         this.isTenLocked = false;
-        this.lastVoiceCardPlacedTime = now;
 
         if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
         this.voiceCommitTimer = setTimeout(() => {
           this.isLastCardTenTentative = false;
           this.isTenLocked = true;
         }, 500);
+      } else if (lastPlaced && (lastPlaced.rank === 11 || lastPlaced.rank === 12 || lastPlaced.rank === 13)) {
+        // Cứ thấy 11 (J), 12 (Q), 13 (K) thì khóa cứng ngay lập tức (0ms delay), từ tiếp theo không bị nhảy
+        this.isLastCardTenTentative = false;
+        this.isTenLocked = true;
+        if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
+        this.voiceCommitTimer = null;
       } else {
-        // Quân bài không phải 10 chốt cứng ngay lập tức!
+        // Các số 1->9: khóa cứng tụ sau 0.5s
         this.isLastCardTenTentative = false;
         this.isTenLocked = false;
         if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
-        this.voiceCommitTimer = null;
+        this.voiceCommitTimer = setTimeout(() => {
+          this.isTenLocked = true;
+        }, 500);
       }
 
       // Auto stop recording when all players full

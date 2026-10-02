@@ -503,7 +503,7 @@ public class GameViewModel: ObservableObject {
             isTenLocked = false
         }
         
-        let parsedCards = VietnameseCardVoiceParser.parse(text, isTenLocked: isTenLocked)
+        var parsedCards = VietnameseCardVoiceParser.parse(text, isTenLocked: isTenLocked)
         let displaySpoken = VietnameseCardVoiceParser.separateDigits(text)
         voiceBannerText = "🎙️ \"\(displaySpoken)\""
         
@@ -512,6 +512,32 @@ public class GameViewModel: ObservableObject {
         let now = CFAbsoluteTimeGetCurrent()
         let elapsed = (lastVoiceCardPlacedTime > 0) ? (now - lastVoiceCardPlacedTime) : 999.0
         let canReviseTen = isLastCardTenTentative && elapsed <= 0.5
+        
+        // Hard-lock decomposition:
+        // If previous card was 1 (Ace) and is committed/locked (elapsed > 0.5s or isTenLocked),
+        // and speech engine returns '12' (parsed as Queen), '13' (King), or '11' (Jack):
+        // decompose it into [Ace, 2/3/1] so that the new card is dealt to the next player mat!
+        if processedVoiceCardsCount > 0 && !currentSegmentPlacedCards.isEmpty {
+            let lastPlacedCard = currentSegmentPlacedCards[currentSegmentPlacedCards.count - 1]
+            if lastPlacedCard.rank == .ace && (elapsed > 0.5 || isTenLocked) {
+                if parsedCards.count == processedVoiceCardsCount {
+                    let lastParsed = parsedCards[parsedCards.count - 1]
+                    if lastParsed.rank == .queen {
+                        parsedCards.remove(at: parsedCards.count - 1)
+                        parsedCards.append(ParsedVoiceCard(rank: .ace, suit: lastPlacedCard.suit))
+                        parsedCards.append(ParsedVoiceCard(rank: .two, suit: lastParsed.suit))
+                    } else if lastParsed.rank == .king {
+                        parsedCards.remove(at: parsedCards.count - 1)
+                        parsedCards.append(ParsedVoiceCard(rank: .ace, suit: lastPlacedCard.suit))
+                        parsedCards.append(ParsedVoiceCard(rank: .three, suit: lastParsed.suit))
+                    } else if lastParsed.rank == .jack {
+                        parsedCards.remove(at: parsedCards.count - 1)
+                        parsedCards.append(ParsedVoiceCard(rank: .ace, suit: lastPlacedCard.suit))
+                        parsedCards.append(ParsedVoiceCard(rank: .ace, suit: lastParsed.suit))
+                    }
+                }
+            }
+        }
         
         // Tentative card revision: only when previous card was an unconfirmed 10 and elapsed <= 0.5s
         // (For example: spoken "Mười" initially parsed as 10, then quickly followed by "một" / "hai" / "ba" -> 11, 12, 13)
@@ -553,12 +579,12 @@ public class GameViewModel: ObservableObject {
             }
             processedVoiceCardsCount = parsedCards.count
             
-            // Kiểu từ 1->9 và J, Q, K trực tiếp thì chốt ngay lập tức (0ms độ trễ).
-            // Riêng khi thấy "mười" (10) thì mới đếm trực tiếp qua 0.5s:
-            if let lastPlaced = currentSegmentPlacedCards.last, lastPlaced.rank == .ten {
+            let lastPlaced = currentSegmentPlacedCards.last
+            lastVoiceCardPlacedTime = now
+            if let last = lastPlaced, last.rank == .ten {
+                // Lá 10: chờ 0.5s để đón "mười một/hai/ba"
                 isLastCardTenTentative = true
                 isTenLocked = false
-                lastVoiceCardPlacedTime = CFAbsoluteTimeGetCurrent()
                 
                 voiceCommitTimer?.invalidate()
                 voiceCommitTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in
@@ -568,12 +594,23 @@ public class GameViewModel: ObservableObject {
                         self.isTenLocked = true
                     }
                 }
+            } else if let last = lastPlaced, (last.rank == .jack || last.rank == .queen || last.rank == .king) {
+                // Cứ thấy 11 (J), 12 (Q), 13 (K) thì khóa cứng ngay lập tức (0ms delay), từ tiếp theo không bị nhảy
+                isLastCardTenTentative = false
+                isTenLocked = true
+                voiceCommitTimer?.invalidate()
+                voiceCommitTimer = nil
             } else {
-                // Lá bài không phải 10 (1->9 hoặc J, Q, K trực tiếp) chốt cứng ngay lập tức!
+                // Các số 1->9: khóa cứng tụ sau 0.5s
                 isLastCardTenTentative = false
                 isTenLocked = false
                 voiceCommitTimer?.invalidate()
-                voiceCommitTimer = nil
+                voiceCommitTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in
+                    DispatchQueue.main.async {
+                        guard let self = self else { return }
+                        self.isTenLocked = true
+                    }
+                }
             }
             
             // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)
