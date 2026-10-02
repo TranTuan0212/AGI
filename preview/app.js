@@ -1601,6 +1601,14 @@ class VietnameseCardVoiceParser {
       if (match.length === 2) {
         return match[0] + ' ' + match[1];
       }
+      if (match.length === 3) {
+        const prefix2 = match.slice(0, 2);
+        const last1 = match.slice(2);
+        if (['10', '11', '12', '13'].includes(prefix2)) {
+          return prefix2 + ' ' + last1;
+        }
+        return match.split('').join(' ');
+      }
       let res = [];
       let i = 0;
       while (i < match.length) {
@@ -1641,16 +1649,18 @@ class VietnameseCardVoiceParser {
       .replace(/sì dách/g, 'xì')
       .replace(/mười một/g, '11')
       .replace(/muoi mot/g, '11')
-      .replace(/mười 1/g, '11')
-      .replace(/muoi 1/g, '11')
+      .replace(/mười mốt/g, '11')
+      .replace(/muoi mot/g, '11')
+      .replace(/\bmười 1\b/g, '11')
+      .replace(/\bmuoi 1\b/g, '11')
       .replace(/mười hai/g, '12')
       .replace(/muoi hai/g, '12')
-      .replace(/mười 2/g, '12')
-      .replace(/muoi 2/g, '12')
+      .replace(/\bmười 2\b/g, '12')
+      .replace(/\bmuoi 2\b/g, '12')
       .replace(/mười ba/g, '13')
       .replace(/muoi ba/g, '13')
-      .replace(/mười 3/g, '13')
-      .replace(/muoi 3/g, '13')
+      .replace(/\bmười 3\b/g, '13')
+      .replace(/\bmuoi 3\b/g, '13')
       .replace(/bỏ bài/g, '__hidden__')
       .replace(/bo bai/g, '__hidden__')
       .replace(/bỏ qua/g, '__hidden__')
@@ -2037,19 +2047,24 @@ class AppController {
 
     const parsed = VietnameseCardVoiceParser.parse(text);
 
-    // Tentative card revision: Check if the last card placed in this segment was revised by streaming speech
-    if (this.processedVoiceCardsCount > 0 && parsed.length === this.processedVoiceCardsCount) {
-      const lastParsed = parsed[this.processedVoiceCardsCount - 1];
-      const lastPlacedCard = this.currentSegmentPlacedCards[this.currentSegmentPlacedCards.length - 1];
-      if (lastPlacedCard) {
-        const isSameRank = (lastParsed.rank === lastPlacedCard.rank);
-        const isSameSuit = (lastParsed.suit === lastPlacedCard.suit);
-        if (!isSameRank || (!lastPlacedCard.isRankOnly && lastParsed.suit && !isSameSuit)) {
-          this.removeCard(lastPlacedCard.id);
-          this.currentSegmentPlacedCards.pop();
-          this.processedVoiceCardsCount--;
+    // Tentative card revision: Check if any cards placed in this segment were revised by streaming speech
+    while (this.processedVoiceCardsCount > 0 && this.currentSegmentPlacedCards.length >= this.processedVoiceCardsCount) {
+      const checkIdx = this.processedVoiceCardsCount - 1;
+      if (checkIdx < parsed.length) {
+        const parsedItem = parsed[checkIdx];
+        const placedCard = this.currentSegmentPlacedCards[checkIdx];
+        const isSameRank = (parsedItem.rank === placedCard.rank);
+        const isSameSuit = (parsedItem.suit === placedCard.suit);
+        const isSameHidden = (Boolean(parsedItem.isHidden) === Boolean(placedCard.isHidden));
+        if (isSameRank && (placedCard.isRankOnly || !parsedItem.suit || isSameSuit) && isSameHidden) {
+          break; // Matches, stop rolling back
         }
       }
+      const lastPlacedCard = this.currentSegmentPlacedCards.pop();
+      if (lastPlacedCard) {
+        this.removeCard(lastPlacedCard.id);
+      }
+      this.processedVoiceCardsCount--;
     }
 
     if (parsed.length > this.processedVoiceCardsCount) {

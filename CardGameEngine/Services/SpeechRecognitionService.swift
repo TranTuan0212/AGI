@@ -191,7 +191,7 @@ public class SpeechRecognitionService: ObservableObject {
                     guard self.sessionID == newSessionID, self.currentTaskID == initialTaskID else { return }
                     
                     if let result = result {
-                        let text = result.bestTranscription.formattedString
+                        let text = Self.formatTranscriptionWithPauses(result.bestTranscription)
                         DispatchQueue.main.async {
                             guard self.sessionID == newSessionID else { return }
                             self.recognizedText = text
@@ -318,7 +318,7 @@ public class SpeechRecognitionService: ObservableObject {
             createdTask = speechRecognizer.recognitionTask(with: newRequest) { [weak self] result, error in
                 guard let self = self, self.sessionID == newSessionID, self.currentTaskID == newTaskID, self.isRecording else { return }
                 if let result = result {
-                    let text = result.bestTranscription.formattedString
+                    let text = Self.formatTranscriptionWithPauses(result.bestTranscription)
                     DispatchQueue.main.async {
                         guard self.sessionID == newSessionID, self.isRecording else { return }
                         self.recognizedText = text
@@ -397,5 +397,29 @@ public class SpeechRecognitionService: ObservableObject {
             // Step 5: Deactivate audio session to return hardware to normal state
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         }
+    }
+    
+    /// Chuyển đổi transcription từ Apple Speech và phát hiện khoảng ngắt giọng giữa các từ.
+    /// Nếu người dùng nghỉ >= pauseThreshold (mặc định 1.2s), tự động chèn dấu phẩy ","
+    /// để bộ phân tích giọng nói tách biệt rõ ràng các quân bài độc lập (ví dụ "mười" nghỉ "hai" -> [10, 2])
+    /// thay vì gộp thành J, Q, K khi đọc lướt nhanh liền mạch.
+    public static func formatTranscriptionWithPauses(_ transcription: SFTranscription, pauseThreshold: TimeInterval = 1.2) -> String {
+        let segments = transcription.segments
+        guard !segments.isEmpty else { return transcription.formattedString }
+        
+        var words: [String] = []
+        for i in 0..<segments.count {
+            let seg = segments[i]
+            words.append(seg.substring)
+            
+            if i < segments.count - 1 {
+                let nextSeg = segments[i + 1]
+                let gap = nextSeg.timestamp - (seg.timestamp + seg.duration)
+                if gap >= pauseThreshold {
+                    words.append(",")
+                }
+            }
+        }
+        return words.joined(separator: " ")
     }
 }

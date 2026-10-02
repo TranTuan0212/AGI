@@ -486,19 +486,24 @@ public class GameViewModel: ObservableObject {
         
         guard !parsedCards.isEmpty else { return }
         
-        // Tentative card revision: Check if the last card placed in this segment was revised by Apple Speech streaming
-        // (For example: spoken "Mười" initially parsed as 10, then updated to "11" / Jack or "Mười một" / "Mười hai" / "Mười ba")
-        if processedVoiceCardsCount > 0 && parsedCards.count == processedVoiceCardsCount {
-            let lastParsed = parsedCards[processedVoiceCardsCount - 1]
-            if let lastPlacedCard = currentSegmentPlacedCards.last {
-                let isSameRank = (lastParsed.rank == lastPlacedCard.rank)
-                let isSameSuit = (lastParsed.suit == lastPlacedCard.suit)
-                if !isSameRank || (!lastPlacedCard.isRankOnly && lastParsed.suit != nil && !isSameSuit) {
-                    removeCard(lastPlacedCard)
-                    currentSegmentPlacedCards.removeLast()
-                    processedVoiceCardsCount -= 1
+        // Tentative card revision: Check if any cards placed in this segment were revised by streaming speech
+        // (For example: spoken "Mười" initially parsed as 10, then updated to "11" / "12" / "13" with new cards following)
+        while processedVoiceCardsCount > 0 && currentSegmentPlacedCards.count >= processedVoiceCardsCount {
+            let checkIdx = processedVoiceCardsCount - 1
+            if checkIdx < parsedCards.count {
+                let parsedItem = parsedCards[checkIdx]
+                let placedCard = currentSegmentPlacedCards[checkIdx]
+                let isSameRank = (parsedItem.rank == placedCard.rank)
+                let isSameSuit = (parsedItem.suit == placedCard.suit)
+                let isSameHidden = (parsedItem.isHidden == placedCard.isHidden)
+                if isSameRank && (placedCard.isRankOnly || parsedItem.suit == nil || isSameSuit) && isSameHidden {
+                    break // Valid match, stop rolling back
                 }
             }
+            if let lastPlaced = currentSegmentPlacedCards.popLast() {
+                removeCard(lastPlaced)
+            }
+            processedVoiceCardsCount -= 1
         }
         
         if parsedCards.count > processedVoiceCardsCount {

@@ -962,19 +962,24 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
       }
       const parsed = VietnameseCardVoiceParser.parse(text);
 
-      // Tentative revision
-      if (this.processedVoiceCardsCount > 0 && parsed.length === this.processedVoiceCardsCount) {
-        const lastParsed = parsed[this.processedVoiceCardsCount - 1];
-        const lastPlacedCard = this.currentSegmentPlacedCards[this.currentSegmentPlacedCards.length - 1];
-        if (lastPlacedCard) {
-          const isSameRank = (lastParsed.rank === lastPlacedCard.rank);
-          const isSameSuit = (lastParsed.suit === lastPlacedCard.suit);
-          if (!isSameRank || (!lastPlacedCard.isRankOnly && lastParsed.suit && !isSameSuit)) {
-            this.removeCard(lastPlacedCard.id);
-            this.currentSegmentPlacedCards.pop();
-            this.processedVoiceCardsCount--;
+      // Tentative revision: Check if any cards placed in this segment were revised by streaming speech
+      while (this.processedVoiceCardsCount > 0 && this.currentSegmentPlacedCards.length >= this.processedVoiceCardsCount) {
+        const checkIdx = this.processedVoiceCardsCount - 1;
+        if (checkIdx < parsed.length) {
+          const parsedItem = parsed[checkIdx];
+          const placedCard = this.currentSegmentPlacedCards[checkIdx];
+          const isSameRank = (parsedItem.rank === placedCard.rank);
+          const isSameSuit = (parsedItem.suit === placedCard.suit);
+          const isSameHidden = (Boolean(parsedItem.isHidden) === Boolean(placedCard.isHidden));
+          if (isSameRank && (placedCard.isRankOnly || !parsedItem.suit || isSameSuit) && isSameHidden) {
+            break;
           }
         }
+        const lastPlacedCard = this.currentSegmentPlacedCards.pop();
+        if (lastPlacedCard) {
+          this.removeCard(lastPlacedCard.id);
+        }
+        this.processedVoiceCardsCount--;
       }
 
       if (parsed.length > this.processedVoiceCardsCount) {
@@ -1004,6 +1009,36 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   tentativeVoiceTest.processVoiceInput('11 12 13', 1);
   assert(tentativeVoiceTest.players[2].cards.length === 1 && tentativeVoiceTest.players[2].cards[0].rank === 13, 'Tentative Revision: Đọc tiếp "13" -> Tụ 3 nhận đúng lá 13 (K)');
   assert(!tentativeVoiceTest.players.some(p => p.cards.some(c => c.rank === 10)), 'Tentative Revision: Hoàn toàn không còn lá 10 nào bị kẹt lại trên bất kỳ tụ nào!');
+
+  // Bước 5: Kiểm thử lỗi người dùng báo - Đọc "mười", sau đó Apple Speech cập nhật thành "mười hai ba"
+  // (Số lượng lá tăng từ 1 lên 2, nhưng lá đầu tiên phải được sửa từ 10 thành 12/Q, lá sau là 3)
+  const streamFixTest = { ...tentativeVoiceTest, players: [{ cards: [] }, { cards: [] }, { cards: [] }], currentSegmentPlacedCards: [], processedVoiceCardsCount: 0, currentVoiceSegmentId: 0, actionHistory: [] };
+  streamFixTest.processVoiceInput('mười', 2);
+  assert(streamFixTest.players[0].cards.length === 1 && streamFixTest.players[0].cards[0].rank === 10, 'Streaming Fix: Ban đầu nhận "mười" -> Tụ 1 có lá 10');
+
+  streamFixTest.processVoiceInput('mười hai ba', 2);
+  assert(streamFixTest.players[0].cards.length === 1 && streamFixTest.players[0].cards[0].rank === 12, 'Streaming Fix: Cập nhật "mười hai ba" -> Tụ 1 rút lá 10 và nhận lá 12 (Q)');
+  assert(streamFixTest.players[1].cards.length === 1 && streamFixTest.players[1].cards[0].rank === 3, 'Streaming Fix: Tụ 2 nhận đúng lá 3');
+  assert(!streamFixTest.players.some(p => p.cards.some(c => c.rank === 10)), 'Streaming Fix: Tuyệt đối không bị nhảy hay kẹt lại lá 10!');
+
+  // Bước 6: Kiểm thử bóc tách chuỗi số dính 3 ký tự (123 -> Q 3, 122 -> Q 2, 113 -> J 3, 132 -> K 2)
+  const res123 = VietnameseCardVoiceParser.parse('123');
+  assert(res123.length === 2 && res123[0].rank === 12 && res123[1].rank === 3, 'Voice Parser: "123" -> [12 (Q), 3]');
+
+  const res122 = VietnameseCardVoiceParser.parse('122');
+  assert(res122.length === 2 && res122[0].rank === 12 && res122[1].rank === 2, 'Voice Parser: "122" -> [12 (Q), 2]');
+
+  const res113 = VietnameseCardVoiceParser.parse('113');
+  assert(res113.length === 2 && res113[0].rank === 11 && res113[1].rank === 3, 'Voice Parser: "113" -> [11 (J), 3]');
+
+  const res132 = VietnameseCardVoiceParser.parse('132');
+  assert(res132.length === 2 && res132[0].rank === 13 && res132[1].rank === 2, 'Voice Parser: "132" -> [13 (K), 2]');
+
+  const resMuoiHaiBa = VietnameseCardVoiceParser.parse('mười hai ba');
+  assert(resMuoiHaiBa.length === 2 && resMuoiHaiBa[0].rank === 12 && resMuoiHaiBa[1].rank === 3, 'Voice Parser: "mười hai ba" -> [12 (Q), 3]');
+
+  const resMuoiHaiHai = VietnameseCardVoiceParser.parse('mười hai hai');
+  assert(resMuoiHaiHai.length === 2 && resMuoiHaiHai[0].rank === 12 && resMuoiHaiHai[1].rank === 2, 'Voice Parser: "mười hai hai" -> [12 (Q), 2]');
 }
 
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);
