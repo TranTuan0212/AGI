@@ -399,27 +399,48 @@ public class SpeechRecognitionService: ObservableObject {
         }
     }
     
-    /// Chuyển đổi transcription từ Apple Speech và phát hiện khoảng ngắt giọng giữa các từ.
-    /// Nếu người dùng nghỉ >= pauseThreshold (mặc định 1.2s), tự động chèn dấu phẩy ","
-    /// để bộ phân tích giọng nói tách biệt rõ ràng các quân bài độc lập (ví dụ "mười" nghỉ "hai" -> [10, 2])
-    /// thay vì gộp thành J, Q, K khi đọc lướt nhanh liền mạch.
-    public static func formatTranscriptionWithPauses(_ transcription: SFTranscription, pauseThreshold: TimeInterval = 1.2) -> String {
+    /// Giữ nguyên chuỗi formattedString chuẩn của Apple Speech (chứa sẵn số 11, 12, 13 và cụm từ tiếng Việt),
+    /// đồng thời phát hiện khoảng im lặng giữa các từ (gap >= pauseThreshold).
+    /// Nếu có khoảng dừng nghỉ, chèn dấu phẩy ", " vào đúng vị trí dừng trên formattedString
+    /// mà không bẻ gãy các số 11 (J), 12 (Q), 13 (K) thành từng ký tự rời.
+    public static func formatTranscriptionWithPauses(_ transcription: SFTranscription, pauseThreshold: TimeInterval = 1.0) -> String {
+        let base = transcription.formattedString
+        guard !base.isEmpty else { return "" }
         let segments = transcription.segments
-        guard !segments.isEmpty else { return transcription.formattedString }
+        guard segments.count > 1 else { return base }
         
-        var words: [String] = []
-        for i in 0..<segments.count {
+        let nsString = base as NSString
+        var pauseInsertLocations: [Int] = []
+        
+        for i in 0..<(segments.count - 1) {
             let seg = segments[i]
-            words.append(seg.substring)
-            
-            if i < segments.count - 1 {
-                let nextSeg = segments[i + 1]
-                let gap = nextSeg.timestamp - (seg.timestamp + seg.duration)
-                if gap >= pauseThreshold {
-                    words.append(",")
+            let nextSeg = segments[i + 1]
+            let gap = nextSeg.timestamp - (seg.timestamp + seg.duration)
+            if gap >= pauseThreshold {
+                let endOfSeg = seg.substringRange.location + seg.substringRange.length
+                if endOfSeg <= nsString.length {
+                    pauseInsertLocations.append(endOfSeg)
                 }
             }
         }
-        return words.joined(separator: " ")
+        
+        guard !pauseInsertLocations.isEmpty else { return base }
+        
+        // Chèn dấu phẩy từ phải qua trái để không làm xê dịch chỉ mục của các vị trí phía trước
+        let mutable = NSMutableString(string: base)
+        for pos in pauseInsertLocations.reversed() {
+            if pos < mutable.length {
+                let charAtPos = mutable.substring(with: NSRange(location: pos, length: 1))
+                if charAtPos == " " {
+                    mutable.replaceCharacters(in: NSRange(location: pos, length: 1), with: ", ")
+                } else if charAtPos != "," {
+                    mutable.insert(", ", at: pos)
+                }
+            } else {
+                mutable.append(", ")
+            }
+        }
+        
+        return mutable as String
     }
 }
