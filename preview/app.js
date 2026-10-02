@@ -2287,7 +2287,16 @@ class AppController {
     this.voiceCommitTimer = null;
 
     const lastPlaced = this.currentSegmentPlacedCards[this.currentSegmentPlacedCards.length - 1];
-    const commitInterval = (lastPlaced && lastPlaced.rank === 10) ? 1000 : 800;
+    let commitInterval = 200;
+    if (lastPlaced) {
+      if (lastPlaced.rank === 10) {
+        commitInterval = 300;
+      } else if (lastPlaced.rank >= 11 && lastPlaced.rank <= 13) {
+        commitInterval = 180;
+      } else {
+        commitInterval = 200;
+      }
+    }
     this.isLastCardTenTentative = (lastPlaced && lastPlaced.rank === 10);
     this.isTenLocked = false;
 

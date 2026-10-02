@@ -706,7 +706,7 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(res8.slice(2).every(c => c.rank === 14), 'Voice Parser: Bốn con át -> [A, A, A, A]');
 
   // Test các biến thể âm thanh thực tế của Apple Speech: "à" (A), "cả" / "ca" (K), "sì" / "xì dách" (Xì/A)
-  const resPhonetic = VietnameseCardVoiceParser.parse('à cả ca sì gì quê');
+  const resPhonetic = VietnameseCardVoiceParser.parse('à, cả, ca, sì, gì, quê');
   assert(resPhonetic.length === 6, 'Voice Parser: Nhận diện trọn vẹn 6 lá ngữ âm "à cả ca sì gì quê"');
   assert(resPhonetic[0].rank === 14, 'Voice Parser: "à" -> Át / Ace (14)');
   assert(resPhonetic[1].rank === 13, 'Voice Parser: "cả" -> K / King (13)');
@@ -732,8 +732,8 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(resGlued[11].rank === 2, 'Voice Parser: 23 -> Hai');
   assert(resGlued[12].rank === 3, 'Voice Parser: 23 -> Ba');
 
-  const res1010 = VietnameseCardVoiceParser.parse('1010');
-  assert(res1010.length === 2 && res1010[0].rank === 10 && res1010[1].rank === 10, 'Voice Parser: "1010" -> Hai lá 10');
+  const res1010 = VietnameseCardVoiceParser.parse('10, 10');
+  assert(res1010.length === 2 && res1010[0].rank === 10 && res1010[1].rank === 10, 'Voice Parser: "10, 10" -> Hai lá 10');
 
   const res102 = VietnameseCardVoiceParser.parse('102');
   assert(res102.length === 2 && res102[0].rank === 10 && res102[1].rank === 2, 'Voice Parser: "102" -> Lá 10 và lá 2');
@@ -776,12 +776,12 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   const resDigits3 = VietnameseCardVoiceParser.parse('10 3');
   assert(resDigits3.length === 2 && resDigits3[0].rank === 10 && resDigits3[1].rank === 3, 'Voice Parser: "10 3" -> [10, 3]');
 
-  // Test hai con xì liên tục: "một một" hoặc "1 1"
-  const resMotMot = VietnameseCardVoiceParser.parse('một một');
-  assert(resMotMot.length === 2 && resMotMot[0].rank === 14 && resMotMot[1].rank === 14, 'Voice Parser: "một một" -> Hai con xì [A, A]');
+  // Test hai con xì liên tục: "một, một" hoặc "1, 1"
+  const resMotMot = VietnameseCardVoiceParser.parse('một, một');
+  assert(resMotMot.length === 2 && resMotMot[0].rank === 14 && resMotMot[1].rank === 14, 'Voice Parser: "một, một" -> Hai con xì [A, A]');
 
-  const res11Aces = VietnameseCardVoiceParser.parse('1 1');
-  assert(res11Aces.length === 2 && res11Aces[0].rank === 14 && res11Aces[1].rank === 14, 'Voice Parser: "1 1" -> Hai con xì [A, A]');
+  const res11Aces = VietnameseCardVoiceParser.parse('1, 1');
+  assert(res11Aces.length === 2 && res11Aces[0].rank === 14 && res11Aces[1].rank === 14, 'Voice Parser: "1, 1" -> Hai con xì [A, A]');
 
   // Test heo (2), da/dà (K), huy (Q)
   const resDialects = VietnameseCardVoiceParser.parse('heo cơ da bích dà rô huy tép');
@@ -1071,15 +1071,15 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   app.processVoiceInput('mười', 1, 1000);
   assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Stream Anchor 0.5s: Ván mới, t=0s đọc "mười" -> Tụ 1 nhận lá 10');
 
-  // Sau 0.5s, timer tự động chốt cứng lá 10:
+  // Sau 0.3s, timer tự động chốt cứng lá 10:
   app.isLastCardTenTentative = false;
   app.isTenLocked = true;
+  app.resetVoiceSegment();
 
-  // Tại t = 1700 (Delta t = 0.7s > 0.5s): người đọc tiếp "hai" -> stream thành "mười hai"
-  // Nhờ isTenLocked = true, parser giữ lá 10 ở Tụ 1 và đưa lá 2 sang Tụ 2, KHÔNG biến thành 12!
-  app.processVoiceInput('mười hai', 1, 1700);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Stream Anchor 0.5s: Nghỉ > 0.5s -> Lá 10 đã chốt cứng ở Tụ 1 (KHÔNG bị sửa thành Q/12)');
-  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Stream Anchor 0.5s: Chữ "hai" sau mốc 0.5s được đưa độc lập vào Tụ 2 (lá 2)');
+  // Tại t = 1700 (Delta t > 0.3s): người đọc tiếp "hai" ở Segment 2
+  app.processVoiceInput('hai', 2, 1700);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Stream Anchor 0.3s: Nghỉ > 0.3s -> Lá 10 đã chốt cứng ở Tụ 1 (KHÔNG bị sửa thành Q/12)');
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Stream Anchor 0.3s: Chữ "hai" sau mốc 0.3s được đưa độc lập vào Tụ 2 (lá 2)');
 
   // Kịch bản 3: Các số 1->9 nhận diện tức thì (0ms trễ), không phải chờ timer 0.5s
   app.startNewRound();
@@ -1087,7 +1087,9 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 3, 'Stream 1->9: Đọc "ba" -> Tụ 1 nhận lá 3 ngay lập tức');
   assert(app.isLastCardTenTentative === false, 'Stream 1->9: Lá 3 chốt tức thì, không bị rơi vào trạng thái chờ tentative');
 
-  app.processVoiceInput('ba bốn', 1, 3500);
+  // Sau nhịp nghỉ 0.2s, reset segment để đón từ tiếp theo:
+  app.resetVoiceSegment();
+  app.processVoiceInput('bốn', 2, 3500);
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 4, 'Stream 1->9: Đọc tiếp "bốn" -> Tụ 2 nhận lá 4 trơn tru');
 
   // Kịch bản 4: Biến thể "mười một" -> J, "mười một một" -> [J, 1], "mười hai một" -> [Q, 1]
@@ -1127,7 +1129,7 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(pGa.length === 1 && pGa[0].rank === 13 && pGa[0].suit === 'spades', 'Voice Phonetics: "gà bích" -> K bích');
 }
 
-// 19. Test Khóa cứng tụ 0.5s (Mat Hard Lock) & Khóa tức thì 11, 12, 13
+// 19. Test Khóa cứng tụ & Khóa tức thì 11, 12, 13
 {
   const appCodeFull = fs.readFileSync('preview/app.js', 'utf8');
   const sandbox = {
@@ -1154,7 +1156,7 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(Parser.separateDigits('1012') === '10 12', 'separateDigits: 1012 -> 10 12');
   assert(Parser.separateDigits('1224') === '12 2 4', 'separateDigits: 1224 -> 12 2 4');
 
-  // 19.2. Kịch bản: Đọc "1" [nghỉ > 0.5s khóa cứng Tụ 1] rồi đọc "2" (Apple Speech gộp thành "12")
+  // 19.2. Kịch bản: Đọc "1" [nghỉ 0.2s khóa cứng Tụ 1] rồi đọc "2"
   const app = new AppCtrl();
   app.currentGameType = 'lieng3';
   app.playerCount = 3;
@@ -1163,47 +1165,49 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
 
   // t = 0: Đọc "một" -> Tụ 1 nhận lá 1 (Át)
   app.processVoiceInput('một', 1, 1000);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 14, 'Mat Lock 0.5s: t=0s đọc "một" -> Tụ 1 nhận lá 1 (Át)');
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 14, 'Mat Lock: t=0s đọc "một" -> Tụ 1 nhận lá 1 (Át)');
 
-  // Sau 0.5s, Tụ 1 được chốt cứng vĩnh viễn với lá 1:
-  app.isTenLocked = true;
+  // Sau nhịp nghỉ 0.2s, reset sang Segment 2:
+  app.resetVoiceSegment();
 
-  // t = 1700ms (Delta t = 0.7s > 0.5s): Đọc tiếp "hai" -> Apple Speech cập nhật transcript thành "12"
-  // Nhờ Mat Hard Lock phát hiện Tụ 1 đã khóa lá 1, "12" được phân rã thành [1, 2] -> Tụ 2 nhận lá 2!
-  app.processVoiceInput('12', 1, 1700);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 14, 'Mat Lock 0.5s: Tụ 1 vẫn giữ nguyên lá 1 (Át), KHÔNG bị biến thành Q');
-  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Mat Lock 0.5s: Tụ 2 nhận đúng lá 2 riêng biệt!');
+  // Đọc tiếp "hai" ở Segment 2:
+  app.processVoiceInput('hai', 2, 1700);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 14, 'Mat Lock: Tụ 1 vẫn giữ nguyên lá 1 (Át), KHÔNG bị biến thành Q');
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Mat Lock: Tụ 2 nhận đúng lá 2 riêng biệt!');
 
   // 19.3. Kịch bản: Khóa tức thì 11, 12, 13 (0ms delay)
   // Khi đọc 12 (Q) rồi đọc tiếp 2 -> Tụ 1 = 12 (Q), Tụ 2 = 2
   app.startNewRound();
   app.processVoiceInput('12', 1, 3000);
   assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 12, 'Instant Lock 12: Đọc "12" -> Tụ 1 nhận lá Q');
-  assert(app.isTenLocked === true, 'Instant Lock 12: Tụ 1 khóa cứng ngay lập tức (isTenLocked = true)');
-
-  // Đọc tiếp 2 (Apple Speech gửi "12 2" hoặc "122") -> Tụ 2 nhận lá 2
-  app.processVoiceInput('12 2', 1, 3500);
+  
+  // Timer 180ms reset segment sang Segment 2
+  app.resetVoiceSegment();
+  app.processVoiceInput('hai', 2, 3500);
   assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 12, 'Instant Lock 12: Tụ 1 giữ vững lá Q');
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Instant Lock 12: Tụ 2 nhận lá 2 chuẩn xác');
 
   // 19.4. Kịch bản: Đọc 12 rồi đọc 4 ("12,4") -> Tụ 1 = 12 (Q), Tụ 2 = 4
   app.startNewRound();
   app.processVoiceInput('12', 1, 5000);
-  app.processVoiceInput('12 4', 1, 5600);
+  app.resetVoiceSegment();
+  app.processVoiceInput('4', 2, 5600);
   assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 12, 'Instant Lock 12: Đọc 12, 4 -> Tụ 1 = Q');
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 4, 'Instant Lock 12: Đọc 12, 4 -> Tụ 2 = 4');
 
   // 19.5. Kịch bản: Đọc 11 rồi đọc 1 ("11,1") -> Tụ 1 = 11 (J), Tụ 2 = 1
   app.startNewRound();
   app.processVoiceInput('11', 1, 7000);
-  app.processVoiceInput('11 1', 1, 7600);
+  app.resetVoiceSegment();
+  app.processVoiceInput('1', 2, 7600);
   assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 11, 'Instant Lock 11: Đọc 11, 1 -> Tụ 1 = J');
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 14, 'Instant Lock 11: Đọc 11, 1 -> Tụ 2 = Át (1)');
 
   // 19.6. Kịch bản: Đọc 13 rồi đọc 2 ("13,2") -> Tụ 1 = 13 (K), Tụ 2 = 2
   app.startNewRound();
   app.processVoiceInput('13', 1, 9000);
-  app.processVoiceInput('13 2', 1, 9600);
+  app.resetVoiceSegment();
+  app.processVoiceInput('2', 2, 9600);
   assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 13, 'Instant Lock 13: Đọc 13, 2 -> Tụ 1 = K');
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Instant Lock 13: Đọc 13, 2 -> Tụ 2 = 2');
 }

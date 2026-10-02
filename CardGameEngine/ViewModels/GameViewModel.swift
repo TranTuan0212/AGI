@@ -596,7 +596,18 @@ public class GameViewModel: ObservableObject {
         voiceCommitTimer = nil
         
         let lastPlaced = currentSegmentPlacedCards.last
-        let commitInterval = (lastPlaced?.rank == .ten) ? 1.0 : 0.8
+        let commitInterval: TimeInterval
+        if let last = lastPlaced {
+            if last.rank == .ten {
+                commitInterval = 0.30
+            } else if last.rank == .jack || last.rank == .queen || last.rank == .king {
+                commitInterval = 0.18
+            } else {
+                commitInterval = 0.20
+            }
+        } else {
+            commitInterval = 0.20
+        }
         isLastCardTenTentative = (lastPlaced?.rank == .ten)
         isTenLocked = false
         

@@ -352,8 +352,8 @@ public class SpeechRecognitionService: ObservableObject {
             self.recognizedText = ""
         }
         
-        // Wait 80ms for Apple XPC connection to release clean state
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
+        // Wait 30ms for Apple XPC connection to release clean state
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) { [weak self] in
             guard let self = self, self.sessionID == newSessionID, self.currentTaskID == newTaskID, self.isRecording else { return }
             guard let speechRecognizer = self.speechRecognizer, speechRecognizer.isAvailable else { return }
             
