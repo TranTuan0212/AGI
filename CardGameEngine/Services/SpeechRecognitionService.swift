@@ -31,6 +31,7 @@ public class SpeechRecognitionService: ObservableObject {
     
     // Incremental segment ID per recognition task to notify ViewModel on phrase/task resets
     private var segmentID: Int = 0
+    private var currentOnResult: ((String, Int) -> Void)? = nil
     
     public static func getContextualStrings() -> [String] {
         var list = [
@@ -138,6 +139,7 @@ public class SpeechRecognitionService: ObservableObject {
         self.currentTaskID = initialTaskID
         self.segmentID = 1
         let initialSegmentID = self.segmentID
+        self.currentOnResult = onResult
         
         do {
             let audioSession = AVAudioSession.sharedInstance()
@@ -191,7 +193,7 @@ public class SpeechRecognitionService: ObservableObject {
                     guard self.sessionID == newSessionID, self.currentTaskID == initialTaskID else { return }
                     
                     if let result = result {
-                        let text = Self.formatTranscriptionWithPauses(result.bestTranscription)
+                        let text = result.bestTranscription.formattedString
                         DispatchQueue.main.async {
                             guard self.sessionID == newSessionID else { return }
                             self.recognizedText = text
@@ -318,7 +320,7 @@ public class SpeechRecognitionService: ObservableObject {
             createdTask = speechRecognizer.recognitionTask(with: newRequest) { [weak self] result, error in
                 guard let self = self, self.sessionID == newSessionID, self.currentTaskID == newTaskID, self.isRecording else { return }
                 if let result = result {
-                    let text = Self.formatTranscriptionWithPauses(result.bestTranscription)
+                    let text = result.bestTranscription.formattedString
                     DispatchQueue.main.async {
                         guard self.sessionID == newSessionID, self.isRecording else { return }
                         self.recognizedText = text
@@ -342,7 +344,13 @@ public class SpeechRecognitionService: ObservableObject {
         self.recognitionTask = createdTask
     }
     
+    public func commitCurrentSegment() {
+        guard self.isRecording, let onResult = self.currentOnResult else { return }
+        self.restartRecognitionTask(newSessionID: self.sessionID, onResult: onResult)
+    }
+    
     public func stopRecording(callEndAudio: Bool = true) {
+        self.currentOnResult = nil
         // Step 1: Immediately cut off buffer delivery under lock
         lock.lock()
         isAcceptingAudio = false
@@ -397,50 +405,5 @@ public class SpeechRecognitionService: ObservableObject {
             // Step 5: Deactivate audio session to return hardware to normal state
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         }
-    }
-    
-    /// Giữ nguyên chuỗi formattedString chuẩn của Apple Speech (chứa sẵn số 11, 12, 13 và cụm từ tiếng Việt),
-    /// đồng thời phát hiện khoảng im lặng giữa các từ (gap >= pauseThreshold).
-    /// Nếu có khoảng dừng nghỉ, chèn dấu phẩy ", " vào đúng vị trí dừng trên formattedString
-    /// mà không bẻ gãy các số 11 (J), 12 (Q), 13 (K) thành từng ký tự rời.
-    public static func formatTranscriptionWithPauses(_ transcription: SFTranscription, pauseThreshold: TimeInterval = 1.0) -> String {
-        let base = transcription.formattedString
-        guard !base.isEmpty else { return "" }
-        let segments = transcription.segments
-        guard segments.count > 1 else { return base }
-        
-        let nsString = base as NSString
-        var pauseInsertLocations: [Int] = []
-        
-        for i in 0..<(segments.count - 1) {
-            let seg = segments[i]
-            let nextSeg = segments[i + 1]
-            let gap = nextSeg.timestamp - (seg.timestamp + seg.duration)
-            if gap >= pauseThreshold {
-                let endOfSeg = seg.substringRange.location + seg.substringRange.length
-                if endOfSeg <= nsString.length {
-                    pauseInsertLocations.append(endOfSeg)
-                }
-            }
-        }
-        
-        guard !pauseInsertLocations.isEmpty else { return base }
-        
-        // Chèn dấu phẩy từ phải qua trái để không làm xê dịch chỉ mục của các vị trí phía trước
-        let mutable = NSMutableString(string: base)
-        for pos in pauseInsertLocations.reversed() {
-            if pos < mutable.length {
-                let charAtPos = mutable.substring(with: NSRange(location: pos, length: 1))
-                if charAtPos == " " {
-                    mutable.replaceCharacters(in: NSRange(location: pos, length: 1), with: ", ")
-                } else if charAtPos != "," {
-                    mutable.insert(", ", at: pos)
-                }
-            } else {
-                mutable.append(", ")
-            }
-        }
-        
-        return mutable as String
     }
 }

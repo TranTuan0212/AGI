@@ -106,17 +106,6 @@ public struct VietnameseCardVoiceParser {
                 let first = currentDigits.prefix(1)
                 let second = currentDigits.suffix(1)
                 result.append("\(first) \(second)")
-            } else if currentDigits.count == 3 {
-                let prefix2 = String(currentDigits.prefix(2))
-                let last1 = String(currentDigits.suffix(1))
-                if prefix2 == "10" || prefix2 == "11" || prefix2 == "12" || prefix2 == "13" {
-                    result.append("\(prefix2) \(last1)")
-                } else {
-                    let ch1 = currentDigits.prefix(1)
-                    let ch2 = currentDigits.dropFirst().prefix(1)
-                    let ch3 = currentDigits.suffix(1)
-                    result.append("\(ch1) \(ch2) \(ch3)")
-                }
             } else {
                 var res: [String] = []
                 var i = currentDigits.startIndex
@@ -233,25 +222,16 @@ public struct VietnameseCardVoiceParser {
             .replacingOccurrences(of: "sì dách", with: "xì")
             .replacingOccurrences(of: "mười một", with: "11")
             .replacingOccurrences(of: "muoi mot", with: "11")
-            .replacingOccurrences(of: "mười mốt", with: "11")
-            .replacingOccurrences(of: "muoi mot", with: "11")
             .replacingOccurrences(of: "mười 1", with: "11")
             .replacingOccurrences(of: "muoi 1", with: "11")
-            .replacingOccurrences(of: "10 một", with: "11")
-            .replacingOccurrences(of: "10 mốt", with: "11")
-            .replacingOccurrences(of: "10 1", with: "11")
             .replacingOccurrences(of: "mười hai", with: "12")
             .replacingOccurrences(of: "muoi hai", with: "12")
             .replacingOccurrences(of: "mười 2", with: "12")
             .replacingOccurrences(of: "muoi 2", with: "12")
-            .replacingOccurrences(of: "10 hai", with: "12")
-            .replacingOccurrences(of: "10 2", with: "12")
             .replacingOccurrences(of: "mười ba", with: "13")
             .replacingOccurrences(of: "muoi ba", with: "13")
             .replacingOccurrences(of: "mười 3", with: "13")
             .replacingOccurrences(of: "muoi 3", with: "13")
-            .replacingOccurrences(of: "10 ba", with: "13")
-            .replacingOccurrences(of: "10 3", with: "13")
             .replacingOccurrences(of: "bỏ bài", with: "__hidden__")
             .replacingOccurrences(of: "bo bai", with: "__hidden__")
             .replacingOccurrences(of: "bỏ qua", with: "__hidden__")
