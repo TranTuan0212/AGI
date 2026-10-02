@@ -1601,6 +1601,12 @@ class VietnameseCardVoiceParser {
       if (match.length === 2) {
         return match[0] + ' ' + match[1];
       }
+      if (match.length === 3) {
+        const prefix2 = match.slice(0, 2);
+        if (['10', '11', '12', '13'].includes(prefix2)) {
+          return prefix2 + ' ' + match[2];
+        }
+      }
       let res = [];
       let i = 0;
       while (i < match.length) {
@@ -1614,6 +1620,18 @@ class VietnameseCardVoiceParser {
       }
       return res.join(' ');
     }).replace(/\s+/g, ' ').trim();
+  }
+
+  static extractTrainingWords(text) {
+    if (!text || typeof text !== 'string') return [];
+    let unglued = this.separateDigits(text);
+    let cleaned = unglued.toLowerCase()
+      .replace(/[,.:;?!/\-—_~|\n\r\t"'()[\]{}]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!cleaned) return [];
+    const tokens = cleaned.split(' ').map(w => w.trim()).filter(w => w && w !== '__pause__');
+    return Array.from(new Set(tokens));
   }
 
   static parse(text, isTenLocked = false) {
@@ -2125,6 +2143,7 @@ class AppController {
       } else {
         // Quân bài không phải 10 chốt cứng ngay lập tức!
         this.isLastCardTenTentative = false;
+        this.isTenLocked = false;
         if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
         this.voiceCommitTimer = null;
       }

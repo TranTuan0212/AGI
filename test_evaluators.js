@@ -928,6 +928,30 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   const resChumRemoved = VietnameseCardVoiceParser.parse('chum tép');
   assert(resChumRemoved.length === 0, 'Voice Custom Trainer: Xóa từ khóa "chum" -> không còn nhận diện thành J');
 
+  // Test Tự động ngắt từng chữ từ chuỗi thu âm 5s (extractTrainingWords)
+  const tokens = VietnameseCardVoiceParser.extractTrainingWords('dây kiu chây già bồi');
+  assert(tokens.length === 5 && tokens[0] === 'dây' && tokens[1] === 'kiu' && tokens[2] === 'chây' && tokens[3] === 'già' && tokens[4] === 'bồi', 'Voice Custom Trainer: Tự động ngắt 5 từ từ chuỗi thu âm dài');
+
+  // Test Tách số dính 3 chữ số bắt đầu bằng 11, 12, 13 (separateDigits)
+  assert(VietnameseCardVoiceParser.separateDigits('124') === '12 4', 'separateDigits: 124 -> 12 4');
+  assert(VietnameseCardVoiceParser.separateDigits('122') === '12 2', 'separateDigits: 122 -> 12 2');
+  assert(VietnameseCardVoiceParser.separateDigits('134') === '13 4', 'separateDigits: 134 -> 13 4');
+  assert(VietnameseCardVoiceParser.separateDigits('132') === '13 2', 'separateDigits: 132 -> 13 2');
+  assert(VietnameseCardVoiceParser.separateDigits('114') === '11 4', 'separateDigits: 114 -> 11 4');
+
+  // Test không bị dính số 2/3 phía sau khi đọc 12 hoặc 13 kèm số khác
+  const p12_4 = VietnameseCardVoiceParser.parse('12, 4');
+  assert(p12_4.length === 2 && p12_4[0].rank === 12 && p12_4[1].rank === 4, 'Voice Parser: "12, 4" -> [12, 4] (Không bị dính số 2 ở giữa)');
+
+  const p12_2 = VietnameseCardVoiceParser.parse('12, 2');
+  assert(p12_2.length === 2 && p12_2[0].rank === 12 && p12_2[1].rank === 2, 'Voice Parser: "12, 2" -> [12, 2] (Không bị dính số 2 ở giữa)');
+
+  const p13_4 = VietnameseCardVoiceParser.parse('13, 4');
+  assert(p13_4.length === 2 && p13_4[0].rank === 13 && p13_4[1].rank === 4, 'Voice Parser: "13, 4" -> [13, 4] (Không bị dính số 3 ở giữa)');
+
+  const p13_2 = VietnameseCardVoiceParser.parse('13, 2');
+  assert(p13_2.length === 2 && p13_2[0].rank === 13 && p13_2[1].rank === 2, 'Voice Parser: "13, 2" -> [13, 2] (Không bị dính số 3 ở giữa)');
+
   // Test Tentative Card Revision: Nói "mười" rồi nói tiếp "mười một" / "11" -> Thay thế lá 10 thành J (11) trên cùng 1 Tụ
   const tentativeVoiceTest = {
     processedVoiceCardsCount: 0,

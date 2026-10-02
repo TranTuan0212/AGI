@@ -106,6 +106,16 @@ public struct VietnameseCardVoiceParser {
                 let first = currentDigits.prefix(1)
                 let second = currentDigits.suffix(1)
                 result.append("\(first) \(second)")
+            } else if currentDigits.count == 3 {
+                let prefix2 = String(currentDigits.prefix(2))
+                if prefix2 == "10" || prefix2 == "11" || prefix2 == "12" || prefix2 == "13" {
+                    let third = currentDigits.suffix(1)
+                    result.append("\(prefix2) \(third)")
+                } else {
+                    var res: [String] = []
+                    for ch in currentDigits { res.append(String(ch)) }
+                    result.append(res.joined(separator: " "))
+                }
             } else {
                 var res: [String] = []
                 var i = currentDigits.startIndex
@@ -140,6 +150,28 @@ public struct VietnameseCardVoiceParser {
             .split(separator: " ")
             .joined(separator: " ")
             .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Tách một câu nói dài thành các từ khóa riêng biệt để người dùng dễ bấm lưu (1 chạm)
+    public static func extractTrainingWords(_ text: String) -> [String] {
+        let unglued = separateDigits(text)
+        let separators = CharacterSet(charactersIn: ",.:;?!/\\-—_~|\n\r\t\"'()[]{}")
+        let cleaned = unglued.lowercased()
+            .components(separatedBy: separators)
+            .joined(separator: " ")
+            .split(separator: " ")
+            .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty && $0 != "__pause__" && $0.count >= 1 }
+        
+        var seen = Set<String>()
+        var uniqueWords: [String] = []
+        for word in cleaned {
+            if !seen.contains(word) {
+                seen.insert(word)
+                uniqueWords.append(word)
+            }
+        }
+        return uniqueWords
     }
 
     // MARK: - Custom Voice Keywords for J, Q, K

@@ -10,6 +10,7 @@ public struct SettingsView: View {
     @State private var trainedSpokenText: String = ""
     @State private var manualCustomKeyword: String = ""
     @State private var customKeywordsVersion: Int = 0
+    @State private var recordedTokens: [String] = []
     
     public var body: some View {
         NavigationView {
@@ -98,31 +99,58 @@ public struct SettingsView: View {
                             
                             Spacer()
                             
-                            if !trainedSpokenText.isEmpty {
-                                Button(action: {
-                                    saveTrainedWord(trainedSpokenText)
-                                }) {
-                                    Text("➕ Lưu từ này")
-                                        .font(.subheadline.bold())
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 7)
-                                        .background(Color.green)
-                                        .cornerRadius(8)
+                            if !recordedTokens.isEmpty {
+                                Button("Xóa gợi ý") {
+                                    recordedTokens.removeAll()
+                                    trainedSpokenText = ""
                                 }
-                                .buttonStyle(PlainButtonStyle())
+                                .font(.caption)
+                                .foregroundColor(.red)
                             }
                         }
                         
                         if !trainedSpokenText.isEmpty {
                             HStack {
-                                Text("Mic nghe được:")
+                                Text("Mic nghe:")
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                                 Text("\"\(trainedSpokenText)\"")
-                                    .font(.subheadline.bold())
+                                    .font(.caption.bold())
                                     .foregroundColor(.primary)
                             }
+                        }
+                        
+                        // Hiển thị từng chữ/từ riêng biệt để người dùng chạm 1 cái là thêm ngay
+                        if !recordedTokens.isEmpty {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Chạm vào từ để thêm vào \(selectedRankForTraining.displaySymbol):")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 8) {
+                                        ForEach(recordedTokens, id: \.self) { token in
+                                            Button(action: {
+                                                saveTrainedWord(token)
+                                            }) {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: "plus.circle.fill")
+                                                        .foregroundColor(.green)
+                                                    Text(token)
+                                                        .font(.subheadline.bold())
+                                                        .foregroundColor(.primary)
+                                                }
+                                                .padding(.horizontal, 10)
+                                                .padding(.vertical, 6)
+                                                .background(Color.green.opacity(0.15))
+                                                .cornerRadius(10)
+                                            }
+                                            .buttonStyle(PlainButtonStyle())
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 2)
                         }
                         
                         // Hoặc gõ chữ trực tiếp
@@ -214,10 +242,17 @@ public struct SettingsView: View {
             isTrainingRecording = false
         } else {
             trainedSpokenText = ""
+            recordedTokens.removeAll()
             viewModel.voiceService.startRecording(
                 onResult: { text, _ in
                     DispatchQueue.main.async {
                         self.trainedSpokenText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let words = VietnameseCardVoiceParser.extractTrainingWords(text)
+                        for w in words {
+                            if !self.recordedTokens.contains(w) {
+                                self.recordedTokens.append(w)
+                            }
+                        }
                     }
                 },
                 onError: { _ in
@@ -234,11 +269,7 @@ public struct SettingsView: View {
         let clean = rawWord.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !clean.isEmpty else { return }
         VietnameseCardVoiceParser.addCustomKeyword(clean, for: selectedRankForTraining)
-        trainedSpokenText = ""
+        recordedTokens.removeAll { $0 == clean }
         customKeywordsVersion += 1
-        if isTrainingRecording {
-            viewModel.voiceService.stopRecording(callEndAudio: false)
-            isTrainingRecording = false
-        }
     }
 }

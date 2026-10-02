@@ -571,6 +571,7 @@ public class GameViewModel: ObservableObject {
             } else {
                 // Lá bài không phải 10 (1->9 hoặc J, Q, K trực tiếp) chốt cứng ngay lập tức!
                 isLastCardTenTentative = false
+                isTenLocked = false
                 voiceCommitTimer?.invalidate()
                 voiceCommitTimer = nil
             }
