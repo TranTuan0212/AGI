@@ -223,32 +223,14 @@ public struct VietnameseCardVoiceParser {
         
         if isTenLocked {
             normalized = normalized
-                .replacingOccurrences(of: "mười một", with: "10 1")
-                .replacingOccurrences(of: "muoi mot", with: "10 1")
-                .replacingOccurrences(of: "mười 1", with: "10 1")
-                .replacingOccurrences(of: "muoi 1", with: "10 1")
-                .replacingOccurrences(of: "mười hai", with: "10 2")
-                .replacingOccurrences(of: "muoi hai", with: "10 2")
-                .replacingOccurrences(of: "mười 2", with: "10 2")
-                .replacingOccurrences(of: "muoi 2", with: "10 2")
-                .replacingOccurrences(of: "mười ba", with: "10 3")
-                .replacingOccurrences(of: "muoi ba", with: "10 3")
-                .replacingOccurrences(of: "mười 3", with: "10 3")
-                .replacingOccurrences(of: "muoi 3", with: "10 3")
+                .replacingOccurrences(of: "\\b(mười|muoi)\\s+(một|mot|1)\\b", with: "10 1", options: .regularExpression)
+                .replacingOccurrences(of: "\\b(mười|muoi)\\s+(hai|2)\\b", with: "10 2", options: .regularExpression)
+                .replacingOccurrences(of: "\\b(mười|muoi)\\s+(ba|3)\\b", with: "10 3", options: .regularExpression)
         } else {
             normalized = normalized
-                .replacingOccurrences(of: "mười một", with: "11")
-                .replacingOccurrences(of: "muoi mot", with: "11")
-                .replacingOccurrences(of: "mười 1", with: "11")
-                .replacingOccurrences(of: "muoi 1", with: "11")
-                .replacingOccurrences(of: "mười hai", with: "12")
-                .replacingOccurrences(of: "muoi hai", with: "12")
-                .replacingOccurrences(of: "mười 2", with: "12")
-                .replacingOccurrences(of: "muoi 2", with: "12")
-                .replacingOccurrences(of: "mười ba", with: "13")
-                .replacingOccurrences(of: "muoi ba", with: "13")
-                .replacingOccurrences(of: "mười 3", with: "13")
-                .replacingOccurrences(of: "muoi 3", with: "13")
+                .replacingOccurrences(of: "\\b(mười|muoi)\\s+(một|mot|1)\\b", with: "11", options: .regularExpression)
+                .replacingOccurrences(of: "\\b(mười|muoi)\\s+(hai|2)\\b", with: "12", options: .regularExpression)
+                .replacingOccurrences(of: "\\b(mười|muoi)\\s+(ba|3)\\b", with: "13", options: .regularExpression)
         }
         
         normalized = normalized

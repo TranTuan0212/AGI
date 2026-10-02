@@ -511,9 +511,9 @@ public class GameViewModel: ObservableObject {
         
         let now = CFAbsoluteTimeGetCurrent()
         let elapsed = (lastVoiceCardPlacedTime > 0) ? (now - lastVoiceCardPlacedTime) : 999.0
-        let canReviseTen = isLastCardTenTentative && elapsed <= 0.7
+        let canReviseTen = isLastCardTenTentative && elapsed <= 0.5
         
-        // Tentative card revision: only when previous card was an unconfirmed 10 and elapsed <= 0.7s
+        // Tentative card revision: only when previous card was an unconfirmed 10 and elapsed <= 0.5s
         // (For example: spoken "Mười" initially parsed as 10, then quickly followed by "một" / "hai" / "ba" -> 11, 12, 13)
         if processedVoiceCardsCount > 0 && parsedCards.count == processedVoiceCardsCount && canReviseTen {
             let lastParsed = parsedCards[processedVoiceCardsCount - 1]
@@ -554,14 +554,14 @@ public class GameViewModel: ObservableObject {
             processedVoiceCardsCount = parsedCards.count
             
             // Kiểu từ 1->9 và J, Q, K trực tiếp thì chốt ngay lập tức (0ms độ trễ).
-            // Riêng khi thấy "mười" (10) thì mới đếm trực tiếp qua 0.7s:
+            // Riêng khi thấy "mười" (10) thì mới đếm trực tiếp qua 0.5s:
             if let lastPlaced = currentSegmentPlacedCards.last, lastPlaced.rank == .ten {
                 isLastCardTenTentative = true
                 isTenLocked = false
                 lastVoiceCardPlacedTime = CFAbsoluteTimeGetCurrent()
                 
                 voiceCommitTimer?.invalidate()
-                voiceCommitTimer = Timer.scheduledTimer(withTimeInterval: 0.7, repeats: false) { [weak self] _ in
+                voiceCommitTimer = Timer.scheduledTimer(withTimeInterval: 0.5, repeats: false) { [weak self] _ in
                     DispatchQueue.main.async {
                         guard let self = self else { return }
                         self.isLastCardTenTentative = false

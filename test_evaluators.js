@@ -1032,32 +1032,32 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   app.initPlayers();
   app.isRankOnlyMode = true;
 
-  // Kịch bản 1: Nói liền mạch trong vòng 0.7s (Delta t = 0.3s <= 0.7s)
+  // Kịch bản 1: Nói liền mạch trong vòng 0.5s (Delta t = 0.2s <= 0.5s)
   // t = 1000: đọc "mười" -> Tụ 1 nhận tạm lá 10
   app.processVoiceInput('mười', 1, 1000);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Stream Anchor 0.7s: t=0s đọc "mười" -> Tụ 1 tạm nhận lá 10');
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Stream Anchor 0.5s: t=0s đọc "mười" -> Tụ 1 tạm nhận lá 10');
 
-  // t = 1300 (sau 0.3s <= 0.7s): nói liền "mười một" -> Apple update '11' -> Tụ 1 đổi lá 10 thành 11 (J)
-  app.processVoiceInput('11', 1, 1300);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 11, 'Stream Anchor 0.7s: t=0.3s (<= 0.7s) nói nối "11" -> Tụ 1 đổi thành lá 11 (J)');
+  // t = 1200 (sau 0.2s <= 0.5s): nói liền "mười một" -> Apple update '11' -> Tụ 1 đổi lá 10 thành 11 (J)
+  app.processVoiceInput('11', 1, 1200);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 11, 'Stream Anchor 0.5s: t=0.2s (<= 0.5s) nói nối "11" -> Tụ 1 đổi thành lá 11 (J)');
 
-  // Kịch bản 2: Ngắt nghỉ quá 0.7s lấy chữ "mười" làm mốc trực tiếp trên stream
+  // Kịch bản 2: Ngắt nghỉ quá 0.5s lấy chữ mới nhất làm mốc trực tiếp trên stream
   app.startNewRound();
   // t = 1000: đọc "mười" -> Tụ 1 nhận tạm lá 10
   app.processVoiceInput('mười', 1, 1000);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Stream Anchor 0.7s: Ván mới, t=0s đọc "mười" -> Tụ 1 nhận lá 10');
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Stream Anchor 0.5s: Ván mới, t=0s đọc "mười" -> Tụ 1 nhận lá 10');
 
-  // Sau 0.7s, timer tự động chốt cứng lá 10:
+  // Sau 0.5s, timer tự động chốt cứng lá 10:
   app.isLastCardTenTentative = false;
   app.isTenLocked = true;
 
-  // Tại t = 2000 (Delta t = 1.0s > 0.7s): người đọc tiếp "hai" -> stream thành "mười hai"
+  // Tại t = 1700 (Delta t = 0.7s > 0.5s): người đọc tiếp "hai" -> stream thành "mười hai"
   // Nhờ isTenLocked = true, parser giữ lá 10 ở Tụ 1 và đưa lá 2 sang Tụ 2, KHÔNG biến thành 12!
-  app.processVoiceInput('mười hai', 1, 2000);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Stream Anchor 0.7s: Nghỉ > 0.7s -> Lá 10 đã chốt cứng ở Tụ 1 (KHÔNG bị sửa thành Q/12)');
-  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Stream Anchor 0.7s: Chữ "hai" sau mốc 0.7s được đưa độc lập vào Tụ 2 (lá 2)');
+  app.processVoiceInput('mười hai', 1, 1700);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Stream Anchor 0.5s: Nghỉ > 0.5s -> Lá 10 đã chốt cứng ở Tụ 1 (KHÔNG bị sửa thành Q/12)');
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Stream Anchor 0.5s: Chữ "hai" sau mốc 0.5s được đưa độc lập vào Tụ 2 (lá 2)');
 
-  // Kịch bản 3: Các số 1->9 nhận diện tức thì (0ms trễ), không phải chờ timer 0.7s
+  // Kịch bản 3: Các số 1->9 nhận diện tức thì (0ms trễ), không phải chờ timer 0.5s
   app.startNewRound();
   app.processVoiceInput('ba', 1, 3000);
   assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 3, 'Stream 1->9: Đọc "ba" -> Tụ 1 nhận lá 3 ngay lập tức');
@@ -1066,8 +1066,24 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   app.processVoiceInput('ba bốn', 1, 3500);
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 4, 'Stream 1->9: Đọc tiếp "bốn" -> Tụ 2 nhận lá 4 trơn tru');
 
-  // Kịch bản 4: Biến thể ngữ âm hay nhầm lẫn của Apple Speech
+  // Kịch bản 4: Biến thể "mười một" -> J, "mười một một" -> [J, 1], "mười hai một" -> [Q, 1]
   const Parser = vm.runInContext('VietnameseCardVoiceParser', sandbox);
+  const pMuoiMot = Parser.parse('mười một');
+  assert(pMuoiMot.length === 1 && pMuoiMot[0].rank === 11, 'Voice Parser: "mười một" -> J (11)');
+
+  const pMuoiMotMot = Parser.parse('mười một một');
+  assert(pMuoiMotMot.length === 2 && pMuoiMotMot[0].rank === 11 && pMuoiMotMot[1].rank === 14, 'Voice Parser: "mười một một" -> [J, 1] (11 và Át)');
+
+  const pMuoiHaiMot = Parser.parse('mười hai một');
+  assert(pMuoiHaiMot.length === 2 && pMuoiHaiMot[0].rank === 12 && pMuoiHaiMot[1].rank === 14, 'Voice Parser: "mười hai một" -> [Q, 1] (12 và Át)');
+
+  const pMuoiBaMot = Parser.parse('mười ba một');
+  assert(pMuoiBaMot.length === 2 && pMuoiBaMot[0].rank === 13 && pMuoiBaMot[1].rank === 14, 'Voice Parser: "mười ba một" -> [K, 1] (13 và Át)');
+
+  const pMuoi11 = Parser.parse('mười 11 12 13');
+  assert(pMuoi11.length === 4 && pMuoi11[0].rank === 10 && pMuoi11[1].rank === 11 && pMuoi11[2].rank === 12 && pMuoi11[3].rank === 13, 'Voice Parser: "mười 11 12 13" -> [10, J, Q, K] (không bị nuốt 111)');
+
+  // Kịch bản 5: Biến thể ngữ âm hay nhầm lẫn của Apple Speech
   const pBa = Parser.parse('bà cơ');
   assert(pBa.length === 1 && pBa[0].rank === 3 && pBa[0].suit === 'hearts', 'Voice Phonetics: "bà cơ" -> 3 cơ');
 

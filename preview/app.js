@@ -1642,32 +1642,14 @@ class VietnameseCardVoiceParser {
 
     if (isTenLocked) {
       normalized = normalized
-        .replace(/mười một/g, '10 1')
-        .replace(/muoi mot/g, '10 1')
-        .replace(/mười 1/g, '10 1')
-        .replace(/muoi 1/g, '10 1')
-        .replace(/mười hai/g, '10 2')
-        .replace(/muoi hai/g, '10 2')
-        .replace(/mười 2/g, '10 2')
-        .replace(/muoi 2/g, '10 2')
-        .replace(/mười ba/g, '10 3')
-        .replace(/muoi ba/g, '10 3')
-        .replace(/mười 3/g, '10 3')
-        .replace(/muoi 3/g, '10 3');
+        .replace(/\b(mười|muoi)\s+(một|mot|1)\b/gi, '10 1')
+        .replace(/\b(mười|muoi)\s+(hai|2)\b/gi, '10 2')
+        .replace(/\b(mười|muoi)\s+(ba|3)\b/gi, '10 3');
     } else {
       normalized = normalized
-        .replace(/mười một/g, '11')
-        .replace(/muoi mot/g, '11')
-        .replace(/mười 1/g, '11')
-        .replace(/muoi 1/g, '11')
-        .replace(/mười hai/g, '12')
-        .replace(/muoi hai/g, '12')
-        .replace(/mười 2/g, '12')
-        .replace(/muoi 2/g, '12')
-        .replace(/mười ba/g, '13')
-        .replace(/muoi ba/g, '13')
-        .replace(/mười 3/g, '13')
-        .replace(/muoi 3/g, '13');
+        .replace(/\b(mười|muoi)\s+(một|mot|1)\b/gi, '11')
+        .replace(/\b(mười|muoi)\s+(hai|2)\b/gi, '12')
+        .replace(/\b(mười|muoi)\s+(ba|3)\b/gi, '13');
     }
 
     normalized = normalized
@@ -2075,9 +2057,9 @@ class AppController {
 
     const now = (typeof timestamp === 'number') ? timestamp : Date.now();
     const elapsed = (this.lastVoiceCardPlacedTime > 0) ? ((now - this.lastVoiceCardPlacedTime) / 1000) : 999;
-    const canReviseTen = this.isLastCardTenTentative && elapsed <= 0.7;
+    const canReviseTen = this.isLastCardTenTentative && elapsed <= 0.5;
 
-    // Tentative card revision: only when previous card was an unconfirmed 10 and elapsed <= 0.7s
+    // Tentative card revision: only when previous card was an unconfirmed 10 and elapsed <= 0.5s
     if (this.processedVoiceCardsCount > 0 && parsed.length === this.processedVoiceCardsCount && canReviseTen) {
       const lastParsed = parsed[this.processedVoiceCardsCount - 1];
       const lastPlacedCard = this.currentSegmentPlacedCards[this.currentSegmentPlacedCards.length - 1];
@@ -2128,7 +2110,7 @@ class AppController {
       this.processedVoiceCardsCount = parsed.length;
 
       // Kiểu từ 1->9 và J, Q, K trực tiếp thì chốt ngay lập tức (0ms độ trễ).
-      // Riêng khi thấy "mười" (10) thì mới đếm trực tiếp qua 0.7s:
+      // Riêng khi thấy "mười" (10) thì mới đếm trực tiếp qua 0.5s:
       const lastPlaced = this.currentSegmentPlacedCards[this.currentSegmentPlacedCards.length - 1];
       if (lastPlaced && lastPlaced.rank === 10) {
         this.isLastCardTenTentative = true;
@@ -2139,7 +2121,7 @@ class AppController {
         this.voiceCommitTimer = setTimeout(() => {
           this.isLastCardTenTentative = false;
           this.isTenLocked = true;
-        }, 700);
+        }, 500);
       } else {
         // Quân bài không phải 10 chốt cứng ngay lập tức!
         this.isLastCardTenTentative = false;

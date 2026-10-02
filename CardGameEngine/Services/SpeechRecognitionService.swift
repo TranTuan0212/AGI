@@ -165,9 +165,6 @@ public class SpeechRecognitionService: ObservableObject {
             if #available(iOS 16, *) {
                 recognitionRequest.addsPunctuation = false
             }
-            if #available(iOS 13, *), speechRecognizer.supportsOnDeviceRecognition {
-                recognitionRequest.requiresOnDeviceRecognition = true
-            }
             recognitionRequest.contextualStrings = Self.getContextualStrings()
             
             // Re-instantiate fresh AVAudioEngine per recording session
@@ -205,10 +202,11 @@ public class SpeechRecognitionService: ObservableObject {
                     }
                     
                     let isFinal = result?.isFinal ?? false
+                    let transientCodes: Set<Int> = [216, 203, 1110, 1100, 1101, 1107]
                     if let error = error {
                         let nsError = error as NSError
                         // Non-fatal transient completion or silent segment error
-                        if self.sessionID == newSessionID && self.isRecording && (nsError.code == 216 || nsError.code == 1110 || nsError.code == 203) {
+                        if self.sessionID == newSessionID && self.isRecording && transientCodes.contains(nsError.code) {
                             self.restartRecognitionTask(newSessionID: newSessionID, onResult: onResult)
                             return
                         }
@@ -298,56 +296,69 @@ public class SpeechRecognitionService: ObservableObject {
         guard self.sessionID == newSessionID && self.isRecording else { return }
         guard let speechRecognizer = self.speechRecognizer, speechRecognizer.isAvailable else { return }
         
+        // Step 1: Cleanly finish old request & cancel old task
+        self.lock.lock()
+        self.activeRequest = nil
+        self.lock.unlock()
+        self.recognitionRequest?.endAudio()
+        self.recognitionTask?.cancel()
+        self.recognitionTask = nil
+        self.recognitionRequest = nil
+        
         let newTaskID = UUID()
         self.currentTaskID = newTaskID
         
         self.segmentID += 1
         let currentSegmentID = self.segmentID
         
-        let newRequest = SFSpeechAudioBufferRecognitionRequest()
-        newRequest.shouldReportPartialResults = true
-        newRequest.taskHint = .dictation
-        if #available(iOS 16, *) {
-            newRequest.addsPunctuation = false
-        }
-        if #available(iOS 13, *), speechRecognizer.supportsOnDeviceRecognition {
-            newRequest.requiresOnDeviceRecognition = true
-        }
-        newRequest.contextualStrings = Self.getContextualStrings()
-        
-        self.recognitionRequest = newRequest
-        
-        self.lock.lock()
-        self.activeRequest = newRequest
-        self.lock.unlock()
-        
-        var createdTask: SFSpeechRecognitionTask? = nil
-        _ = ObjcTryCatch({
-            createdTask = speechRecognizer.recognitionTask(with: newRequest) { [weak self] result, error in
-                guard let self = self, self.sessionID == newSessionID, self.currentTaskID == newTaskID, self.isRecording else { return }
-                if let result = result {
-                    let text = result.bestTranscription.formattedString
-                    DispatchQueue.main.async {
-                        guard self.sessionID == newSessionID, self.isRecording else { return }
-                        self.recognizedText = text
-                        onResult(text, currentSegmentID)
-                    }
-                }
-                let isFinal = result?.isFinal ?? false
-                if let error = error {
-                    let nsError = error as NSError
-                    if self.sessionID == newSessionID && self.currentTaskID == newTaskID && self.isRecording && (nsError.code == 216 || nsError.code == 1110 || nsError.code == 203) {
-                        self.restartRecognitionTask(newSessionID: newSessionID, onResult: onResult)
-                    }
-                } else if isFinal {
-                    DispatchQueue.main.async {
-                        guard self.sessionID == newSessionID, self.currentTaskID == newTaskID, self.isRecording else { return }
-                        self.restartRecognitionTask(newSessionID: newSessionID, onResult: onResult)
-                    }
-                }
+        // Wait 80ms for Apple XPC connection to release clean state
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { [weak self] in
+            guard let self = self, self.sessionID == newSessionID, self.currentTaskID == newTaskID, self.isRecording else { return }
+            guard let speechRecognizer = self.speechRecognizer, speechRecognizer.isAvailable else { return }
+            
+            let newRequest = SFSpeechAudioBufferRecognitionRequest()
+            newRequest.shouldReportPartialResults = true
+            newRequest.taskHint = .dictation
+            if #available(iOS 16, *) {
+                newRequest.addsPunctuation = false
             }
-        }, nil)
-        self.recognitionTask = createdTask
+            newRequest.contextualStrings = Self.getContextualStrings()
+            
+            self.recognitionRequest = newRequest
+            
+            self.lock.lock()
+            self.activeRequest = newRequest
+            self.lock.unlock()
+            
+            var createdTask: SFSpeechRecognitionTask? = nil
+            _ = ObjcTryCatch({
+                createdTask = speechRecognizer.recognitionTask(with: newRequest) { [weak self] result, error in
+                    guard let self = self, self.sessionID == newSessionID, self.currentTaskID == newTaskID, self.isRecording else { return }
+                    if let result = result {
+                        let text = result.bestTranscription.formattedString
+                        DispatchQueue.main.async {
+                            guard self.sessionID == newSessionID, self.isRecording else { return }
+                            self.recognizedText = text
+                            onResult(text, currentSegmentID)
+                        }
+                    }
+                    let isFinal = result?.isFinal ?? false
+                    let transientCodes: Set<Int> = [216, 203, 1110, 1100, 1101, 1107]
+                    if let error = error {
+                        let nsError = error as NSError
+                        if self.sessionID == newSessionID && self.currentTaskID == newTaskID && self.isRecording && transientCodes.contains(nsError.code) {
+                            self.restartRecognitionTask(newSessionID: newSessionID, onResult: onResult)
+                        }
+                    } else if isFinal {
+                        DispatchQueue.main.async {
+                            guard self.sessionID == newSessionID, self.currentTaskID == newTaskID, self.isRecording else { return }
+                            self.restartRecognitionTask(newSessionID: newSessionID, onResult: onResult)
+                        }
+                    }
+                }
+            }, nil)
+            self.recognitionTask = createdTask
+        }
     }
     
     public func commitCurrentSegment() {
