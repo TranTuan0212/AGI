@@ -25,10 +25,10 @@ public struct VietnameseCardVoiceParser {
         "hai": .two, "nhị": .two, "nhi": .two, "heo": .two, "2": .two,
         
         // 3
-        "ba": .three, "tam": .three, "3": .three,
+        "ba": .three, "tam": .three, "bà": .three, "bá": .three, "3": .three,
         
         // 4
-        "bốn": .four, "bon": .four, "tư": .four, "tu": .four, "4": .four,
+        "bốn": .four, "bon": .four, "tư": .four, "tu": .four, "bóng": .four, "bón": .four, "4": .four,
         
         // 5
         "năm": .five, "nam": .five, "ngũ": .five, "ngu": .five, "5": .five,
@@ -40,13 +40,13 @@ public struct VietnameseCardVoiceParser {
         "bảy": .seven, "bay": .seven, "bẩy": .seven, "bey": .seven, "thất": .seven, "that": .seven, "7": .seven,
         
         // 8
-        "tám": .eight, "tam8": .eight, "bát": .eight, "bat": .eight, "8": .eight,
+        "tám": .eight, "tam8": .eight, "bát": .eight, "bat": .eight, "tấm": .eight, "tán": .eight, "8": .eight,
         
         // 9
-        "chín": .nine, "chin": .nine, "cửu": .nine, "cuu": .nine, "9": .nine,
+        "chín": .nine, "chin": .nine, "cửu": .nine, "cuu": .nine, "chính": .nine, "chinh": .nine, "9": .nine,
         
         // 10
-        "mười": .ten, "muoi": .ten, "chục": .ten, "chuc": .ten, "10": .ten,
+        "mười": .ten, "muoi": .ten, "chục": .ten, "chuc": .ten, "mời": .ten, "mươi": .ten, "10": .ten,
         
         // J
         "11": .jack, "bồi": .jack, "boi": .jack, "bôi": .jack, "bồ": .jack, "bội": .jack, "ri": .jack, "gi": .jack, "di": .jack,
@@ -59,7 +59,7 @@ public struct VietnameseCardVoiceParser {
         
         // K
         "13": .king, "già": .king, "gia": .king, "ka": .king, "k": .king, "ca": .king, "cả": .king, "cá": .king, "cà": .king,
-        "cây": .king, "cay": .king, "da": .king, "dà": .king, "kay": .king, "vua": .king, "king": .king
+        "cây": .king, "cay": .king, "da": .king, "dà": .king, "gà": .king, "ga": .king, "kay": .king, "vua": .king, "king": .king
     ]
     
     // Normalized synonym mapping for suits
@@ -194,7 +194,7 @@ public struct VietnameseCardVoiceParser {
     }
 
     /// Phân tích một chuỗi giọng nói tiếng Việt thành danh sách quân bài
-    public static func parse(_ text: String) -> [ParsedVoiceCard] {
+    public static func parse(_ text: String, isTenLocked: Bool = false) -> [ParsedVoiceCard] {
         let unglued = separateDigits(text)
         let separators = CharacterSet(charactersIn: ",.:;?!/\\-—_~|\n\r\t\"'")
         let cleaned = unglued.lowercased()
@@ -220,18 +220,38 @@ public struct VietnameseCardVoiceParser {
             .replacingOccurrences(of: "ách xì", with: "xì")
             .replacingOccurrences(of: "xì dách", with: "xì")
             .replacingOccurrences(of: "sì dách", with: "xì")
-            .replacingOccurrences(of: "mười một", with: "11")
-            .replacingOccurrences(of: "muoi mot", with: "11")
-            .replacingOccurrences(of: "mười 1", with: "11")
-            .replacingOccurrences(of: "muoi 1", with: "11")
-            .replacingOccurrences(of: "mười hai", with: "12")
-            .replacingOccurrences(of: "muoi hai", with: "12")
-            .replacingOccurrences(of: "mười 2", with: "12")
-            .replacingOccurrences(of: "muoi 2", with: "12")
-            .replacingOccurrences(of: "mười ba", with: "13")
-            .replacingOccurrences(of: "muoi ba", with: "13")
-            .replacingOccurrences(of: "mười 3", with: "13")
-            .replacingOccurrences(of: "muoi 3", with: "13")
+        
+        if isTenLocked {
+            normalized = normalized
+                .replacingOccurrences(of: "mười một", with: "10 1")
+                .replacingOccurrences(of: "muoi mot", with: "10 1")
+                .replacingOccurrences(of: "mười 1", with: "10 1")
+                .replacingOccurrences(of: "muoi 1", with: "10 1")
+                .replacingOccurrences(of: "mười hai", with: "10 2")
+                .replacingOccurrences(of: "muoi hai", with: "10 2")
+                .replacingOccurrences(of: "mười 2", with: "10 2")
+                .replacingOccurrences(of: "muoi 2", with: "10 2")
+                .replacingOccurrences(of: "mười ba", with: "10 3")
+                .replacingOccurrences(of: "muoi ba", with: "10 3")
+                .replacingOccurrences(of: "mười 3", with: "10 3")
+                .replacingOccurrences(of: "muoi 3", with: "10 3")
+        } else {
+            normalized = normalized
+                .replacingOccurrences(of: "mười một", with: "11")
+                .replacingOccurrences(of: "muoi mot", with: "11")
+                .replacingOccurrences(of: "mười 1", with: "11")
+                .replacingOccurrences(of: "muoi 1", with: "11")
+                .replacingOccurrences(of: "mười hai", with: "12")
+                .replacingOccurrences(of: "muoi hai", with: "12")
+                .replacingOccurrences(of: "mười 2", with: "12")
+                .replacingOccurrences(of: "muoi 2", with: "12")
+                .replacingOccurrences(of: "mười ba", with: "13")
+                .replacingOccurrences(of: "muoi ba", with: "13")
+                .replacingOccurrences(of: "mười 3", with: "13")
+                .replacingOccurrences(of: "muoi 3", with: "13")
+        }
+        
+        normalized = normalized
             .replacingOccurrences(of: "bỏ bài", with: "__hidden__")
             .replacingOccurrences(of: "bo bai", with: "__hidden__")
             .replacingOccurrences(of: "bỏ qua", with: "__hidden__")

@@ -165,6 +165,9 @@ public class SpeechRecognitionService: ObservableObject {
             if #available(iOS 16, *) {
                 recognitionRequest.addsPunctuation = false
             }
+            if #available(iOS 13, *), speechRecognizer.supportsOnDeviceRecognition {
+                recognitionRequest.requiresOnDeviceRecognition = true
+            }
             recognitionRequest.contextualStrings = Self.getContextualStrings()
             
             // Re-instantiate fresh AVAudioEngine per recording session
@@ -306,6 +309,9 @@ public class SpeechRecognitionService: ObservableObject {
         newRequest.taskHint = .dictation
         if #available(iOS 16, *) {
             newRequest.addsPunctuation = false
+        }
+        if #available(iOS 13, *), speechRecognizer.supportsOnDeviceRecognition {
+            newRequest.requiresOnDeviceRecognition = true
         }
         newRequest.contextualStrings = Self.getContextualStrings()
         

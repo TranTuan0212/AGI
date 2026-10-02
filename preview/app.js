@@ -1511,9 +1511,9 @@ class VietnameseCardVoiceParser {
     // 2
     'hai': 2, 'nhị': 2, 'nhi': 2, 'heo': 2, '2': 2,
     // 3
-    'ba': 3, 'tam': 3, '3': 3,
+    'ba': 3, 'tam': 3, 'bà': 3, 'bá': 3, '3': 3,
     // 4
-    'bốn': 4, 'bon': 4, 'tư': 4, 'tu': 4, '4': 4,
+    'bốn': 4, 'bon': 4, 'tư': 4, 'tu': 4, 'bóng': 4, 'bón': 4, '4': 4,
     // 5
     'năm': 5, 'nam': 5, 'ngũ': 5, 'ngu': 5, '5': 5,
     // 6
@@ -1521,11 +1521,11 @@ class VietnameseCardVoiceParser {
     // 7
     'bảy': 7, 'bay': 7, 'bẩy': 7, 'bey': 7, 'thất': 7, 'that': 7, '7': 7,
     // 8
-    'tám': 8, 'tam8': 8, 'bát': 8, 'bat': 8, '8': 8,
+    'tám': 8, 'tam8': 8, 'bát': 8, 'bat': 8, 'tấm': 8, 'tán': 8, '8': 8,
     // 9
-    'chín': 9, 'chin': 9, 'cửu': 9, 'cuu': 9, '9': 9,
+    'chín': 9, 'chin': 9, 'cửu': 9, 'cuu': 9, 'chính': 9, 'chinh': 9, '9': 9,
     // 10
-    'mười': 10, 'muoi': 10, 'chục': 10, 'chuc': 10, '10': 10,
+    'mười': 10, 'muoi': 10, 'chục': 10, 'chuc': 10, 'mời': 10, 'mươi': 10, '10': 10,
     // J
     '11': 11, 'bồi': 11, 'boi': 11, 'bôi': 11, 'bồ': 11, 'bội': 11, 'ri': 11, 'gi': 11, 'di': 11,
     'dây': 11, 'day': 11, 'chây': 11, 'chay': 11, 'zi': 11,
@@ -1535,7 +1535,7 @@ class VietnameseCardVoiceParser {
     'huy': 12, 'húy': 12, 'hui': 12, 'quê': 12, 'que': 12, 'nữ': 12, 'nu': 12, 'queen': 12,
     // K
     '13': 13, 'già': 13, 'gia': 13, 'ka': 13, 'k': 13, 'ca': 13, 'cả': 13, 'cá': 13, 'cà': 13,
-    'cây': 13, 'da': 13, 'dà': 13, 'kay': 13, 'cay': 13, 'vua': 13, 'king': 13
+    'cây': 13, 'da': 13, 'dà': 13, 'gà': 13, 'ga': 13, 'kay': 13, 'cay': 13, 'vua': 13, 'king': 13
   };
 
   static suitMap = {
@@ -1616,7 +1616,7 @@ class VietnameseCardVoiceParser {
     }).replace(/\s+/g, ' ').trim();
   }
 
-  static parse(text) {
+  static parse(text, isTenLocked = false) {
     if (!text || typeof text !== 'string') return [];
     let unglued = this.separateDigits(text);
     let cleaned = unglued.toLowerCase()
@@ -1638,19 +1638,39 @@ class VietnameseCardVoiceParser {
       .replace(/hắt xì/g, 'xì')
       .replace(/ách xì/g, 'xì')
       .replace(/xì dách/g, 'xì')
-      .replace(/sì dách/g, 'xì')
-      .replace(/mười một/g, '11')
-      .replace(/muoi mot/g, '11')
-      .replace(/mười 1/g, '11')
-      .replace(/muoi 1/g, '11')
-      .replace(/mười hai/g, '12')
-      .replace(/muoi hai/g, '12')
-      .replace(/mười 2/g, '12')
-      .replace(/muoi 2/g, '12')
-      .replace(/mười ba/g, '13')
-      .replace(/muoi ba/g, '13')
-      .replace(/mười 3/g, '13')
-      .replace(/muoi 3/g, '13')
+      .replace(/sì dách/g, 'xì');
+
+    if (isTenLocked) {
+      normalized = normalized
+        .replace(/mười một/g, '10 1')
+        .replace(/muoi mot/g, '10 1')
+        .replace(/mười 1/g, '10 1')
+        .replace(/muoi 1/g, '10 1')
+        .replace(/mười hai/g, '10 2')
+        .replace(/muoi hai/g, '10 2')
+        .replace(/mười 2/g, '10 2')
+        .replace(/muoi 2/g, '10 2')
+        .replace(/mười ba/g, '10 3')
+        .replace(/muoi ba/g, '10 3')
+        .replace(/mười 3/g, '10 3')
+        .replace(/muoi 3/g, '10 3');
+    } else {
+      normalized = normalized
+        .replace(/mười một/g, '11')
+        .replace(/muoi mot/g, '11')
+        .replace(/mười 1/g, '11')
+        .replace(/muoi 1/g, '11')
+        .replace(/mười hai/g, '12')
+        .replace(/muoi hai/g, '12')
+        .replace(/mười 2/g, '12')
+        .replace(/muoi 2/g, '12')
+        .replace(/mười ba/g, '13')
+        .replace(/muoi ba/g, '13')
+        .replace(/mười 3/g, '13')
+        .replace(/muoi 3/g, '13');
+    }
+
+    normalized = normalized
       .replace(/bỏ bài/g, '__hidden__')
       .replace(/bo bai/g, '__hidden__')
       .replace(/bỏ qua/g, '__hidden__')
@@ -1759,7 +1779,8 @@ class AppController {
     this.currentSegmentPlacedCards = [];
     this.lastVoiceCardPlacedTime = 0;
     this.voiceCommitTimer = null;
-    this.isLastVoiceCardLocked = false;
+    this.isLastCardTenTentative = false;
+    this.isTenLocked = false;
     this.recognition = null;
     try {
       this.history = JSON.parse(localStorage.getItem('card_game_history') || '[]');
@@ -1798,7 +1819,8 @@ class AppController {
     this.processedVoiceCardsCount = 0;
     if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
     this.voiceCommitTimer = null;
-    this.isLastVoiceCardLocked = false;
+    this.isLastCardTenTentative = false;
+    this.isTenLocked = false;
     this.lastVoiceCardPlacedTime = 0;
 
     this.renderDeck();
@@ -2029,7 +2051,8 @@ class AppController {
     this.currentSegmentPlacedCards = [];
     if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
     this.voiceCommitTimer = null;
-    this.isLastVoiceCardLocked = false;
+    this.isLastCardTenTentative = false;
+    this.isTenLocked = false;
     this.lastVoiceCardPlacedTime = 0;
   }
 
@@ -2038,7 +2061,8 @@ class AppController {
       this.currentVoiceSegmentId = segmentId;
       this.processedVoiceCardsCount = 0;
       this.currentSegmentPlacedCards = [];
-      this.isLastVoiceCardLocked = false;
+      this.isLastCardTenTentative = false;
+      this.isTenLocked = false;
     }
 
     const unglued = VietnameseCardVoiceParser.separateDigits(text);
@@ -2047,14 +2071,14 @@ class AppController {
       voiceTextEl.textContent = `"${unglued}"`;
     }
 
-    const parsed = VietnameseCardVoiceParser.parse(text);
+    const parsed = VietnameseCardVoiceParser.parse(text, this.isTenLocked);
 
     const now = (typeof timestamp === 'number') ? timestamp : Date.now();
     const elapsed = (this.lastVoiceCardPlacedTime > 0) ? ((now - this.lastVoiceCardPlacedTime) / 1000) : 999;
-    const canRevise = !this.isLastVoiceCardLocked && elapsed <= 1.0;
+    const canReviseTen = this.isLastCardTenTentative && elapsed <= 0.7;
 
-    // Tentative card revision: Check if the last card placed in this segment was revised by streaming speech
-    if (this.processedVoiceCardsCount > 0 && parsed.length === this.processedVoiceCardsCount && canRevise) {
+    // Tentative card revision: only when previous card was an unconfirmed 10 and elapsed <= 0.7s
+    if (this.processedVoiceCardsCount > 0 && parsed.length === this.processedVoiceCardsCount && canReviseTen) {
       const lastParsed = parsed[this.processedVoiceCardsCount - 1];
       const lastPlacedCard = this.currentSegmentPlacedCards[this.currentSegmentPlacedCards.length - 1];
       if (lastPlacedCard) {
@@ -2064,6 +2088,9 @@ class AppController {
           this.removeCard(lastPlacedCard.id);
           this.currentSegmentPlacedCards.pop();
           this.processedVoiceCardsCount--;
+          this.isLastCardTenTentative = false;
+          if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
+          this.voiceCommitTimer = null;
         }
       }
     }
@@ -2100,17 +2127,25 @@ class AppController {
       }
       this.processedVoiceCardsCount = parsed.length;
 
-      // Lấy chữ cuối làm mốc (anchor timestamp) và kích hoạt khoảng ngắt 1.0s
-      this.lastVoiceCardPlacedTime = now;
-      this.isLastVoiceCardLocked = false;
+      // Kiểu từ 1->9 và J, Q, K trực tiếp thì chốt ngay lập tức (0ms độ trễ).
+      // Riêng khi thấy "mười" (10) thì mới đếm trực tiếp qua 0.7s:
+      const lastPlaced = this.currentSegmentPlacedCards[this.currentSegmentPlacedCards.length - 1];
+      if (lastPlaced && lastPlaced.rank === 10) {
+        this.isLastCardTenTentative = true;
+        this.isTenLocked = false;
+        this.lastVoiceCardPlacedTime = now;
 
-      if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
-      this.voiceCommitTimer = setTimeout(() => {
-        this.isLastVoiceCardLocked = true;
-        this.currentVoiceSegmentId++;
-        this.processedVoiceCardsCount = 0;
-        this.currentSegmentPlacedCards = [];
-      }, 1000);
+        if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
+        this.voiceCommitTimer = setTimeout(() => {
+          this.isLastCardTenTentative = false;
+          this.isTenLocked = true;
+        }, 700);
+      } else {
+        // Quân bài không phải 10 chốt cứng ngay lập tức!
+        this.isLastCardTenTentative = false;
+        if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
+        this.voiceCommitTimer = null;
+      }
 
       // Auto stop recording when all players full
       if (this.isReady() && this.isVoiceRecording) {

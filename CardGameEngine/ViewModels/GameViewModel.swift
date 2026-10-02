@@ -64,10 +64,11 @@ public class GameViewModel: ObservableObject {
     private var currentVoiceSegmentID: Int = 0
     private var currentSegmentPlacedCards: [Card] = []
     
-    // Voice debounce anchor timer (1.0s) to lock last card and commit segment
+    // Voice stream anchor: 0.7s timer specifically for ambiguous card 10 ("mười") vs J, Q, K
     private var lastVoiceCardPlacedTime: CFAbsoluteTime = 0
     private var voiceCommitTimer: Timer? = nil
-    private var isLastVoiceCardLocked: Bool = false
+    private var isLastCardTenTentative: Bool = false
+    private var isTenLocked: Bool = false
     
     // Rank-Only Mode (A->K) for 3 Cây & 2 Lá
     @Published public var isRankOnlyMode: Bool {
@@ -191,7 +192,8 @@ public class GameViewModel: ObservableObject {
         currentVoiceSegmentID = 0
         voiceCommitTimer?.invalidate()
         voiceCommitTimer = nil
-        isLastVoiceCardLocked = false
+        isLastCardTenTentative = false
+        isTenLocked = false
         lastVoiceCardPlacedTime = 0
         
         if shouldAutoRecord {
@@ -450,7 +452,8 @@ public class GameViewModel: ObservableObject {
             currentSegmentPlacedCards.removeAll()
             voiceCommitTimer?.invalidate()
             voiceCommitTimer = nil
-            isLastVoiceCardLocked = false
+            isLastCardTenTentative = false
+            isTenLocked = false
             lastVoiceCardPlacedTime = 0
         } else {
             processedVoiceCardsCount = 0
@@ -458,7 +461,8 @@ public class GameViewModel: ObservableObject {
             currentSegmentPlacedCards.removeAll()
             voiceCommitTimer?.invalidate()
             voiceCommitTimer = nil
-            isLastVoiceCardLocked = false
+            isLastCardTenTentative = false
+            isTenLocked = false
             lastVoiceCardPlacedTime = 0
             voiceService.requestAuthorization { [weak self] authorized in
                 guard let self = self else { return }
@@ -495,10 +499,11 @@ public class GameViewModel: ObservableObject {
             currentVoiceSegmentID = segmentID
             processedVoiceCardsCount = 0
             currentSegmentPlacedCards.removeAll()
-            isLastVoiceCardLocked = false
+            isLastCardTenTentative = false
+            isTenLocked = false
         }
         
-        let parsedCards = VietnameseCardVoiceParser.parse(text)
+        let parsedCards = VietnameseCardVoiceParser.parse(text, isTenLocked: isTenLocked)
         let displaySpoken = VietnameseCardVoiceParser.separateDigits(text)
         voiceBannerText = "🎙️ \"\(displaySpoken)\""
         
@@ -506,11 +511,11 @@ public class GameViewModel: ObservableObject {
         
         let now = CFAbsoluteTimeGetCurrent()
         let elapsed = (lastVoiceCardPlacedTime > 0) ? (now - lastVoiceCardPlacedTime) : 999.0
-        let canRevise = !isLastVoiceCardLocked && elapsed <= 1.0
+        let canReviseTen = isLastCardTenTentative && elapsed <= 0.7
         
-        // Tentative card revision: Check if the last card placed in this segment was revised by Apple Speech streaming
-        // (For example: spoken "Mười" initially parsed as 10, then updated to "11" / Jack or "Mười một" / "Mười hai" / "Mười ba")
-        if processedVoiceCardsCount > 0 && parsedCards.count == processedVoiceCardsCount && canRevise {
+        // Tentative card revision: only when previous card was an unconfirmed 10 and elapsed <= 0.7s
+        // (For example: spoken "Mười" initially parsed as 10, then quickly followed by "một" / "hai" / "ba" -> 11, 12, 13)
+        if processedVoiceCardsCount > 0 && parsedCards.count == processedVoiceCardsCount && canReviseTen {
             let lastParsed = parsedCards[processedVoiceCardsCount - 1]
             if let lastPlacedCard = currentSegmentPlacedCards.last {
                 let isSameRank = (lastParsed.rank == lastPlacedCard.rank)
@@ -519,6 +524,9 @@ public class GameViewModel: ObservableObject {
                     removeCard(lastPlacedCard)
                     currentSegmentPlacedCards.removeLast()
                     processedVoiceCardsCount -= 1
+                    isLastCardTenTentative = false
+                    voiceCommitTimer?.invalidate()
+                    voiceCommitTimer = nil
                 }
             }
         }
@@ -545,17 +553,26 @@ public class GameViewModel: ObservableObject {
             }
             processedVoiceCardsCount = parsedCards.count
             
-            // Lấy chữ cuối làm mốc (anchor timestamp) và kích hoạt khoảng ngắt 1.0s
-            lastVoiceCardPlacedTime = CFAbsoluteTimeGetCurrent()
-            isLastVoiceCardLocked = false
-            
-            voiceCommitTimer?.invalidate()
-            voiceCommitTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
-                DispatchQueue.main.async {
-                    guard let self = self else { return }
-                    self.isLastVoiceCardLocked = true
-                    self.voiceService.commitCurrentSegment()
+            // Kiểu từ 1->9 và J, Q, K trực tiếp thì chốt ngay lập tức (0ms độ trễ).
+            // Riêng khi thấy "mười" (10) thì mới đếm trực tiếp qua 0.7s:
+            if let lastPlaced = currentSegmentPlacedCards.last, lastPlaced.rank == .ten {
+                isLastCardTenTentative = true
+                isTenLocked = false
+                lastVoiceCardPlacedTime = CFAbsoluteTimeGetCurrent()
+                
+                voiceCommitTimer?.invalidate()
+                voiceCommitTimer = Timer.scheduledTimer(withTimeInterval: 0.7, repeats: false) { [weak self] _ in
+                    DispatchQueue.main.async {
+                        guard let self = self else { return }
+                        self.isLastCardTenTentative = false
+                        self.isTenLocked = true
+                    }
                 }
+            } else {
+                // Lá bài không phải 10 (1->9 hoặc J, Q, K trực tiếp) chốt cứng ngay lập tức!
+                isLastCardTenTentative = false
+                voiceCommitTimer?.invalidate()
+                voiceCommitTimer = nil
             }
             
             // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)
