@@ -719,18 +719,18 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(resXiDach.length === 1 && resXiDach[0].rank === 14 && resXiDach[0].suit === 'hearts', 'Voice Parser: "xì dách cơ" -> A cơ (hearts)');
 
   // Test gỡ dính số và tạo khoảng ngắt (Digit Un-gluing)
-  const sep1 = VietnameseCardVoiceParser.separateDigits('123456789 10 11 23');
-  assert(sep1 === '1 2 3 4 5 6 7 8 9 10 11 2 3', 'Voice Parser: separateDigits tách chuẩn chuỗi dính "123456789 10 11 23"');
+  // Test gỡ dính số và tạo khoảng ngắt (Digit Un-gluing)
+  const sep1 = VietnameseCardVoiceParser.separateDigits('123456789 10 23');
+  assert(sep1 === '1 2 3 4 5 6 7 8 9 10 2 3', 'Voice Parser: separateDigits tách chuẩn chuỗi dính "123456789 10 23"');
 
-  const resGlued = VietnameseCardVoiceParser.parse('123456789 10 11 23');
-  assert(resGlued.length === 13, 'Voice Parser: Nhận diện trọn vẹn 13 lá bài từ chuỗi dính "123456789 10 11 23"');
+  const resGlued = VietnameseCardVoiceParser.parse('123456789 10 23');
+  assert(resGlued.length === 12, 'Voice Parser: Nhận diện trọn vẹn 12 lá bài từ chuỗi dính "123456789 10 23"');
   assert(resGlued[0].rank === 14, 'Voice Parser: 1 -> Át (Ace)');
   assert(resGlued[1].rank === 2, 'Voice Parser: 2 -> Hai');
   assert(resGlued[8].rank === 9, 'Voice Parser: 9 -> Chín');
   assert(resGlued[9].rank === 10, 'Voice Parser: 10 -> Mười');
-  assert(resGlued[10].rank === 11, 'Voice Parser: 11 -> J (Jack)');
-  assert(resGlued[11].rank === 2, 'Voice Parser: 23 -> Hai');
-  assert(resGlued[12].rank === 3, 'Voice Parser: 23 -> Ba');
+  assert(resGlued[10].rank === 2, 'Voice Parser: 23 -> Hai');
+  assert(resGlued[11].rank === 3, 'Voice Parser: 23 -> Ba');
 
   const res1010 = VietnameseCardVoiceParser.parse('10, 10');
   assert(res1010.length === 2 && res1010[0].rank === 10 && res1010[1].rank === 10, 'Voice Parser: "10, 10" -> Hai lá 10');
@@ -741,20 +741,27 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   const res23Co = VietnameseCardVoiceParser.parse('23 cơ');
   assert(res23Co.length === 2 && res23Co[0].rank === 2 && res23Co[1].rank === 3 && res23Co[1].suit === 'hearts', 'Voice Parser: "23 cơ" -> Lá 2 và lá 3 cơ');
 
-  // Test quy ước 11 (J), 12 (Q), 13 (K), qui (Q)
-  const resJQK = VietnameseCardVoiceParser.parse('11 cơ 12 rô 13 bích qui tép');
-  assert(resJQK.length === 4, 'Voice Parser: Nhận diện 4 lá 11 12 13 qui');
-  assert(resJQK[0].rank === 11 && resJQK[0].suit === 'hearts', 'Voice Parser: 11 cơ -> J cơ');
-  assert(resJQK[1].rank === 12 && resJQK[1].suit === 'diamonds', 'Voice Parser: 12 rô -> Q rô');
-  assert(resJQK[2].rank === 13 && resJQK[2].suit === 'spades', 'Voice Parser: 13 bích -> K bích');
+  // Test quy ước Bồi (J), Đầm (Q), Già (K), qui (Q), bui (J), da (K)
+  const resJQK = VietnameseCardVoiceParser.parse('bồi cơ đầm rô già bích qui tép');
+  assert(resJQK.length === 4, 'Voice Parser: Nhận diện 4 lá bồi đầm già qui');
+  assert(resJQK[0].rank === 11 && resJQK[0].suit === 'hearts', 'Voice Parser: bồi cơ -> J cơ');
+  assert(resJQK[1].rank === 12 && resJQK[1].suit === 'diamonds', 'Voice Parser: đầm rô -> Q rô');
+  assert(resJQK[2].rank === 13 && resJQK[2].suit === 'spades', 'Voice Parser: già bích -> K bích');
   assert(resJQK[3].rank === 12 && resJQK[3].suit === 'clubs', 'Voice Parser: qui tép -> Q tép');
 
-  // Test đọc nhanh (không ngắt): mười một -> J, mười hai -> Q, mười ba -> K
+  // Test biến thể bui, quy, da
+  const resBuiQuyDa = VietnameseCardVoiceParser.parse('bui rô quy tép da cơ');
+  assert(resBuiQuyDa.length === 3, 'Voice Parser: Nhận diện 3 lá bui quy da');
+  assert(resBuiQuyDa[0].rank === 11 && resBuiQuyDa[0].suit === 'diamonds', 'Voice Parser: bui rô -> J rô');
+  assert(resBuiQuyDa[1].rank === 12 && resBuiQuyDa[1].suit === 'clubs', 'Voice Parser: quy tép -> Q tép');
+  assert(resBuiQuyDa[2].rank === 13 && resBuiQuyDa[2].suit === 'hearts', 'Voice Parser: da cơ -> K cơ');
+
+  // Test mười một / hai / ba -> không còn gộp thành 11/12/13 mà thành [10, Át], [10, 2], [10, 3]
   const resMuoiWords = VietnameseCardVoiceParser.parse('mười một mười hai mười ba');
-  assert(resMuoiWords.length === 3, 'Voice Parser: Đọc nhanh "mười một mười hai mười ba" -> 3 lá J, Q, K');
-  assert(resMuoiWords[0].rank === 11, 'Voice Parser: Đọc nhanh mười một -> J (11)');
-  assert(resMuoiWords[1].rank === 12, 'Voice Parser: Đọc nhanh mười hai -> Q (12)');
-  assert(resMuoiWords[2].rank === 13, 'Voice Parser: Đọc nhanh mười ba -> K (13)');
+  assert(resMuoiWords.length === 6, 'Voice Parser: Đọc "mười một mười hai mười ba" -> 6 lá [10, 1, 10, 2, 10, 3]');
+  assert(resMuoiWords[0].rank === 10 && resMuoiWords[1].rank === 14, 'Voice Parser: mười một -> 10 và Át');
+  assert(resMuoiWords[2].rank === 10 && resMuoiWords[3].rank === 2, 'Voice Parser: mười hai -> 10 và 2');
+  assert(resMuoiWords[4].rank === 10 && resMuoiWords[5].rank === 3, 'Voice Parser: mười ba -> 10 và 3');
 
   // Test đọc chậm có khoảng ngắt (dấu phẩy / pause):
   const resSlow1 = VietnameseCardVoiceParser.parse('mười, một');
@@ -835,12 +842,12 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(resDayKiu[1].rank === 12 && resDayKiu[1].suit === 'spades', 'Voice Parser: "kiu bích" -> Q bích (12)');
   assert(resDayKiu[2].rank === 11 && resDayKiu[2].suit === 'clubs', 'Voice Parser: "chây tép" -> J tép (11)');
 
-  // Test dạng chữ số Apple Speech trả về: "mười 1 mười 2 mười 3" -> J, Q, K
+  // Test dạng chữ số: "mười 1 mười 2 mười 3" -> [10, Át, 10, 2, 10, 3] (không còn gộp J, Q, K)
   const resMuoiDigits = VietnameseCardVoiceParser.parse('mười 1 mười 2 mười 3');
-  assert(resMuoiDigits.length === 3, 'Voice Parser: "mười 1 mười 2 mười 3" -> Nhận đủ 3 lá');
-  assert(resMuoiDigits[0].rank === 11, 'Voice Parser: "mười 1" -> J (11)');
-  assert(resMuoiDigits[1].rank === 12, 'Voice Parser: "mười 2" -> Q (12)');
-  assert(resMuoiDigits[2].rank === 13, 'Voice Parser: "mười 3" -> K (13)');
+  assert(resMuoiDigits.length === 6, 'Voice Parser: "mười 1 mười 2 mười 3" -> Nhận đủ 6 lá (không gộp JQK)');
+  assert(resMuoiDigits[0].rank === 10 && resMuoiDigits[1].rank === 14, 'Voice Parser: "mười 1" -> 10 và Át');
+  assert(resMuoiDigits[2].rank === 10 && resMuoiDigits[3].rank === 2, 'Voice Parser: "mười 2" -> 10 và 2');
+  assert(resMuoiDigits[4].rank === 10 && resMuoiDigits[5].rank === 3, 'Voice Parser: "mười 3" -> 10 và 3');
 
   // Test chống nhảy 2 lần (No double jump on partial speech revision) & Phân đoạn liên tục (Multi-segment)
   const appVoiceTest = {
@@ -896,11 +903,11 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   appVoiceTest.processVoiceInput('bồi', 3);
   assert(appVoiceTest.players[0].cards.length === 2 && appVoiceTest.players[0].cards[1].rank === 11, 'Voice multi-segment: Nói "bồi" lần 2 ngắt câu -> Tiếp tục nhảy lá J cho Tụ 1 (không bị kẹt)');
 
-  // Test phân đoạn mới tiếp theo (Segment 4): Đọc "11 12 13" trọn vẹn không bị nuốt lá
-  appVoiceTest.processVoiceInput('11 12 13', 4);
-  assert(appVoiceTest.players[1].cards.length === 2 && appVoiceTest.players[1].cards[1].rank === 11, 'Voice multi-segment: "11 12 13" -> Tụ 2 nhận 11 (J)');
-  assert(appVoiceTest.players[2].cards.length === 2 && appVoiceTest.players[2].cards[1].rank === 12, 'Voice multi-segment: "11 12 13" -> Tụ 3 nhận 12 (Q)');
-  assert(appVoiceTest.players[0].cards.length === 3 && appVoiceTest.players[0].cards[2].rank === 13, 'Voice multi-segment: "11 12 13" -> Tụ 1 nhận 13 (K)');
+  // Test phân đoạn mới tiếp theo (Segment 4): Đọc "bồi đầm già" trọn vẹn không bị nuốt lá
+  appVoiceTest.processVoiceInput('bồi đầm già', 4);
+  assert(appVoiceTest.players[1].cards.length === 2 && appVoiceTest.players[1].cards[1].rank === 11, 'Voice multi-segment: "bồi đầm già" -> Tụ 2 nhận 11 (J)');
+  assert(appVoiceTest.players[2].cards.length === 2 && appVoiceTest.players[2].cards[1].rank === 12, 'Voice multi-segment: "bồi đầm già" -> Tụ 3 nhận 12 (Q)');
+  assert(appVoiceTest.players[0].cards.length === 3 && appVoiceTest.players[0].cards[2].rank === 13, 'Voice multi-segment: "bồi đầm già" -> Tụ 1 nhận 13 (K)');
 
   // Test cây as King vs cây as classifier
   const resCayKing = VietnameseCardVoiceParser.parse('cây cơ');
@@ -932,25 +939,25 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   const tokens = VietnameseCardVoiceParser.extractTrainingWords('dây kiu chây già bồi');
   assert(tokens.length === 5 && tokens[0] === 'dây' && tokens[1] === 'kiu' && tokens[2] === 'chây' && tokens[3] === 'già' && tokens[4] === 'bồi', 'Voice Custom Trainer: Tự động ngắt 5 từ từ chuỗi thu âm dài');
 
-  // Test Tách số dính 3 chữ số bắt đầu bằng 11, 12, 13 (separateDigits)
-  assert(VietnameseCardVoiceParser.separateDigits('124') === '12 4', 'separateDigits: 124 -> 12 4');
-  assert(VietnameseCardVoiceParser.separateDigits('122') === '12 2', 'separateDigits: 122 -> 12 2');
-  assert(VietnameseCardVoiceParser.separateDigits('134') === '13 4', 'separateDigits: 134 -> 13 4');
-  assert(VietnameseCardVoiceParser.separateDigits('132') === '13 2', 'separateDigits: 132 -> 13 2');
-  assert(VietnameseCardVoiceParser.separateDigits('114') === '11 4', 'separateDigits: 114 -> 11 4');
+  // Test Tách số dính với lá 10 duy nhất là 2 chữ số (separateDigits)
+  assert(VietnameseCardVoiceParser.separateDigits('104') === '10 4', 'separateDigits: 104 -> 10 4');
+  assert(VietnameseCardVoiceParser.separateDigits('102') === '10 2', 'separateDigits: 102 -> 10 2');
+  assert(VietnameseCardVoiceParser.separateDigits('1010') === '10 10', 'separateDigits: 1010 -> 10 10');
+  assert(VietnameseCardVoiceParser.separateDigits('234') === '2 3 4', 'separateDigits: 234 -> 2 3 4');
+  assert(VietnameseCardVoiceParser.separateDigits('114') === '1 1 4', 'separateDigits: 114 -> 1 1 4');
 
-  // Test không bị dính số 2/3 phía sau khi đọc 12 hoặc 13 kèm số khác
-  const p12_4 = VietnameseCardVoiceParser.parse('12, 4');
-  assert(p12_4.length === 2 && p12_4[0].rank === 12 && p12_4[1].rank === 4, 'Voice Parser: "12, 4" -> [12, 4] (Không bị dính số 2 ở giữa)');
+  // Test đầm hoặc già kèm số khác
+  const p12_4 = VietnameseCardVoiceParser.parse('đầm, 4');
+  assert(p12_4.length === 2 && p12_4[0].rank === 12 && p12_4[1].rank === 4, 'Voice Parser: "đầm, 4" -> [12, 4]');
 
-  const p12_2 = VietnameseCardVoiceParser.parse('12, 2');
-  assert(p12_2.length === 2 && p12_2[0].rank === 12 && p12_2[1].rank === 2, 'Voice Parser: "12, 2" -> [12, 2] (Không bị dính số 2 ở giữa)');
+  const p12_2 = VietnameseCardVoiceParser.parse('đầm, 2');
+  assert(p12_2.length === 2 && p12_2[0].rank === 12 && p12_2[1].rank === 2, 'Voice Parser: "đầm, 2" -> [12, 2]');
 
-  const p13_4 = VietnameseCardVoiceParser.parse('13, 4');
-  assert(p13_4.length === 2 && p13_4[0].rank === 13 && p13_4[1].rank === 4, 'Voice Parser: "13, 4" -> [13, 4] (Không bị dính số 3 ở giữa)');
+  const p13_4 = VietnameseCardVoiceParser.parse('già, 4');
+  assert(p13_4.length === 2 && p13_4[0].rank === 13 && p13_4[1].rank === 4, 'Voice Parser: "già, 4" -> [13, 4]');
 
-  const p13_2 = VietnameseCardVoiceParser.parse('13, 2');
-  assert(p13_2.length === 2 && p13_2[0].rank === 13 && p13_2[1].rank === 2, 'Voice Parser: "13, 2" -> [13, 2] (Không bị dính số 3 ở giữa)');
+  const p13_2 = VietnameseCardVoiceParser.parse('già, 2');
+  assert(p13_2.length === 2 && p13_2[0].rank === 13 && p13_2[1].rank === 2, 'Voice Parser: "già, 2" -> [13, 2]');
 
   // Test Tentative Card Revision: Nói "mười" rồi nói tiếp "mười một" / "11" -> Thay thế lá 10 thành J (11) trên cùng 1 Tụ
   const tentativeVoiceTest = {
@@ -1016,17 +1023,17 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   tentativeVoiceTest.processVoiceInput('mười', 1);
   assert(tentativeVoiceTest.players[0].cards.length === 1 && tentativeVoiceTest.players[0].cards[0].rank === 10, 'Tentative Revision: Đọc "mười" -> Tụ 1 tạm nhận lá 10');
 
-  // Bước 2: Người dùng nói xong "mười một" (Apple Speech cập nhật thành "11") -> Tụ 1 được sửa thành lá 11 (J), không bị kẹt lá 10!
-  tentativeVoiceTest.processVoiceInput('11', 1);
-  assert(tentativeVoiceTest.players[0].cards.length === 1 && tentativeVoiceTest.players[0].cards[0].rank === 11, 'Tentative Revision: Nối câu thành "11" -> Tụ 1 lập tức thay thế lá 10 bằng lá 11 (J)');
+  // Bước 2: Người dùng sửa thành "bồi" -> Tụ 1 được sửa thành lá 11 (J), không bị kẹt lá 10!
+  tentativeVoiceTest.processVoiceInput('bồi', 1);
+  assert(tentativeVoiceTest.players[0].cards.length === 1 && tentativeVoiceTest.players[0].cards[0].rank === 11, 'Tentative Revision: Nối câu thành "bồi" -> Tụ 1 lập tức thay thế lá 10 bằng lá 11 (J)');
 
-  // Bước 3: Đọc tiếp "mười hai" -> Tụ 2 nhận lá 12 (Q)
-  tentativeVoiceTest.processVoiceInput('11 12', 1);
-  assert(tentativeVoiceTest.players[1].cards.length === 1 && tentativeVoiceTest.players[1].cards[0].rank === 12, 'Tentative Revision: Đọc tiếp "12" -> Tụ 2 nhận đúng lá 12 (Q)');
+  // Bước 3: Đọc tiếp "đầm" -> Tụ 2 nhận lá 12 (Q)
+  tentativeVoiceTest.processVoiceInput('bồi đầm', 1);
+  assert(tentativeVoiceTest.players[1].cards.length === 1 && tentativeVoiceTest.players[1].cards[0].rank === 12, 'Tentative Revision: Đọc tiếp "đầm" -> Tụ 2 nhận đúng lá 12 (Q)');
 
-  // Bước 4: Đọc tiếp "mười ba" -> Tụ 3 nhận lá 13 (K)
-  tentativeVoiceTest.processVoiceInput('11 12 13', 1);
-  assert(tentativeVoiceTest.players[2].cards.length === 1 && tentativeVoiceTest.players[2].cards[0].rank === 13, 'Tentative Revision: Đọc tiếp "13" -> Tụ 3 nhận đúng lá 13 (K)');
+  // Bước 4: Đọc tiếp "già" -> Tụ 3 nhận lá 13 (K)
+  tentativeVoiceTest.processVoiceInput('bồi đầm già', 1);
+  assert(tentativeVoiceTest.players[2].cards.length === 1 && tentativeVoiceTest.players[2].cards[0].rank === 13, 'Tentative Revision: Đọc tiếp "già" -> Tụ 3 nhận đúng lá 13 (K)');
   assert(!tentativeVoiceTest.players.some(p => p.cards.some(c => c.rank === 10)), 'Tentative Revision: Hoàn toàn không còn lá 10 nào bị kẹt lại trên bất kỳ tụ nào!');
 }
 
@@ -1056,20 +1063,18 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   app.initPlayers();
   app.isRankOnlyMode = true;
 
-  // Kịch bản 1: t = 1000 đọc "mười" -> Chốt lá 10 sau khi flush
+  // Kịch bản 1: t = 1000 đọc "mười" -> Chốt tức thì lá 10 (0ms delay)
   app.processVoiceInput('mười', 1, 1000);
-  app.flushPendingVoiceCards();
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Stream Anchor 0.5s: t=0s đọc "mười" -> Tụ 1 nhận lá 10');
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Stream Anchor 0.5s: t=0s đọc "mười" -> Tụ 1 nhận lá 10 ngay lập tức');
 
-  // t = 1200: Apple tự sửa thành '11' -> Theo quy tắc bản đối chiếu: sau khi Apple sửa đều là vô hiệu, Tụ 1 giữ nguyên lá 10!
-  app.processVoiceInput('11', 1, 1200);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Stream Snapshot: Apple sửa sau đều là vô hiệu -> Tụ 1 giữ nguyên lá 10');
+  // t = 1200: Apple tự gửi thêm từ cũ -> Theo quy tắc bản đối chiếu, Tụ 1 giữ nguyên lá 10!
+  app.processVoiceInput('mười', 1, 1200);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Stream Snapshot: Tụ 1 giữ nguyên lá 10');
 
   // Kịch bản 2: Ngắt nghỉ quá 0.5s lấy chữ mới nhất làm mốc trực tiếp trên stream
   app.startNewRound();
-  // t = 1000: đọc "mười" -> Chốt tạm lá 10 sau khi kết thúc nhịp
+  // t = 1000: đọc "mười" -> Chốt ngay lá 10
   app.processVoiceInput('mười', 1, 1000);
-  app.flushPendingVoiceCards();
   assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Stream Anchor 0.5s: Ván mới, t=0s đọc "mười" -> Tụ 1 nhận lá 10');
 
   // Sau 0.3s, timer tự động chốt cứng lá 10:
@@ -1079,10 +1084,10 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
 
   // Tại t = 1700 (Delta t > 0.3s): người đọc tiếp "hai" ở Segment 2
   app.processVoiceInput('hai', 2, 1700);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Stream Anchor 0.3s: Nghỉ > 0.3s -> Lá 10 đã chốt cứng ở Tụ 1 (KHÔNG bị sửa thành Q/12)');
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Stream Anchor 0.3s: Lá 10 đã chốt cứng ở Tụ 1');
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Stream Anchor 0.3s: Chữ "hai" sau mốc 0.3s được đưa độc lập vào Tụ 2 (lá 2)');
 
-  // Kịch bản 3: Các số 1->9 nhận diện tức thì (0ms trễ), không phải chờ timer 0.5s
+  // Kịch bản 3: Các số 1->10 nhận diện tức thì (0ms trễ)
   app.startNewRound();
   app.processVoiceInput('ba', 1, 3000);
   assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 3, 'Stream 1->9: Đọc "ba" -> Tụ 1 nhận lá 3 ngay lập tức');
@@ -1093,22 +1098,19 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   app.processVoiceInput('bốn', 2, 3500);
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 4, 'Stream 1->9: Đọc tiếp "bốn" -> Tụ 2 nhận lá 4 trơn tru');
 
-  // Kịch bản 4: Biến thể "mười một" -> J, "mười một một" -> [J, 1], "mười hai một" -> [Q, 1]
+  // Kịch bản 4: Biến thể "mười một" -> [10, Át], "mười hai" -> [10, 2], "bui quy da" -> [J, Q, K]
   const Parser = vm.runInContext('VietnameseCardVoiceParser', sandbox);
   const pMuoiMot = Parser.parse('mười một');
-  assert(pMuoiMot.length === 1 && pMuoiMot[0].rank === 11, 'Voice Parser: "mười một" -> J (11)');
+  assert(pMuoiMot.length === 2 && pMuoiMot[0].rank === 10 && pMuoiMot[1].rank === 14, 'Voice Parser: "mười một" -> [10, Át]');
 
-  const pMuoiMotMot = Parser.parse('mười một một');
-  assert(pMuoiMotMot.length === 2 && pMuoiMotMot[0].rank === 11 && pMuoiMotMot[1].rank === 14, 'Voice Parser: "mười một một" -> [J, 1] (11 và Át)');
+  const pMuoiHai = Parser.parse('mười hai');
+  assert(pMuoiHai.length === 2 && pMuoiHai[0].rank === 10 && pMuoiHai[1].rank === 2, 'Voice Parser: "mười hai" -> [10, 2]');
 
-  const pMuoiHaiMot = Parser.parse('mười hai một');
-  assert(pMuoiHaiMot.length === 2 && pMuoiHaiMot[0].rank === 12 && pMuoiHaiMot[1].rank === 14, 'Voice Parser: "mười hai một" -> [Q, 1] (12 và Át)');
+  const pBuiQuyDa = Parser.parse('bui quy da');
+  assert(pBuiQuyDa.length === 3 && pBuiQuyDa[0].rank === 11 && pBuiQuyDa[1].rank === 12 && pBuiQuyDa[2].rank === 13, 'Voice Parser: "bui quy da" -> [J, Q, K]');
 
-  const pMuoiBaMot = Parser.parse('mười ba một');
-  assert(pMuoiBaMot.length === 2 && pMuoiBaMot[0].rank === 13 && pMuoiBaMot[1].rank === 14, 'Voice Parser: "mười ba một" -> [K, 1] (13 và Át)');
-
-  const pMuoi11 = Parser.parse('mười 11 12 13');
-  assert(pMuoi11.length === 4 && pMuoi11[0].rank === 10 && pMuoi11[1].rank === 11 && pMuoi11[2].rank === 12 && pMuoi11[3].rank === 13, 'Voice Parser: "mười 11 12 13" -> [10, J, Q, K] (không bị nuốt 111)');
+  const pBoiDamGia = Parser.parse('bồi đầm già');
+  assert(pBoiDamGia.length === 3 && pBoiDamGia[0].rank === 11 && pBoiDamGia[1].rank === 12 && pBoiDamGia[2].rank === 13, 'Voice Parser: "bồi đầm già" -> [J, Q, K]');
 
   // Kịch bản 5: Biến thể ngữ âm hay nhầm lẫn của Apple Speech
   const pBa = Parser.parse('bà cơ');
@@ -1151,11 +1153,11 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   const AppCtrl = vm.runInContext('AppController', sandbox);
   const Parser = vm.runInContext('VietnameseCardVoiceParser', sandbox);
 
-  // 19.1. Test separateDigits với chuỗi 4 số (1212, 1112, 1012, 1224)
-  assert(Parser.separateDigits('1212') === '12 12', 'separateDigits: 1212 -> 12 12');
-  assert(Parser.separateDigits('1112') === '11 12', 'separateDigits: 1112 -> 11 12');
-  assert(Parser.separateDigits('1012') === '10 12', 'separateDigits: 1012 -> 10 12');
-  assert(Parser.separateDigits('1224') === '12 2 4', 'separateDigits: 1224 -> 12 2 4');
+  // 19.1. Test separateDigits với chuỗi 4 số (chỉ có 10 là 2 chữ số)
+  assert(Parser.separateDigits('1010') === '10 10', 'separateDigits: 1010 -> 10 10');
+  assert(Parser.separateDigits('1012') === '10 1 2', 'separateDigits: 1012 -> 10 1 2');
+  assert(Parser.separateDigits('1212') === '1 2 1 2', 'separateDigits: 1212 -> 1 2 1 2');
+  assert(Parser.separateDigits('1224') === '1 2 2 4', 'separateDigits: 1224 -> 1 2 2 4');
 
   // 19.2. Kịch bản: Đọc "1" [nghỉ 0.2s khóa cứng Tụ 1] rồi đọc "2"
   const app = new AppCtrl();
@@ -1176,11 +1178,11 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 14, 'Mat Lock: Tụ 1 vẫn giữ nguyên lá 1 (Át), KHÔNG bị biến thành Q');
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Mat Lock: Tụ 2 nhận đúng lá 2 riêng biệt!');
 
-  // 19.3. Kịch bản: Khóa tức thì 11, 12, 13 (0ms delay)
-  // Khi đọc 12 (Q) rồi đọc tiếp 2 -> Tụ 1 = 12 (Q), Tụ 2 = 2
+  // 19.3. Kịch bản: Khóa tức thì Bồi, Đầm, Già và Mười (0ms delay)
+  // Khi đọc quy (Q) rồi đọc tiếp 2 -> Tụ 1 = 12 (Q), Tụ 2 = 2
   app.startNewRound();
-  app.processVoiceInput('12', 1, 3000);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 12, 'Instant Lock 12: Đọc "12" -> Tụ 1 nhận lá Q');
+  app.processVoiceInput('quy', 1, 3000);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 12, 'Instant Lock 12: Đọc "quy" -> Tụ 1 nhận lá Q');
   
   // Timer 180ms reset segment sang Segment 2
   app.resetVoiceSegment();
@@ -1188,29 +1190,38 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 12, 'Instant Lock 12: Tụ 1 giữ vững lá Q');
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Instant Lock 12: Tụ 2 nhận lá 2 chuẩn xác');
 
-  // 19.4. Kịch bản: Đọc 12 rồi đọc 4 ("12,4") -> Tụ 1 = 12 (Q), Tụ 2 = 4
+  // 19.4. Kịch bản: Đọc đầm rồi đọc 4 -> Tụ 1 = 12 (Q), Tụ 2 = 4
   app.startNewRound();
-  app.processVoiceInput('12', 1, 5000);
+  app.processVoiceInput('đầm', 1, 5000);
   app.resetVoiceSegment();
   app.processVoiceInput('4', 2, 5600);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 12, 'Instant Lock 12: Đọc 12, 4 -> Tụ 1 = Q');
-  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 4, 'Instant Lock 12: Đọc 12, 4 -> Tụ 2 = 4');
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 12, 'Instant Lock 12: Đọc đầm, 4 -> Tụ 1 = Q');
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 4, 'Instant Lock 12: Đọc đầm, 4 -> Tụ 2 = 4');
 
-  // 19.5. Kịch bản: Đọc 11 rồi đọc 1 ("11,1") -> Tụ 1 = 11 (J), Tụ 2 = 1
+  // 19.5. Kịch bản: Đọc bui rồi đọc 1 -> Tụ 1 = 11 (J), Tụ 2 = 1
   app.startNewRound();
-  app.processVoiceInput('11', 1, 7000);
+  app.processVoiceInput('bui', 1, 7000);
   app.resetVoiceSegment();
   app.processVoiceInput('1', 2, 7600);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 11, 'Instant Lock 11: Đọc 11, 1 -> Tụ 1 = J');
-  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 14, 'Instant Lock 11: Đọc 11, 1 -> Tụ 2 = Át (1)');
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 11, 'Instant Lock 11: Đọc bui, 1 -> Tụ 1 = J');
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 14, 'Instant Lock 11: Đọc bui, 1 -> Tụ 2 = Át (1)');
 
-  // 19.6. Kịch bản: Đọc 13 rồi đọc 2 ("13,2") -> Tụ 1 = 13 (K), Tụ 2 = 2
+  // 19.6. Kịch bản: Đọc da rồi đọc 2 -> Tụ 1 = 13 (K), Tụ 2 = 2
   app.startNewRound();
-  app.processVoiceInput('13', 1, 9000);
+  app.processVoiceInput('da', 1, 9000);
   app.resetVoiceSegment();
   app.processVoiceInput('2', 2, 9600);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 13, 'Instant Lock 13: Đọc 13, 2 -> Tụ 1 = K');
-  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Instant Lock 13: Đọc 13, 2 -> Tụ 2 = 2');
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 13, 'Instant Lock 13: Đọc da, 2 -> Tụ 1 = K');
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Instant Lock 13: Đọc da, 2 -> Tụ 2 = 2');
+
+  // 19.7. Kịch bản: Đọc mười rồi đọc 3 -> Tụ 1 = 10, Tụ 2 = 3 (0ms delay, gán tức thì)
+  app.startNewRound();
+  app.processVoiceInput('mười', 1, 10000);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Instant Lock 10: Đọc "mười" -> Tụ 1 nhận lá 10 tức thì (0ms delay)');
+  app.resetVoiceSegment();
+  app.processVoiceInput('3', 2, 10600);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Instant Lock 10: Tụ 1 giữ vững lá 10');
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 3, 'Instant Lock 10: Tụ 2 nhận lá 3 chuẩn xác');
 }
 
 // 20. Test Giải pháp 1: Reset phiên âm thanh sau mỗi từ (Auto-Reset Segment per Word/Card)
@@ -1271,8 +1282,8 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   app.playerCount = 3;
   app.initPlayers();
 
-  app.processVoiceInput('12', 1, 5000);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 12, 'Giải pháp 1: Đọc "12" (Segment 1) -> Tụ 1 nhận Q');
+  app.processVoiceInput('quy', 1, 5000);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 12, 'Giải pháp 1: Đọc "quy" (Segment 1) -> Tụ 1 nhận Q');
 
   // Reset sang Segment 2
   app.resetVoiceSegment();
@@ -1308,20 +1319,20 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   app.initPlayers();
   app.isRankOnlyMode = true;
 
-  // 21.1: Kịch bản người dùng đọc "mười một, mười một, mười một" (như trong ảnh thực tế của người dùng)
-  // Lần 1: Apple gửi "11" -> Tụ 1 nhận J (11)
-  app.processVoiceInput('11', 1, 1000);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 11, 'Snapshot 21.1: Đọc "mười một" -> Tụ 1 nhận đúng lá J (11)');
+  // 21.1: Kịch bản người dùng đọc "bồi, bồi, bồi"
+  // Lần 1: Apple gửi "bồi" -> Tụ 1 nhận J (11)
+  app.processVoiceInput('bồi', 1, 1000);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 11, 'Snapshot 21.1: Đọc "bồi" -> Tụ 1 nhận đúng lá J (11)');
   assert(app.confirmedVoiceCards.length === 1, 'Snapshot 21.1: Bản đối chiếu ghi nhận 1 lá đã chốt');
 
-  // Lần 2: Người dùng đọc tiếp cho Tụ 2, Apple stream tích luỹ gửi "11 11" -> Tụ 2 PHẢI NHẬN ĐƯỢC lá J (11)!
-  app.processVoiceInput('11 11', 1, 1800);
-  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 11, 'Snapshot 21.1: Đọc tiếp "mười một" (stream "11 11") -> Tụ 2 nhận chuẩn xác lá J (11)!');
+  // Lần 2: Người dùng đọc tiếp cho Tụ 2, Apple stream tích luỹ gửi "bồi bồi" -> Tụ 2 PHẢI NHẬN ĐƯỢC lá J (11)!
+  app.processVoiceInput('bồi bồi', 1, 1800);
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 11, 'Snapshot 21.1: Đọc tiếp "bồi" (stream "bồi bồi") -> Tụ 2 nhận chuẩn xác lá J (11)!');
   assert(app.confirmedVoiceCards.length === 2, 'Snapshot 21.1: Bản đối chiếu ghi nhận 2 lá [J, J]');
 
-  // 21.2: Người dùng đọc tiếp cho Tụ 3, Apple stream gửi "11 11 11" -> Tụ 3 PHẢI NHẬN ĐƯỢC lá J (11)!
-  app.processVoiceInput('11 11 11', 1, 2600);
-  assert(app.players[2].cards.length === 1 && app.players[2].cards[0].rank === 11, 'Snapshot 21.2: Đọc tiếp "mười một" (stream "11 11 11") -> Tụ 3 nhận chuẩn xác lá J (11)!');
+  // 21.2: Người dùng đọc tiếp cho Tụ 3, Apple stream gửi "bồi bồi bồi" -> Tụ 3 PHẢI NHẬN ĐƯỢC lá J (11)!
+  app.processVoiceInput('bồi bồi bồi', 1, 2600);
+  assert(app.players[2].cards.length === 1 && app.players[2].cards[0].rank === 11, 'Snapshot 21.2: Đọc tiếp "bồi" (stream "bồi bồi bồi") -> Tụ 3 nhận chuẩn xác lá J (11)!');
   assert(app.confirmedVoiceCards.length === 3, 'Snapshot 21.2: Bản đối chiếu ghi nhận đủ 3 lá [J, J, J]');
 
   // 21.3: Kịch bản người dùng đọc "mười mười" liền một hơi -> 10, 10
@@ -1330,17 +1341,16 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(app.confirmedVoiceCards.length === 0, 'Snapshot 21.3: Làm mới ván bài -> Bản đối chiếu được xóa sạch');
 
   app.processVoiceInput('mười mười', 1, 3000);
-  app.flushPendingVoiceCards();
   assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Snapshot 21.3: Đọc "mười mười" -> Tụ 1 nhận lá 10');
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 10, 'Snapshot 21.3: Đọc "mười mười" -> Tụ 2 nhận lá 10');
   assert(app.confirmedVoiceCards.length === 2, 'Snapshot 21.3: Bản đối chiếu ghi nhận đủ 2 lá 10');
 
-  // 21.4: Kịch bản người dùng đọc "12 12" -> Q, Q
+  // 21.4: Kịch bản người dùng đọc "đầm đầm" -> Q, Q
   app.startNewRound();
   app.initPlayers();
-  app.processVoiceInput('12 12', 1, 4000);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 12, 'Snapshot 21.4: Đọc "12 12" -> Tụ 1 nhận lá Q (12)');
-  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 12, 'Snapshot 21.4: Đọc "12 12" -> Tụ 2 nhận lá Q (12)');
+  app.processVoiceInput('đầm đầm', 1, 4000);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 12, 'Snapshot 21.4: Đọc "đầm đầm" -> Tụ 1 nhận lá Q (12)');
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 12, 'Snapshot 21.4: Đọc "đầm đầm" -> Tụ 2 nhận lá Q (12)');
   assert(app.confirmedVoiceCards.length === 2, 'Snapshot 21.4: Bản đối chiếu ghi nhận đủ 2 lá Q (12)');
 
   // 21.5: Kịch bản người dùng đọc liên tiếp nhiều tụ cùng điểm: "năm, năm, ba" (stream "5 5 3")
@@ -1373,9 +1383,7 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   app.processVoiceInput('một hai', 1, 3800);
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Snapshot 21.6: Đọc tiếp "hai" -> Tụ 2 nhận lá 2');
 
-  // 21.7: Kịch bản CHÍNH XÁC theo ảnh của người dùng:
-  // Đọc "một" -> Tụ 1 nhận Át, đọc "hai" -> Tụ 2 nhận 2
-  // Sau đó Apple tự gộp "1 2" thành "12", stream gửi "12 3" -> Tụ 3 PHẢI nhận được lá 3!
+  // 21.7: Kịch bản: Đọc "1", "2", "3"
   app.startNewRound();
   app.initPlayers();
   app.processVoiceInput('1', 1, 5000);
@@ -1384,25 +1392,23 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   app.processVoiceInput('1 2', 1, 5800);
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Snapshot 21.7: Đọc "2" -> Tụ 2 nhận lá 2');
 
-  // Apple tự gộp "1 2" thành "12", chuỗi gửi về "12 3":
+  // Apple tự gộp "1 2" thành "12", chuỗi gửi về "12 3" -> separateDigits tách thành "1 2 3":
   app.processVoiceInput('12 3', 1, 6600);
   assert(app.players[0].cards[0].rank === 14, 'Snapshot 21.7: Tụ 1 giữ nguyên Át (14)');
   assert(app.players[1].cards[0].rank === 2, 'Snapshot 21.7: Tụ 2 giữ nguyên lá 2');
   assert(app.players[2].cards.length === 1 && app.players[2].cards[0].rank === 3, 'Snapshot 21.7: Tụ 3 NHẬN CHUẨN XÁC LÁ 3 khi Apple gửi "12 3"!');
   assert(app.currentSegmentPlacedCards.length === 3, 'Snapshot 21.7: Bản đối chiếu ghi nhận đủ 3 lá [Át, 2, 3]');
 
-  // 21.8: Kịch bản "đừng thấy 10 phát gán 10 luôn":
-  // Đọc "mười hai" -> Khi nói "mười", app giữ chờ (chưa gán 10). Ngay sau đó Apple cập nhật "12" -> Gán THẲNG lá 12 (Q)!
+  // 21.8: Kịch bản Ghi âm tức thì 0ms delay (không còn chờ nối "mười..."):
   app.startNewRound();
   app.initPlayers();
-  // Bước 1: Apple trả về "mười" trước
+  // Bước 1: Apple trả về "mười" trước -> Gán ngay lá 10 vào Tụ 1 (0ms delay)
   app.processVoiceInput('mười', 1, 7000);
-  assert(app.players[0].cards.length === 0, 'Snapshot 21.8: Đọc "mười" -> Bộ theo dõi CHỜ TỪ NỐI, chưa gán ngay lá 10!');
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Snapshot 21.8: Đọc "mười" -> Gán ngay lá 10 vào Tụ 1 (0ms delay)!');
 
-  // Bước 2: Apple cập nhật thành "12" (hoặc "mười hai") -> Gán THẲNG lá 12 (Q) vào Tụ 1!
-  app.processVoiceInput('12', 1, 7150);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 12, 'Snapshot 21.8: Apple cập nhật "12" -> Gán THẲNG lá 12 (Q) vào Tụ 1!');
-  assert(app.players[1].cards.length === 0, 'Snapshot 21.8: Tụ 2 hoàn toàn rỗng, không bị đẩy lệch tụ!');
+  // Bước 2: Apple cập nhật thành "mười quy" -> Gán THẲNG lá 12 (Q) vào Tụ 2!
+  app.processVoiceInput('mười quy', 1, 7150);
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 12, 'Snapshot 21.8: Đọc tiếp "quy" -> Gán ngay lá 12 (Q) vào Tụ 2!');
 
   // 21.9: Kịch bản Apple sửa hồi tố "nam nắm năm" -> "5 5 5" -> Người dùng đọc tiếp "ba" ("5 5 5 3"):
   app.startNewRound();
@@ -1423,12 +1429,15 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 3, 'Snapshot 21.9: Đọc tiếp "ba" (stream "5 5 5 3") -> Tụ 2 nhận chuẩn xác lá 3!');
   assert(app.players[2].cards.length === 0, 'Snapshot 21.9: Tụ 3 vẫn chưa có bài!');
 
-  // 22: Test "mười mốt", "mười 1" & Nhật ký lời nói thực tế (Voice Log with Timestamps)
-  const pMuoiMot = VietnameseCardVoiceParser.parse('mười mốt');
-  assert(pMuoiMot.length === 1 && pMuoiMot[0].rank === 11, 'Voice Parser: "mười mốt" -> J (11)');
+  // 22: Test biến thể mới của người dùng (bui, quy, da, bồi, đầm, già) & Nhật ký lời nói
+  const pBui = VietnameseCardVoiceParser.parse('bui');
+  assert(pBui.length === 1 && pBui[0].rank === 11, 'Voice Parser: "bui" -> J (11)');
 
-  const pMuoi1 = VietnameseCardVoiceParser.parse('mười 1');
-  assert(pMuoi1.length === 1 && pMuoi1[0].rank === 11, 'Voice Parser: "mười 1" -> J (11)');
+  const pQuy = VietnameseCardVoiceParser.parse('quy');
+  assert(pQuy.length === 1 && pQuy[0].rank === 12, 'Voice Parser: "quy" -> Q (12)');
+
+  const pDa = VietnameseCardVoiceParser.parse('da');
+  assert(pDa.length === 1 && pDa[0].rank === 13, 'Voice Parser: "da" -> K (13)');
 
   const logText = app.getVoiceLogText();
   assert(logText.length > 0 && logText.includes('Segment #1'), 'Voice Log: Nhật ký lời nói ghi lại đầy đủ các gói tin');

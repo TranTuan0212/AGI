@@ -573,7 +573,7 @@ public class GameViewModel: ObservableObject {
             }
         }
         
-        // Nếu có lá 10 đang chờ từ nối nhưng chuỗi mới đã có cập nhật -> Huỷ hẹn giờ cũ
+        // Huỷ bỏ hẹn giờ cũ nếu còn
         if pendingTenWorkItem != nil {
             pendingTenWorkItem?.cancel()
             pendingTenWorkItem = nil
@@ -582,26 +582,9 @@ public class GameViewModel: ObservableObject {
 
         guard !newCardsToPlace.isEmpty else { return }
 
-        for (idx, item) in newCardsToPlace.enumerated() {
-            let isLastItem = (idx == newCardsToPlace.count - 1)
-            let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-            let isEndingWithMuoi = trimmedText.hasSuffix("mười") || trimmedText.hasSuffix("muoi") || trimmedText.hasSuffix("10")
-
-            // Nếu là lá 10 đứng ở cuối câu và từ kết thúc bằng "mười" -> Chờ nhịp nối (~380ms) xem có phải mười một/hai/ba không
-            if isLastItem && item.rank == .ten && !item.isHidden && !item.wasMultiplied && isEndingWithMuoi {
-                self.pendingTenCard = item
-                self.voiceService.appendActionLog("  ➔ ⏳ [CHỜ TỪ NỐI] Đang giữ lá 10 chờ nhịp nối (~380ms)...")
-                let workItem = DispatchWorkItem { [weak self] in
-                    guard let self = self, let pending = self.pendingTenCard else { return }
-                    self.executePlaceVoiceCard(pending)
-                    self.pendingTenCard = nil
-                    self.pendingTenWorkItem = nil
-                }
-                self.pendingTenWorkItem = workItem
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.38, execute: workItem)
-            } else {
-                executePlaceVoiceCard(item)
-            }
+        // Chia bài tức thì 0ms cho mọi lá bài (kể cả lá 10)
+        for item in newCardsToPlace {
+            executePlaceVoiceCard(item)
 
             if isReadyToCalculate {
                 break

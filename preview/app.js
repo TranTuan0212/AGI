@@ -1527,15 +1527,19 @@ class VietnameseCardVoiceParser {
     // 10
     'mười': 10, 'muoi': 10, 'chục': 10, 'chuc': 10, 'mời': 10, 'mươi': 10, '10': 10,
     // J
-    '11': 11, 'bồi': 11, 'boi': 11, 'bôi': 11, 'bồ': 11, 'bội': 11, 'ri': 11, 'gi': 11, 'di': 11,
-    'dây': 11, 'day': 11, 'chây': 11, 'chay': 11, 'zi': 11,
-    'gì': 11, 'ghi': 11, 'dê': 11, 'de': 11, 'j': 11, 'jack': 11,
+    'bồi': 11, 'boi': 11, 'bôi': 11, 'bồ': 11, 'bội': 11, 'bổi': 11, 'bời': 11, 'bòi': 11,
+    'bùi': 11, 'bui': 11, 'bụi': 11, 'bủi': 11,
+    'ri': 11, 'gi': 11, 'di': 11, 'zi': 11, 'gì': 11, 'ghi': 11,
+    'dê': 11, 'de': 11, 'dây': 11, 'day': 11, 'chây': 11, 'chay': 11, 'j': 11, 'jack': 11,
     // Q
-    '12': 12, 'đầm': 12, 'dam': 12, 'quy': 12, 'q': 12, 'qui': 12, 'kiu': 12, 'kêu': 12, 'cui': 12,
-    'huy': 12, 'húy': 12, 'hui': 12, 'quê': 12, 'que': 12, 'nữ': 12, 'nu': 12, 'queen': 12,
+    'đầm': 12, 'dam': 12, 'đâm': 12, 'đậm': 12, 'đẫm': 12, 'đằm': 12, 'trầm': 12,
+    'quy': 12, 'qui': 12, 'quê': 12, 'que': 12, 'kiu': 12, 'kêu': 12, 'cui': 12,
+    'huy': 12, 'húy': 12, 'hui': 12,
+    'nữ': 12, 'nu': 12, 'q': 12, 'queen': 12,
     // K
-    '13': 13, 'già': 13, 'gia': 13, 'ka': 13, 'k': 13, 'ca': 13, 'cả': 13, 'cá': 13, 'cà': 13,
-    'cây': 13, 'da': 13, 'dà': 13, 'gà': 13, 'ga': 13, 'kay': 13, 'cay': 13, 'vua': 13, 'king': 13
+    'già': 13, 'gia': 13, 'dà': 13, 'da': 13,
+    'k': 13, 'ka': 13, 'ca': 13, 'cả': 13, 'cá': 13, 'cà': 13,
+    'cây': 13, 'cay': 13, 'gà': 13, 'ga': 13, 'vua': 13, 'king': 13
   };
 
   static suitMap = {
@@ -1595,7 +1599,7 @@ class VietnameseCardVoiceParser {
   static separateDigits(text) {
     if (!text || typeof text !== 'string') return '';
     return text.replace(/\d+/g, (match) => {
-      if (['10', '11', '12', '13'].includes(match)) {
+      if (match === '10') {
         return match;
       }
       if (match.length === 2) {
@@ -1603,23 +1607,28 @@ class VietnameseCardVoiceParser {
       }
       if (match.length === 3) {
         const prefix2 = match.slice(0, 2);
-        if (['10', '11', '12', '13'].includes(prefix2)) {
+        if (prefix2 === '10') {
           return prefix2 + ' ' + match[2];
         }
         const suffix2 = match.slice(1, 3);
-        if (['10', '11', '12', '13'].includes(suffix2)) {
+        if (suffix2 === '10') {
           return match[0] + ' ' + suffix2;
         }
+        return match[0] + ' ' + match[1] + ' ' + match[2];
       }
       if (match.length === 4) {
         const p2 = match.slice(0, 2);
         const s2 = match.slice(2, 4);
-        if (['10', '11', '12', '13'].includes(p2) && ['10', '11', '12', '13'].includes(s2)) {
+        if (p2 === '10' && s2 === '10') {
           return p2 + ' ' + s2;
         }
-        if (['10', '11', '12', '13'].includes(p2)) {
+        if (p2 === '10') {
           return p2 + ' ' + match[2] + ' ' + match[3];
         }
+        if (s2 === '10') {
+          return match[0] + ' ' + match[1] + ' ' + s2;
+        }
+        return match[0] + ' ' + match[1] + ' ' + match[2] + ' ' + match[3];
       }
       let res = [];
       let i = 0;
@@ -1672,17 +1681,10 @@ class VietnameseCardVoiceParser {
       .replace(/xì dách/g, 'xì')
       .replace(/sì dách/g, 'xì');
 
-    if (isTenLocked) {
-      normalized = normalized
-        .replace(/\b(mười|muoi)\s+(một|mot|mốt|1)\b/gi, '10 1')
-        .replace(/\b(mười|muoi)\s+(hai|2)\b/gi, '10 2')
-        .replace(/\b(mười|muoi)\s+(ba|3)\b/gi, '10 3');
-    } else {
-      normalized = normalized
-        .replace(/\b(mười|muoi)\s+(một|mot|mốt|1)\b/gi, '11')
-        .replace(/\b(mười|muoi)\s+(hai|2)\b/gi, '12')
-        .replace(/\b(mười|muoi)\s+(ba|3)\b/gi, '13');
-    }
+    normalized = normalized
+      .replace(/\b(mười|muoi)\s+(một|mot|mốt|1)\b/gi, '10 1')
+      .replace(/\b(mười|muoi)\s+(hai|2)\b/gi, '10 2')
+      .replace(/\b(mười|muoi)\s+(ba|3)\b/gi, '10 3');
 
     normalized = normalized
       .replace(/bỏ bài/g, '__hidden__')
@@ -2273,7 +2275,7 @@ class AppController {
       }
     }
 
-    // Nếu có lá 10 đang chờ từ nối nhưng chuỗi mới đã có cập nhật -> Huỷ hẹn giờ cũ
+    // Huỷ bỏ hẹn giờ cũ nếu còn
     if (this.pendingTenTimer) {
       clearTimeout(this.pendingTenTimer);
       this.pendingTenTimer = null;
@@ -2284,27 +2286,9 @@ class AppController {
       return;
     }
 
-    for (let idx = 0; idx < newCardsToPlace.length; idx++) {
-      const item = newCardsToPlace[idx];
-      const isLastItem = (idx === newCardsToPlace.length - 1);
-      const trimmed = text.trim().toLowerCase();
-      const isEndingWithMuoi = trimmed.endsWith('mười') || trimmed.endsWith('muoi') || trimmed.endsWith('10');
-
-      // Nếu là lá 10 đứng ở cuối câu và từ kết thúc bằng "mười" -> Chờ nhịp nối (~380ms) xem có phải mười một/hai/ba không
-      if (isLastItem && item.rank === 10 && !item.isHidden && !item.wasMultiplied && isEndingWithMuoi) {
-        this.pendingTenCard = item;
-        this.appendActionLog('  ➔ ⏳ [CHỜ TỪ NỐI] Đang giữ lá 10 chờ nhịp nối (~380ms)...');
-        this.pendingTenTimer = setTimeout(() => {
-          if (this.pendingTenCard) {
-            this.executePlaceVoiceCard(this.pendingTenCard);
-            this.pendingTenCard = null;
-            this.pendingTenTimer = null;
-          }
-        }, 380);
-      } else {
-        this.executePlaceVoiceCard(item);
-      }
-
+    // Chia bài tức thì 0ms cho mọi lá bài (kể cả lá 10)
+    for (const item of newCardsToPlace) {
+      this.executePlaceVoiceCard(item);
       if (this.isReady()) break;
     }
   }

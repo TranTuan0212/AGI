@@ -53,17 +53,24 @@ public struct VietnameseCardVoiceParser {
         "mười": .ten, "muoi": .ten, "chục": .ten, "chuc": .ten, "mời": .ten, "mươi": .ten, "10": .ten,
         
         // J
-        "11": .jack, "bồi": .jack, "boi": .jack, "bôi": .jack, "bồ": .jack, "bội": .jack, "ri": .jack, "gi": .jack, "di": .jack,
-        "dây": .jack, "day": .jack, "chây": .jack, "chay": .jack, "zi": .jack,
-        "gì": .jack, "ghi": .jack, "dê": .jack, "de": .jack, "j": .jack, "jack": .jack,
+        "bồi": .jack, "boi": .jack, "bôi": .jack, "bồ": .jack, "bội": .jack, "bổi": .jack, "bời": .jack, "bòi": .jack,
+        "bùi": .jack, "bui": .jack, "bụi": .jack, "bủi": .jack,
+        "ri": .jack, "gi": .jack, "di": .jack, "zi": .jack, "gì": .jack, "ghi": .jack,
+        "dê": .jack, "de": .jack, "dây": .jack, "day": .jack, "chây": .jack, "chay": .jack,
+        "j": .jack, "jack": .jack,
         
         // Q
-        "12": .queen, "đầm": .queen, "dam": .queen, "quy": .queen, "q": .queen, "qui": .queen, "kiu": .queen, "kêu": .queen, "cui": .queen,
-        "huy": .queen, "húy": .queen, "hui": .queen, "quê": .queen, "que": .queen, "nữ": .queen, "nu": .queen, "queen": .queen,
+        "đầm": .queen, "dam": .queen, "đâm": .queen, "đậm": .queen, "đẫm": .queen, "đằm": .queen, "trầm": .queen,
+        "quy": .queen, "qui": .queen, "quê": .queen, "que": .queen,
+        "kiu": .queen, "kêu": .queen, "cui": .queen,
+        "huy": .queen, "húy": .queen, "hui": .queen,
+        "nữ": .queen, "nu": .queen,
+        "q": .queen, "queen": .queen,
         
         // K
-        "13": .king, "già": .king, "gia": .king, "ka": .king, "k": .king, "ca": .king, "cả": .king, "cá": .king, "cà": .king,
-        "cây": .king, "cay": .king, "da": .king, "dà": .king, "gà": .king, "ga": .king, "kay": .king, "vua": .king, "king": .king
+        "già": .king, "gia": .king, "dà": .king, "da": .king,
+        "k": .king, "ka": .king, "ca": .king, "cả": .king, "cá": .king, "cà": .king,
+        "cây": .king, "cay": .king, "gà": .king, "ga": .king, "vua": .king, "king": .king
     ]
     
     // Normalized synonym mapping for suits
@@ -104,7 +111,7 @@ public struct VietnameseCardVoiceParser {
         
         func flushDigits() {
             guard !currentDigits.isEmpty else { return }
-            if currentDigits == "10" || currentDigits == "11" || currentDigits == "12" || currentDigits == "13" {
+            if currentDigits == "10" {
                 result.append(currentDigits)
             } else if currentDigits.count == 2 {
                 let first = currentDigits.prefix(1)
@@ -112,12 +119,12 @@ public struct VietnameseCardVoiceParser {
                 result.append("\(first) \(second)")
             } else if currentDigits.count == 3 {
                 let prefix2 = String(currentDigits.prefix(2))
-                if prefix2 == "10" || prefix2 == "11" || prefix2 == "12" || prefix2 == "13" {
+                if prefix2 == "10" {
                     let third = currentDigits.suffix(1)
                     result.append("\(prefix2) \(third)")
                 } else {
                     let suffix2 = String(currentDigits.suffix(2))
-                    if suffix2 == "10" || suffix2 == "11" || suffix2 == "12" || suffix2 == "13" {
+                    if suffix2 == "10" {
                         let first = currentDigits.prefix(1)
                         result.append("\(first) \(suffix2)")
                     } else {
@@ -129,10 +136,9 @@ public struct VietnameseCardVoiceParser {
             } else if currentDigits.count == 4 {
                 let p2 = String(currentDigits.prefix(2))
                 let s2 = String(currentDigits.suffix(2))
-                let valid = ["10", "11", "12", "13"]
-                if valid.contains(p2) && valid.contains(s2) {
+                if p2 == "10" && s2 == "10" {
                     result.append("\(p2) \(s2)")
-                } else if valid.contains(p2) {
+                } else if p2 == "10" {
                     let c3 = currentDigits[currentDigits.index(currentDigits.startIndex, offsetBy: 2)]
                     let c4 = currentDigits[currentDigits.index(currentDigits.startIndex, offsetBy: 3)]
                     result.append("\(p2) \(c3) \(c4)")
@@ -278,17 +284,10 @@ public struct VietnameseCardVoiceParser {
             .replacingOccurrences(of: "xì dách", with: "xì")
             .replacingOccurrences(of: "sì dách", with: "xì")
         
-        if isTenLocked {
-            normalized = normalized
-                .replacingOccurrences(of: "\\b(mười|muoi)\\s+(một|mot|mốt|1)\\b", with: "10 1", options: .regularExpression)
-                .replacingOccurrences(of: "\\b(mười|muoi)\\s+(hai|2)\\b", with: "10 2", options: .regularExpression)
-                .replacingOccurrences(of: "\\b(mười|muoi)\\s+(ba|3)\\b", with: "10 3", options: .regularExpression)
-        } else {
-            normalized = normalized
-                .replacingOccurrences(of: "\\b(mười|muoi)\\s+(một|mot|mốt|1)\\b", with: "11", options: .regularExpression)
-                .replacingOccurrences(of: "\\b(mười|muoi)\\s+(hai|2)\\b", with: "12", options: .regularExpression)
-                .replacingOccurrences(of: "\\b(mười|muoi)\\s+(ba|3)\\b", with: "13", options: .regularExpression)
-        }
+        normalized = normalized
+            .replacingOccurrences(of: "\\b(mười|muoi)\\s+(một|mot|mốt|1)\\b", with: "10 1", options: .regularExpression)
+            .replacingOccurrences(of: "\\b(mười|muoi)\\s+(hai|2)\\b", with: "10 2", options: .regularExpression)
+            .replacingOccurrences(of: "\\b(mười|muoi)\\s+(ba|3)\\b", with: "10 3", options: .regularExpression)
         
         normalized = normalized
             .replacingOccurrences(of: "bỏ bài", with: "__hidden__")
