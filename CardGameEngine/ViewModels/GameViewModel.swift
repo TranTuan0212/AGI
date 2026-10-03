@@ -57,18 +57,13 @@ public class GameViewModel: ObservableObject {
     // Action History for Undo
     private var actionHistory: [(card: Card, target: String)] = []
     
-    // Voice Recognition
+    // Voice Recognition - Realtime Confirmed Cards Snapshot
     @Published public var voiceService = SpeechRecognitionService()
     @Published public var voiceBannerText: String? = nil
+    public private(set) var confirmedVoiceCards: [Card] = []
     private var processedVoiceCardsCount: Int = 0
     private var currentVoiceSegmentID: Int = 0
-    private var currentSegmentPlacedCards: [Card] = []
-    
-    // Voice stream anchor: 0.7s timer specifically for ambiguous card 10 ("mười") vs J, Q, K
     private var lastVoiceCardPlacedTime: CFAbsoluteTime = 0
-    private var voiceCommitTimer: Timer? = nil
-    private var isLastCardTenTentative: Bool = false
-    private var isTenLocked: Bool = false
     
     // Rank-Only Mode (A->K) for 3 Cây & 2 Lá
     @Published public var isRankOnlyMode: Bool {
@@ -188,12 +183,9 @@ public class GameViewModel: ObservableObject {
         confrontationMatrix.removeAll()
         roundRobinPointer = 0
         selectedPlayerIndex = 0
+        confirmedVoiceCards.removeAll()
         processedVoiceCardsCount = 0
         currentVoiceSegmentID = 0
-        voiceCommitTimer?.invalidate()
-        voiceCommitTimer = nil
-        isLastCardTenTentative = false
-        isTenLocked = false
         lastVoiceCardPlacedTime = 0
         
         if shouldAutoRecord {
@@ -204,8 +196,10 @@ public class GameViewModel: ObservableObject {
     }
     
     public func autoStartVoiceForNewRound() {
+        confirmedVoiceCards.removeAll()
         processedVoiceCardsCount = 0
         currentVoiceSegmentID = 0
+        lastVoiceCardPlacedTime = 0
         voiceService.requestAuthorization { [weak self] authorized in
             guard let self = self, authorized else { return }
             self.voiceBannerText = "🎙️ Đang nghe [\(self.voiceService.currentInputDeviceName)]... Hãy đọc bài"
@@ -447,23 +441,7 @@ public class GameViewModel: ObservableObject {
                     self?.voiceBannerText = nil
                 }
             }
-            processedVoiceCardsCount = 0
-            currentVoiceSegmentID = 0
-            currentSegmentPlacedCards.removeAll()
-            voiceCommitTimer?.invalidate()
-            voiceCommitTimer = nil
-            isLastCardTenTentative = false
-            isTenLocked = false
-            lastVoiceCardPlacedTime = 0
         } else {
-            processedVoiceCardsCount = 0
-            currentVoiceSegmentID = 0
-            currentSegmentPlacedCards.removeAll()
-            voiceCommitTimer?.invalidate()
-            voiceCommitTimer = nil
-            isLastCardTenTentative = false
-            isTenLocked = false
-            lastVoiceCardPlacedTime = 0
             voiceService.requestAuthorization { [weak self] authorized in
                 guard let self = self else { return }
                 if authorized {
@@ -498,140 +476,105 @@ public class GameViewModel: ObservableObject {
         if segmentID != 0 && segmentID != currentVoiceSegmentID {
             currentVoiceSegmentID = segmentID
             processedVoiceCardsCount = 0
-            currentSegmentPlacedCards.removeAll()
-            isLastCardTenTentative = false
-            isTenLocked = false
         }
         
-        var parsedCards = VietnameseCardVoiceParser.parse(text, isTenLocked: isTenLocked)
-        guard !parsedCards.isEmpty else {
-            let displaySpoken = VietnameseCardVoiceParser.separateDigits(text)
-            voiceBannerText = "🎙️ \"\(displaySpoken)\""
+        if isReadyToCalculate {
+            if voiceService.isRecording {
+                voiceService.stopRecording(callEndAudio: false)
+                self.voiceBannerText = "✅ Đã chia đủ bài - Xong ván!"
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                    if self?.voiceService.isRecording == false {
+                        self?.voiceBannerText = nil
+                    }
+                }
+            }
             return
         }
-        
-        // Trích xuất quân bài hoặc combo mục tiêu duy nhất trong lượt nói này
-        // (Trong 1 lần hội thoại chỉ có 1 quân bài hoặc 1 combo được chia)
-        let lastCard = parsedCards[parsedCards.count - 1]
-        var targetCards: [ParsedVoiceCard] = []
-        if lastCard.wasMultiplied {
-            for card in parsedCards.reversed() {
-                if card.wasMultiplied && card.rank == lastCard.rank && card.suit == lastCard.suit && card.isHidden == lastCard.isHidden {
-                    targetCards.insert(card, at: 0)
-                } else {
-                    break
-                }
+
+        let parsedCards = VietnameseCardVoiceParser.parse(text)
+        guard !parsedCards.isEmpty else {
+            let displaySpoken = VietnameseCardVoiceParser.separateDigits(text)
+            if !displaySpoken.isEmpty {
+                voiceBannerText = "🎙️ \"\(displaySpoken)\""
             }
-        } else {
-            targetCards = [lastCard]
+            return
         }
-        
-        // Cập nhật banner hiển thị chuẩn xác lá bài mục tiêu (không bị đúp chữ từ chuỗi nhận diện vấp)
-        if lastCard.isHidden {
-            voiceBannerText = "🎙️ \"Bỏ / Ẩn\""
-        } else if lastCard.wasMultiplied {
-            let countLabel = targetCards.count == 2 ? "Đôi" : (targetCards.count == 3 ? "Sám" : "Tứ quý")
-            voiceBannerText = "🎙️ \"\(countLabel) \(lastCard.rank.displaySymbol)\""
-        } else if let suit = lastCard.suit {
-            voiceBannerText = "🎙️ \"\(lastCard.rank.displaySymbol)\(suit.rawValue)\""
-        } else {
-            voiceBannerText = "🎙️ \"\(lastCard.rank.displaySymbol)\""
+
+        // BẢN SAO ĐỐI CHIẾU THỜI GIAN THỰC (Realtime Confirmed Cards Snapshot)
+        // Nếu Apple sửa đổi hoặc thu ngắn câu trong quá khứ -> BỎ LUÔN (Vô hiệu hóa toàn bộ sửa đổi quá khứ)
+        guard parsedCards.count > processedVoiceCardsCount else {
+            return
         }
-        
-        // Kiểm tra xem các lá bài mục tiêu có trùng khớp với lá bài đã chia trong segment này không
-        var isMatching = (!currentSegmentPlacedCards.isEmpty && currentSegmentPlacedCards.count == targetCards.count)
-        if isMatching {
-            for idx in 0..<targetCards.count {
-                let placed = currentSegmentPlacedCards[idx]
-                let target = targetCards[idx]
-                if target.isHidden != placed.isHidden {
-                    isMatching = false
-                    break
-                }
-                if !target.isHidden {
-                    if target.rank != placed.rank {
-                        isMatching = false
-                        break
-                    }
-                    if let tSuit = target.suit, !placed.isRankOnly, tSuit != placed.suit {
-                        isMatching = false
-                        break
-                    }
+
+        let now = CFAbsoluteTimeGetCurrent()
+        let newCandidates = Array(parsedCards[processedVoiceCardsCount...])
+
+        var discardRankEcho: Rank? = nil
+        if let first = newCandidates.first, let lastConfirmed = confirmedVoiceCards.last {
+            if !first.isHidden && !first.wasMultiplied && first.rank == lastConfirmed.rank {
+                let elapsed = (now - lastVoiceCardPlacedTime)
+                if elapsed < 0.35 {
+                    discardRankEcho = lastConfirmed.rank
                 }
             }
         }
-        
-        // Nếu khác nhau: thực hiện thu hồi lá cũ đã chia trong segment và chia lá bài mới
-        if !isMatching {
-            // Thu hồi các lá đã chia dở trong lượt nói này (đưa con trỏ chia bài về lại đúng người chơi đó)
-            for placedCard in currentSegmentPlacedCards.reversed() {
-                removeCard(placedCard)
-            }
-            currentSegmentPlacedCards.removeAll()
-            
-            // Chia lá bài mục tiêu mới
-            for item in targetCards {
-                let countBefore = actionHistory.count
-                if item.isHidden {
-                    onHiddenCardTapped()
-                } else if isRankOnlyActive || item.suit == nil {
-                    onRankTapped(item.rank)
-                } else if let suit = item.suit {
-                    let card = Card(rank: item.rank, suit: suit)
-                    if cardOwner(card) == nil {
-                        onCardTapped(card)
-                    } else {
-                        onRankTapped(item.rank)
-                    }
-                }
-                if actionHistory.count > countBefore, let lastAction = actionHistory.last {
-                    currentSegmentPlacedCards.append(lastAction.card)
-                }
-            }
-        }
-        
-        // Làm mới (reset) bộ đếm thời gian chốt dứt câu:
-        // Đảm bảo không bị ngắt ngang khi Apple đang stream hoặc người dùng còn đang nói
-        voiceCommitTimer?.invalidate()
-        voiceCommitTimer = nil
-        
-        let lastPlaced = currentSegmentPlacedCards.last
-        let commitInterval: TimeInterval
-        if let last = lastPlaced {
-            if last.rank == .ten {
-                commitInterval = 0.30
-            } else if last.rank == .jack || last.rank == .queen || last.rank == .king {
-                commitInterval = 0.18
+
+        for item in newCandidates {
+            // Đánh dấu lá này đã được duyệt qua trong stream của Apple (để không bị duyệt lại ở các callback sau)
+            processedVoiceCardsCount += 1
+
+            // Kiểm tra xem candidate có nằm trong chùm âm vang / sửa đổi giật lùi của Apple không
+            if let echoRank = discardRankEcho, item.rank == echoRank && !item.wasMultiplied {
+                // BỎ LUÔN âm vang sửa đổi của Apple (ví dụ: "hai" -> Apple tự ý sửa thành "hai hại hai" / "2 2 2" / "222")
+                continue
             } else {
-                commitInterval = 0.20
+                discardRankEcho = nil
             }
-        } else {
-            commitInterval = 0.20
-        }
-        isLastCardTenTentative = (lastPlaced?.rank == .ten)
-        isTenLocked = false
-        
-        voiceCommitTimer = Timer.scheduledTimer(withTimeInterval: commitInterval, repeats: false) { [weak self] _ in
-            DispatchQueue.main.async {
-                guard let self = self else { return }
-                self.isLastCardTenTentative = false
-                self.isTenLocked = true
-                if self.voiceService.isRecording {
-                    self.voiceService.commitCurrentSegment()
+
+            // Chia lá bài hợp lệ vào tụ người chơi đang chọn
+            let countBefore = actionHistory.count
+            if item.isHidden {
+                onHiddenCardTapped()
+            } else if isRankOnlyActive || item.suit == nil {
+                onRankTapped(item.rank)
+            } else if let suit = item.suit {
+                let card = Card(rank: item.rank, suit: suit)
+                if cardOwner(card) == nil {
+                    onCardTapped(card)
+                } else {
+                    onRankTapped(item.rank)
                 }
             }
-        }
-        
-        // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)
-        if isReadyToCalculate && voiceService.isRecording {
-            voiceCommitTimer?.invalidate()
-            voiceCommitTimer = nil
-            voiceService.stopRecording(callEndAudio: false)
-            self.voiceBannerText = "✅ Đã chia đủ bài - Xong ván!"
-            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
-                if self?.voiceService.isRecording == false {
-                    self?.voiceBannerText = nil
+
+            if actionHistory.count > countBefore, let lastAction = actionHistory.last {
+                confirmedVoiceCards.append(lastAction.card)
+                lastVoiceCardPlacedTime = now
+
+                // Cập nhật banner hiển thị lá bài mới nhất
+                if item.isHidden {
+                    voiceBannerText = "🎙️ \"Bỏ / Ẩn\""
+                } else if item.wasMultiplied {
+                    let sym = item.rank.displaySymbol
+                    voiceBannerText = "🎙️ \"Đôi/Sám \(sym)\""
+                } else if let suit = item.suit {
+                    voiceBannerText = "🎙️ \"\(item.rank.displaySymbol)\(suit.rawValue)\""
+                } else {
+                    voiceBannerText = "🎙️ \"\(item.rank.displaySymbol)\""
                 }
+            }
+
+            // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)
+            if isReadyToCalculate {
+                if voiceService.isRecording {
+                    voiceService.stopRecording(callEndAudio: false)
+                    voiceBannerText = "✅ Đã chia đủ bài - Xong ván!"
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                        if self?.voiceService.isRecording == false {
+                            self?.voiceBannerText = nil
+                        }
+                    }
+                }
+                break
             }
         }
     }

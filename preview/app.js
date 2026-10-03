@@ -1763,13 +1763,13 @@ class VietnameseCardVoiceParser {
         const count = multiplier;
         multiplier = 1;
 
-        // Chống nói vấp / nói lặp sửa sai tổng quát:
-        // Nếu không có từ chỉ số lượng (count === 1) và không có chất bài riêng (detectedSuit === null),
-        // và lá bài trước đó có cùng rank và cũng không có chất, VÀ từ lá trước đến lá này KHÔNG CÓ dấu ngắt nhịp (__pause__)
-        // -> Bỏ qua vì đây là từ nói lặp dính liền / ngắc ngứ sửa sai!
-        if (count === 1 && !detectedSuit && !hadPauseSinceLastCard && result.length > 0) {
-          const lastCard = result[result.length - 1];
-          if (lastCard && !lastCard.isHidden && lastCard.rank === rawRank && !lastCard.suit && !lastCard.wasMultiplied) {
+        // Chống nói vấp / âm vang Apple sửa sai từ 3 lá trở lên (ví dụ Apple sửa "hai" thành "2 2 2" hay "222"):
+        // Cho phép đọc đôi tụ liền nhau như "mười mười" -> [10, 10], "12 12" -> [12, 12]
+        if (count === 1 && !detectedSuit && !hadPauseSinceLastCard && result.length >= 2) {
+          const last1 = result[result.length - 1];
+          const last2 = result[result.length - 2];
+          if (last1 && !last1.isHidden && last1.rank === rawRank && !last1.suit && !last1.wasMultiplied &&
+              last2 && !last2.isHidden && last2.rank === rawRank && !last2.suit && !last2.wasMultiplied) {
             i++;
             continue;
           }
@@ -1811,6 +1811,7 @@ class AppController {
     this.actionHistory = [];
     this.history = [];
     this.isVoiceRecording = false;
+    this.confirmedVoiceCards = [];
     this.processedVoiceCardsCount = 0;
     this.currentVoiceSegmentId = 0;
     this.currentSegmentPlacedCards = [];
@@ -1852,6 +1853,7 @@ class AppController {
 
     this.roundRobinPointer = 0;
     this.selectedPlayerIndex = 0;
+    this.confirmedVoiceCards = [];
     this.currentVoiceSegmentId = 0;
     this.processedVoiceCardsCount = 0;
     if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
@@ -2177,141 +2179,107 @@ class AppController {
       this.isTenLocked = false;
     }
 
+    if (this.isReady()) {
+      if (this.isVoiceRecording) {
+        this.stopVoiceRecording();
+        const voiceTextEl = document.getElementById('voice-text');
+        if (voiceTextEl) voiceTextEl.textContent = "✅ Đã chia đủ bài - Xong ván!";
+      }
+      return;
+    }
+
     const voiceTextEl = document.getElementById('voice-text');
-    let parsed = VietnameseCardVoiceParser.parse(text, this.isTenLocked);
+    let parsed = VietnameseCardVoiceParser.parse(text, false);
     if (!parsed || parsed.length === 0) {
       const unglued = VietnameseCardVoiceParser.separateDigits(text);
       if (voiceTextEl) voiceTextEl.textContent = `"${unglued}"`;
       return;
     }
 
-    // Trích xuất quân bài hoặc combo mục tiêu duy nhất trong lượt nói này
-    // (Trong 1 lần hội thoại chỉ có 1 quân bài hoặc 1 combo được chia)
-    const lastCard = parsed[parsed.length - 1];
-    let targetCards = [];
-    if (lastCard.wasMultiplied) {
-      for (let k = parsed.length - 1; k >= 0; k--) {
-        const c = parsed[k];
-        if (c.wasMultiplied && c.rank === lastCard.rank && c.suit === lastCard.suit && Boolean(c.isHidden) === Boolean(lastCard.isHidden)) {
-          targetCards.unshift(c);
-        } else {
-          break;
-        }
-      }
-    } else {
-      targetCards = [lastCard];
+    // BẢN SAO ĐỐI CHIẾU THỜI GIAN THỰC (Realtime Confirmed Cards Snapshot)
+    // Nếu Apple sửa đổi hoặc thu ngắn câu trong quá khứ -> BỎ LUÔN (Vô hiệu hóa toàn bộ sửa đổi quá khứ)
+    if (parsed.length <= this.processedVoiceCardsCount) {
+      return;
     }
 
-    // Cập nhật banner hiển thị chuẩn xác lá bài mục tiêu (không bị đúp chữ từ chuỗi nhận diện vấp)
-    if (voiceTextEl) {
-      if (lastCard.isHidden) {
-        voiceTextEl.textContent = '"Bỏ / Ẩn"';
-      } else if (lastCard.wasMultiplied) {
-        const countLabel = targetCards.length === 2 ? 'Đôi' : (targetCards.length === 3 ? 'Sám' : 'Tứ quý');
-        const sym = RANKS.find(r => r.raw === lastCard.rank)?.sym || lastCard.rank;
-        voiceTextEl.textContent = `"${countLabel} ${sym}"`;
+    const now = (timestamp !== null) ? timestamp : (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    const newCandidates = parsed.slice(this.processedVoiceCardsCount);
+
+    let discardRankEcho = null;
+    const lastConfirmed = this.confirmedVoiceCards[this.confirmedVoiceCards.length - 1];
+    if (newCandidates.length > 0 && lastConfirmed && !newCandidates[0].isHidden && !newCandidates[0].wasMultiplied && newCandidates[0].rank === lastConfirmed.rank) {
+      const elapsed = (now - this.lastVoiceCardPlacedTime);
+      if (elapsed < 350) {
+        discardRankEcho = lastConfirmed.rank;
+      }
+    }
+
+    for (let idx = 0; idx < newCandidates.length; idx++) {
+      const item = newCandidates[idx];
+
+      // Đánh dấu lá này đã được duyệt qua trong stream của Apple (để không bị duyệt lại ở các callback sau)
+      this.processedVoiceCardsCount++;
+
+      // Kiểm tra xem candidate có nằm trong chùm âm vang / sửa đổi giật lùi của Apple không
+      if (discardRankEcho !== null && item.rank === discardRankEcho && !item.wasMultiplied) {
+        // BỎ LUÔN âm vang sửa đổi của Apple (ví dụ: "hai" -> Apple tự ý sửa thành "hai hại hai" / "2 2 2" / "222")
+        continue;
       } else {
-        const sym = RANKS.find(r => r.raw === lastCard.rank)?.sym || lastCard.rank;
-        const sSym = lastCard.suit ? (SUITS.find(s => s.id === lastCard.suit)?.symbol || '') : '';
-        voiceTextEl.textContent = `"${sym}${sSym}"`;
-      }
-    }
-
-    // Kiểm tra xem các lá bài mục tiêu có trùng khớp với lá bài đã chia trong segment này không
-    let isMatching = (this.currentSegmentPlacedCards.length > 0 && this.currentSegmentPlacedCards.length === targetCards.length);
-    if (isMatching) {
-      for (let k = 0; k < targetCards.length; k++) {
-        const placed = this.currentSegmentPlacedCards[k];
-        const target = targetCards[k];
-        if (Boolean(target.isHidden) !== Boolean(placed.isHidden)) {
-          isMatching = false;
-          break;
-        }
-        if (!target.isHidden) {
-          if (target.rank !== placed.rank) {
-            isMatching = false;
-            break;
-          }
-          if (target.suit && !placed.isRankOnly && target.suit !== placed.suit) {
-            isMatching = false;
-            break;
-          }
-        }
-      }
-    }
-
-    // Nếu khác nhau: thực hiện thu hồi lá cũ đã chia trong segment và chia lá bài mới
-    if (!isMatching) {
-      // Thu hồi các lá đã chia dở trong lượt nói này (đưa con trỏ chia bài về lại đúng người chơi đó)
-      while (this.currentSegmentPlacedCards.length > 0) {
-        const placed = this.currentSegmentPlacedCards.pop();
-        if (placed && placed.id) {
-          this.removeCard(placed.id);
-        }
+        discardRankEcho = null;
       }
 
-      // Chia lá bài mục tiêu mới
-      for (const item of targetCards) {
-        const beforeCount = this.actionHistory.length;
-        if (item.isHidden) {
-          this.onHiddenCardClick();
-        } else if (this.isRankOnlyActive() || !item.suit) {
+      // Chia lá bài hợp lệ vào tụ người chơi đang chọn
+      const beforeCount = this.actionHistory.length;
+      if (item.isHidden) {
+        this.onHiddenCardClick();
+      } else if (this.isRankOnlyActive() || !item.suit) {
+        const rObj = RANKS.find(r => r.raw === item.rank);
+        if (rObj) this.onRankClick(rObj);
+      } else {
+        const deck = this.generateFullDeck();
+        const found = deck.find(c => c.rank === item.rank && c.suit === item.suit);
+        if (found && !this.getCardOwner(found.id)) {
+          this.onCardClick(found);
+        } else {
           const rObj = RANKS.find(r => r.raw === item.rank);
           if (rObj) this.onRankClick(rObj);
+        }
+      }
+
+      if (this.actionHistory.length > beforeCount) {
+        const lastAction = this.actionHistory[this.actionHistory.length - 1];
+        let placed = null;
+        for (const p of this.players) {
+          placed = p.cards.find(c => c.id === lastAction.cardId);
+          if (placed) break;
+        }
+        if (placed) {
+          this.confirmedVoiceCards.push(placed);
+          this.currentSegmentPlacedCards.push(placed);
+          this.lastVoiceCardPlacedTime = now;
+        }
+      }
+
+      // Cập nhật banner hiển thị lá bài mới nhất
+      if (voiceTextEl) {
+        if (item.isHidden) {
+          voiceTextEl.textContent = '"Bỏ / Ẩn"';
+        } else if (item.wasMultiplied) {
+          const sym = RANKS.find(r => r.raw === item.rank)?.sym || item.rank;
+          voiceTextEl.textContent = `"Đôi/Sám ${sym}"`;
         } else {
-          // Find card in 52 deck
-          const deck = this.generateFullDeck();
-          const found = deck.find(c => c.rank === item.rank && c.suit === item.suit);
-          if (found && !this.getCardOwner(found.id)) {
-            this.onCardClick(found);
-          } else {
-            const rObj = RANKS.find(r => r.raw === item.rank);
-            if (rObj) this.onRankClick(rObj);
-          }
-        }
-        if (this.actionHistory.length > beforeCount) {
-          const lastAction = this.actionHistory[this.actionHistory.length - 1];
-          let placed = null;
-          for (const p of this.players) {
-            placed = p.cards.find(c => c.id === lastAction.cardId);
-            if (placed) break;
-          }
-          if (placed) this.currentSegmentPlacedCards.push(placed);
+          const sym = RANKS.find(r => r.raw === item.rank)?.sym || item.rank;
+          const sSym = item.suit ? (SUITS.find(s => s.id === item.suit)?.symbol || '') : '';
+          voiceTextEl.textContent = `"${sym}${sSym}"`;
         }
       }
-    }
 
-    // Làm mới (reset) bộ đếm thời gian chốt dứt câu:
-    // Đảm bảo không bị ngắt ngang khi nhận diện stream hoặc người dùng còn đang nói
-    if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
-    this.voiceCommitTimer = null;
-
-    const lastPlaced = this.currentSegmentPlacedCards[this.currentSegmentPlacedCards.length - 1];
-    let commitInterval = 200;
-    if (lastPlaced) {
-      if (lastPlaced.rank === 10) {
-        commitInterval = 300;
-      } else if (lastPlaced.rank >= 11 && lastPlaced.rank <= 13) {
-        commitInterval = 180;
-      } else {
-        commitInterval = 200;
+      // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)
+      if (this.isReady() && this.isVoiceRecording) {
+        this.stopVoiceRecording();
+        if (voiceTextEl) voiceTextEl.textContent = "✅ Đã chia đủ bài - Xong ván!";
+        break;
       }
-    }
-    this.isLastCardTenTentative = (lastPlaced && lastPlaced.rank === 10);
-    this.isTenLocked = false;
-
-    this.voiceCommitTimer = setTimeout(() => {
-      this.isLastCardTenTentative = false;
-      this.isTenLocked = true;
-      this.resetVoiceSegment();
-    }, commitInterval);
-
-    // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)
-    if (this.isReady() && this.isVoiceRecording) {
-      if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
-      this.voiceCommitTimer = null;
-      this.stopVoiceRecording();
-      if (voiceTextEl) voiceTextEl.textContent = "✅ Đã chia đủ bài - Xong ván!";
     }
   }
 

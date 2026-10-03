@@ -406,12 +406,11 @@ public class SpeechRecognitionService: ObservableObject {
     }
     
     public func commitCurrentSegment() {
-        guard self.isRecording, let onResult = self.currentOnResult else { return }
-        self.restartRecognitionTask(newSessionID: self.sessionID, onResult: onResult)
+        // Ghi âm liên tục, mượt mà: không ngắt hủy recognition task để đảm bảo không bị giật/khựng âm thanh
     }
     
     public func resetSegment() {
-        commitCurrentSegment()
+        // Ghi âm liên tục, mượt mà: không ngắt hủy recognition task
     }
     
     public func stopRecording(callEndAudio: Bool = true) {

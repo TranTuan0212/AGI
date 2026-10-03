@@ -1056,14 +1056,13 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   app.initPlayers();
   app.isRankOnlyMode = true;
 
-  // Kịch bản 1: Nói liền mạch trong vòng 0.5s (Delta t = 0.2s <= 0.5s)
-  // t = 1000: đọc "mười" -> Tụ 1 nhận tạm lá 10
+  // Kịch bản 1: t = 1000 đọc "mười" -> Tụ 1 nhận lá 10
   app.processVoiceInput('mười', 1, 1000);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Stream Anchor 0.5s: t=0s đọc "mười" -> Tụ 1 tạm nhận lá 10');
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Stream Anchor 0.5s: t=0s đọc "mười" -> Tụ 1 nhận lá 10');
 
-  // t = 1200 (sau 0.2s <= 0.5s): nói liền "mười một" -> Apple update '11' -> Tụ 1 đổi lá 10 thành 11 (J)
+  // t = 1200: Apple tự sửa thành '11' -> Theo quy tắc bản đối chiếu: sau khi Apple sửa đều là vô hiệu, Tụ 1 giữ nguyên lá 10!
   app.processVoiceInput('11', 1, 1200);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 11, 'Stream Anchor 0.5s: t=0.2s (<= 0.5s) nói nối "11" -> Tụ 1 đổi thành lá 11 (J)');
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Stream Snapshot: Apple sửa sau đều là vô hiệu -> Tụ 1 giữ nguyên lá 10');
 
   // Kịch bản 2: Ngắt nghỉ quá 0.5s lấy chữ mới nhất làm mốc trực tiếp trên stream
   app.startNewRound();
@@ -1281,6 +1280,68 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Giải pháp 1: Đọc "hai" (Segment 2) -> Tụ 2 nhận lá 2, triệt tiêu hoàn toàn lỗi 1222 / 10 22!');
 }
 
+// 21. Test Bản sao đối chiếu thời gian thực (Realtime Confirmed Cards Snapshot & Drop Retroactive Apple Echoes)
+{
+  const appCodeFull = fs.readFileSync('preview/app.js', 'utf8');
+  const sandbox = {
+    window: { addEventListener: () => {} },
+    document: {
+      getElementById: () => ({ style: {}, innerHTML: '', textContent: '', appendChild: () => {}, classList: { add: () => {}, remove: () => {} }, querySelector: () => ({ addEventListener: () => {} }), addEventListener: () => {} }),
+      querySelectorAll: () => [],
+      createElement: () => ({ style: {}, dataset: {}, appendChild: () => {}, addEventListener: () => {}, querySelector: () => ({ addEventListener: () => {} }), setAttribute: () => {} })
+    },
+    localStorage: { getItem: () => null, setItem: () => {} },
+    console: console,
+    setTimeout: (fn, ms) => setTimeout(fn, ms),
+    clearTimeout: (id) => clearTimeout(id),
+    Date: Date
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(appCodeFull, sandbox);
+  const AppCtrl = vm.runInContext('AppController', sandbox);
+
+  const app = new AppCtrl();
+  app.currentGameType = 'lieng3';
+  app.playerCount = 3;
+  app.initPlayers();
+  app.isRankOnlyMode = true;
+
+  // 21.1: Người dùng nói "hai" trên luồng liên tục duy nhất (t = 1000)
+  app.processVoiceInput('hai', 1, 1000);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 2, 'Snapshot 21.1: Đọc "hai" -> Tụ 1 nhận đúng 1 lá 2');
+  assert(app.confirmedVoiceCards.length === 1, 'Snapshot 21.1: Bản đối chiếu ghi nhận 1 lá đã chốt');
+
+  // Ngay sau đó (t = 1080, sau 80ms), Apple Speech sửa thành "hai hại hai" / "2 2 2" / "222"
+  app.processVoiceInput('2 2 2', 1, 1080);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 2, 'Snapshot 21.1: Apple sửa thành 2 2 2 -> Tụ 1 vẫn chỉ có 1 lá 2 duy nhất');
+  assert(app.players[1].cards.length === 0, 'Snapshot 21.1: Tụ 2 hoàn toàn không bị sinh lá rác từ Apple sửa!');
+  assert(app.confirmedVoiceCards.length === 1, 'Snapshot 21.1: Bản đối chiếu vẫn giữ vững 1 lá');
+
+  // 21.2: Người dùng đọc tiếp "ba" (t = 2000) -> Apple stream gửi "2 2 2 3"
+  app.processVoiceInput('2 2 2 3', 1, 2000);
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 3, 'Snapshot 21.2: Đọc tiếp "ba" (stream "2 2 2 3") -> Tụ 2 nhận chuẩn xác lá 3!');
+  assert(app.confirmedVoiceCards.length === 2, 'Snapshot 21.2: Bản đối chiếu ghi nhận 2 lá [2, 3]');
+
+  // 21.3: Kịch bản người dùng đọc "mười mười" liền một hơi -> 10, 10
+  app.startNewRound();
+  app.initPlayers();
+  assert(app.confirmedVoiceCards.length === 0, 'Snapshot 21.3: Làm mới ván bài -> Bản đối chiếu được xóa sạch');
+
+  app.processVoiceInput('mười mười', 1, 3000);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 10, 'Snapshot 21.3: Đọc "mười mười" -> Tụ 1 nhận lá 10');
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 10, 'Snapshot 21.3: Đọc "mười mười" -> Tụ 2 nhận lá 10');
+  assert(app.confirmedVoiceCards.length === 2, 'Snapshot 21.3: Bản đối chiếu ghi nhận đủ 2 lá 10');
+
+  // 21.4: Kịch bản người dùng đọc "12 12" -> Q, Q
+  app.startNewRound();
+  app.initPlayers();
+  app.processVoiceInput('12 12', 1, 4000);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 12, 'Snapshot 21.4: Đọc "12 12" -> Tụ 1 nhận lá Q (12)');
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 12, 'Snapshot 21.4: Đọc "12 12" -> Tụ 2 nhận lá Q (12)');
+  assert(app.confirmedVoiceCards.length === 2, 'Snapshot 21.4: Bản đối chiếu ghi nhận đủ 2 lá Q (12)');
+}
+
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);
+
 
 
