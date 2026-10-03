@@ -1370,12 +1370,23 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   app.processVoiceInput('một hai', 1, 3800);
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Snapshot 21.6: Đọc tiếp "hai" -> Tụ 2 nhận lá 2');
 
-  // Nói tiếp "ba" -> stream "một hai ba"
-  app.processVoiceInput('một hai ba', 1, 4600);
-  assert(app.players[2].cards.length === 1 && app.players[2].cards[0].rank === 3, 'Snapshot 21.6: Đọc tiếp "ba" -> Tụ 3 nhận lá 3');
-  assert(app.players[0].cards[0].rank === 14, 'Snapshot 21.6: Tụ 1 = Át');
-  assert(app.players[1].cards[0].rank === 2, 'Snapshot 21.6: Tụ 2 = 2');
-  assert(app.players[2].cards[0].rank === 3, 'Snapshot 21.6: Tụ 3 = 3');
+  // 21.7: Kịch bản CHÍNH XÁC theo ảnh của người dùng:
+  // Đọc "một" -> Tụ 1 nhận Át, đọc "hai" -> Tụ 2 nhận 2
+  // Sau đó Apple tự gộp "1 2" thành "12", stream gửi "12 3" -> Tụ 3 PHẢI nhận được lá 3!
+  app.startNewRound();
+  app.initPlayers();
+  app.processVoiceInput('1', 1, 5000);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 14, 'Snapshot 21.7: Đọc "1" -> Tụ 1 nhận Át (14)');
+
+  app.processVoiceInput('1 2', 1, 5800);
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Snapshot 21.7: Đọc "2" -> Tụ 2 nhận lá 2');
+
+  // Apple tự gộp "1 2" thành "12", chuỗi gửi về "12 3":
+  app.processVoiceInput('12 3', 1, 6600);
+  assert(app.players[0].cards[0].rank === 14, 'Snapshot 21.7: Tụ 1 giữ nguyên Át (14)');
+  assert(app.players[1].cards[0].rank === 2, 'Snapshot 21.7: Tụ 2 giữ nguyên lá 2');
+  assert(app.players[2].cards.length === 1 && app.players[2].cards[0].rank === 3, 'Snapshot 21.7: Tụ 3 NHẬN CHUẨN XÁC LÁ 3 khi Apple gửi "12 3"!');
+  assert(app.currentSegmentPlacedCards.length === 3, 'Snapshot 21.7: Bản đối chiếu ghi nhận đủ 3 lá [Át, 2, 3]');
 }
 
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);

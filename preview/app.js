@@ -2227,6 +2227,15 @@ class AppController {
               break;
             }
           }
+        } else if (confirmedIdx + 1 < this.currentSegmentPlacedCards.length &&
+                   !candidate.isHidden &&
+                   ((candidate.rank === 12 && this.currentSegmentPlacedCards[confirmedIdx].rank === 14 && this.currentSegmentPlacedCards[confirmedIdx + 1].rank === 2) ||
+                    (candidate.rank === 11 && this.currentSegmentPlacedCards[confirmedIdx].rank === 14 && this.currentSegmentPlacedCards[confirmedIdx + 1].rank === 14) ||
+                    (candidate.rank === 13 && this.currentSegmentPlacedCards[confirmedIdx].rank === 14 && this.currentSegmentPlacedCards[confirmedIdx + 1].rank === 3))) {
+          // Apple tự động gộp 2 số đã chốt trong quá khứ thành 1 số (ví dụ: [Át/1, 2] -> 12/Q, [Át, Át] -> 11/J, [Át, 3] -> 13/K)
+          // Token này đại diện cho CẢ 2 LÁ đã chốt trong bản đối chiếu -> Hấp thụ cả 2 lá quá khứ!
+          confirmedIdx += 2;
+          i++;
         } else {
           // Apple sửa đổi từ cũ trong quá khứ -> Theo quy tắc: sau khi Apple sửa đều vô hiệu, giữ nguyên bản đối chiếu
           confirmedIdx++;

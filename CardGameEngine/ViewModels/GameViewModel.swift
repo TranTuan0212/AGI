@@ -531,6 +531,15 @@ public class GameViewModel: ObservableObject {
                             break
                         }
                     }
+                } else if confirmedIdx + 1 < currentSegmentConfirmedCards.count &&
+                          !candidate.isHidden &&
+                          ((candidate.rank == .queen && currentSegmentConfirmedCards[confirmedIdx].rank == .ace && currentSegmentConfirmedCards[confirmedIdx + 1].rank == .two) ||
+                           (candidate.rank == .jack && currentSegmentConfirmedCards[confirmedIdx].rank == .ace && currentSegmentConfirmedCards[confirmedIdx + 1].rank == .ace) ||
+                           (candidate.rank == .king && currentSegmentConfirmedCards[confirmedIdx].rank == .ace && currentSegmentConfirmedCards[confirmedIdx + 1].rank == .three)) {
+                    // Apple tự động gộp 2 số đã chốt trong quá khứ thành 1 số (ví dụ: [1, 2] -> 12/Q, [1, 1] -> 11/J, [1, 3] -> 13/K)
+                    // Token này đại diện cho CẢ 2 LÁ đã chốt trong bản đối chiếu -> Hấp thụ cả 2 lá quá khứ!
+                    confirmedIdx += 2
+                    i += 1
                 } else {
                     // Apple sửa đổi từ cũ trong quá khứ -> Theo quy tắc: sau khi Apple sửa đều vô hiệu, giữ nguyên bản đối chiếu
                     confirmedIdx += 1
