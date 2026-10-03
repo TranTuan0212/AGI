@@ -1763,18 +1763,6 @@ class VietnameseCardVoiceParser {
         const count = multiplier;
         multiplier = 1;
 
-        // Chống nói vấp / âm vang Apple sửa sai từ 3 lá trở lên (ví dụ Apple sửa "hai" thành "2 2 2" hay "222"):
-        // Cho phép đọc đôi tụ liền nhau như "mười mười" -> [10, 10], "12 12" -> [12, 12]
-        if (count === 1 && !detectedSuit && !hadPauseSinceLastCard && result.length >= 2) {
-          const last1 = result[result.length - 1];
-          const last2 = result[result.length - 2];
-          if (last1 && !last1.isHidden && last1.rank === rawRank && !last1.suit && !last1.wasMultiplied &&
-              last2 && !last2.isHidden && last2.rank === rawRank && !last2.suit && !last2.wasMultiplied) {
-            i++;
-            continue;
-          }
-        }
-
         hadPauseSinceLastCard = false;
         for (let c = 0; c < count; c++) {
           result.push({
@@ -2221,17 +2209,6 @@ class AppController {
         if (matchesConfirmed) {
           confirmedIdx++;
           i++;
-
-          // Lọc sạch âm vang / phân tách hồi tố của Apple đối với cùng 1 lá bài đã chốt
-          while (i < parsed.length) {
-            const nextCandidate = parsed[i];
-            if (!nextCandidate.wasMultiplied && !nextCandidate.isHidden && !confirmedCard.isHidden && nextCandidate.rank === confirmedCard.rank) {
-              // Apple sửa đổi / âm vang trùng lặp của lá đã chốt -> BỎ QUA
-              i++;
-            } else {
-              break;
-            }
-          }
         } else if (confirmedIdx + 1 < this.currentSegmentPlacedCards.length &&
                    !candidate.isHidden &&
                    ((candidate.rank === 12 && this.currentSegmentPlacedCards[confirmedIdx].rank === 14 && this.currentSegmentPlacedCards[confirmedIdx + 1].rank === 2) ||

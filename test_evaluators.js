@@ -1308,21 +1308,21 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   app.initPlayers();
   app.isRankOnlyMode = true;
 
-  // 21.1: Người dùng nói "hai" trên luồng liên tục duy nhất (t = 1000)
-  app.processVoiceInput('hai', 1, 1000);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 2, 'Snapshot 21.1: Đọc "hai" -> Tụ 1 nhận đúng 1 lá 2');
+  // 21.1: Kịch bản người dùng đọc "mười một, mười một, mười một" (như trong ảnh thực tế của người dùng)
+  // Lần 1: Apple gửi "11" -> Tụ 1 nhận J (11)
+  app.processVoiceInput('11', 1, 1000);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 11, 'Snapshot 21.1: Đọc "mười một" -> Tụ 1 nhận đúng lá J (11)');
   assert(app.confirmedVoiceCards.length === 1, 'Snapshot 21.1: Bản đối chiếu ghi nhận 1 lá đã chốt');
 
-  // Ngay sau đó (t = 1080, sau 80ms), Apple Speech sửa thành "hai hại hai" / "2 2 2" / "222"
-  app.processVoiceInput('2 2 2', 1, 1080);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 2, 'Snapshot 21.1: Apple sửa thành 2 2 2 -> Tụ 1 vẫn chỉ có 1 lá 2 duy nhất');
-  assert(app.players[1].cards.length === 0, 'Snapshot 21.1: Tụ 2 hoàn toàn không bị sinh lá rác từ Apple sửa!');
-  assert(app.confirmedVoiceCards.length === 1, 'Snapshot 21.1: Bản đối chiếu vẫn giữ vững 1 lá');
+  // Lần 2: Người dùng đọc tiếp cho Tụ 2, Apple stream tích luỹ gửi "11 11" -> Tụ 2 PHẢI NHẬN ĐƯỢC lá J (11)!
+  app.processVoiceInput('11 11', 1, 1800);
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 11, 'Snapshot 21.1: Đọc tiếp "mười một" (stream "11 11") -> Tụ 2 nhận chuẩn xác lá J (11)!');
+  assert(app.confirmedVoiceCards.length === 2, 'Snapshot 21.1: Bản đối chiếu ghi nhận 2 lá [J, J]');
 
-  // 21.2: Người dùng đọc tiếp "ba" (t = 2000) -> Apple stream gửi "2 2 2 3"
-  app.processVoiceInput('2 2 2 3', 1, 2000);
-  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 3, 'Snapshot 21.2: Đọc tiếp "ba" (stream "2 2 2 3") -> Tụ 2 nhận chuẩn xác lá 3!');
-  assert(app.confirmedVoiceCards.length === 2, 'Snapshot 21.2: Bản đối chiếu ghi nhận 2 lá [2, 3]');
+  // 21.2: Người dùng đọc tiếp cho Tụ 3, Apple stream gửi "11 11 11" -> Tụ 3 PHẢI NHẬN ĐƯỢC lá J (11)!
+  app.processVoiceInput('11 11 11', 1, 2600);
+  assert(app.players[2].cards.length === 1 && app.players[2].cards[0].rank === 11, 'Snapshot 21.2: Đọc tiếp "mười một" (stream "11 11 11") -> Tụ 3 nhận chuẩn xác lá J (11)!');
+  assert(app.confirmedVoiceCards.length === 3, 'Snapshot 21.2: Bản đối chiếu ghi nhận đủ 3 lá [J, J, J]');
 
   // 21.3: Kịch bản người dùng đọc "mười mười" liền một hơi -> 10, 10
   app.startNewRound();
@@ -1343,24 +1343,24 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 12, 'Snapshot 21.4: Đọc "12 12" -> Tụ 2 nhận lá Q (12)');
   assert(app.confirmedVoiceCards.length === 2, 'Snapshot 21.4: Bản đối chiếu ghi nhận đủ 2 lá Q (12)');
 
-  // 21.5: Kịch bản người dùng đọc "năm" -> iOS ban đầu nghe "nắm năm", sau 800ms sửa thành "5 5" (KHÔNG nhảy 2 quân 5)
+  // 21.5: Kịch bản người dùng đọc liên tiếp nhiều tụ cùng điểm: "năm, năm, ba" (stream "5 5 3")
   app.startNewRound();
   app.initPlayers();
-  // Bước 1: Realtime hiện ra "nắm năm" -> Nhận diện 1 lá 5 vào Tụ 1
-  app.processVoiceInput('nắm năm', 1, 1000);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 5, 'Snapshot 21.5: Đọc "năm" (Apple gửi "nắm năm") -> Tụ 1 nhận đúng 1 lá 5');
+  // Bước 1: Đọc "năm" cho Tụ 1
+  app.processVoiceInput('5', 1, 1000);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 5, 'Snapshot 21.5: Đọc "năm" -> Tụ 1 nhận đúng 1 lá 5');
   assert(app.currentSegmentPlacedCards.length === 1, 'Snapshot 21.5: Bản đối chiếu ghi nhận 1 lá 5 đã chốt');
 
-  // Bước 2: 800ms sau, Apple tự động sửa hồi tố thành "5 5" -> Bộ lọc realtime song song LOẠI BỎ sửa đổi của Apple!
+  // Bước 2: Đọc tiếp "năm" cho Tụ 2 -> Stream tích luỹ "5 5"
   app.processVoiceInput('5 5', 1, 1800);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 5, 'Snapshot 21.5: Apple sửa thành "5 5" sau 800ms -> Tụ 1 vẫn chỉ có 1 quân 5 duy nhất!');
-  assert(app.players[1].cards.length === 0, 'Snapshot 21.5: Tụ 2 hoàn toàn rỗng, KHÔNG bị nhảy 2 quân 5!');
-  assert(app.currentSegmentPlacedCards.length === 1, 'Snapshot 21.5: Bản đối chiếu segment vẫn chỉ có 1 lá 5');
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 5, 'Snapshot 21.5: Tụ 1 giữ nguyên lá 5');
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 5, 'Snapshot 21.5: Tụ 2 nhận chuẩn xác lá 5!');
+  assert(app.currentSegmentPlacedCards.length === 2, 'Snapshot 21.5: Bản đối chiếu ghi nhận 2 lá [5, 5]');
 
-  // Bước 3: Người dùng đọc tiếp "ba" -> Apple gửi "5 5 3" -> Tụ 2 nhận chuẩn xác lá 3!
-  app.processVoiceInput('5 5 3', 1, 2500);
-  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 3, 'Snapshot 21.5: Đọc tiếp "ba" (stream "5 5 3") -> Tụ 2 nhận đúng lá 3!');
-  assert(app.currentSegmentPlacedCards.length === 2, 'Snapshot 21.5: Bản đối chiếu ghi nhận [5, 3]');
+  // Bước 3: Đọc tiếp "ba" cho Tụ 3 -> Stream tích luỹ "5 5 3"
+  app.processVoiceInput('5 5 3', 1, 2600);
+  assert(app.players[2].cards.length === 1 && app.players[2].cards[0].rank === 3, 'Snapshot 21.5: Đọc tiếp "ba" (stream "5 5 3") -> Tụ 3 nhận đúng lá 3!');
+  assert(app.currentSegmentPlacedCards.length === 3, 'Snapshot 21.5: Bản đối chiếu ghi nhận [5, 5, 3]');
 
   // 21.6: Kịch bản đọc liên tục thứ tự "một, hai, ba" trên luồng realtime duy nhất
   app.startNewRound();

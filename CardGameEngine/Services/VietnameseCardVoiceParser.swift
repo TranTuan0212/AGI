@@ -370,20 +370,6 @@ public struct VietnameseCardVoiceParser {
                 }
                 
                 let countToAppend = multiplier
-                multiplier = 1 // reset multiplier
-                
-                // Chống nói vấp / âm vang Apple sửa sai từ 3 lá trở lên (ví dụ Apple sửa "hai" thành "2 2 2" hay "222"):
-                // Cho phép đọc đôi tụ liền nhau như "mười mười" -> [10, 10], "12 12" -> [12, 12]
-                if countToAppend == 1 && detectedSuit == nil && !hadPauseSinceLastCard && result.count >= 2 {
-                    let last1 = result[result.count - 1]
-                    let last2 = result[result.count - 2]
-                    if !last1.isHidden && last1.rank == rank && last1.suit == nil && !last1.wasMultiplied &&
-                       !last2.isHidden && last2.rank == rank && last2.suit == nil && !last2.wasMultiplied {
-                        i += 1
-                        continue
-                    }
-                }
-
                 hadPauseSinceLastCard = false
                 for _ in 0..<countToAppend {
                     result.append(ParsedVoiceCard(rank: rank, suit: detectedSuit, wasMultiplied: countToAppend > 1))

@@ -543,17 +543,6 @@ public class GameViewModel: ObservableObject {
                 if matchesConfirmed {
                     confirmedIdx += 1
                     i += 1
-                    
-                    // Lọc sạch âm vang / phân tách hồi tố của Apple đối với cùng 1 lá bài đã chốt
-                    while i < parsedCards.count {
-                        let nextCandidate = parsedCards[i]
-                        if !nextCandidate.wasMultiplied && !nextCandidate.isHidden && !confirmedCard.isHidden && nextCandidate.rank == confirmedCard.rank {
-                            // Apple sửa đổi / âm vang trùng lặp của lá đã chốt -> BỎ QUA
-                            i += 1
-                        } else {
-                            break
-                        }
-                    }
                 } else if confirmedIdx + 1 < currentSegmentConfirmedCards.count &&
                           !candidate.isHidden &&
                           ((candidate.rank == .queen && currentSegmentConfirmedCards[confirmedIdx].rank == .ace && currentSegmentConfirmedCards[confirmedIdx + 1].rank == .two) ||
