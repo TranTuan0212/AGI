@@ -695,9 +695,9 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(res6[2].rank === 12 && res6[2].suit === 'clubs', 'Voice Parser: "q tép" -> Q chuồn/tép (clubs)');
   assert(res6[3].rank === 11 && res6[3].suit === 'diamonds', 'Voice Parser: "j rô" -> J rô (diamonds)');
 
-  // Test từ đệm / khẩu ngữ tự nhiên: cho tôi con già và con xì nhé
-  const res7 = VietnameseCardVoiceParser.parse('cho tôi con già và con xì nhé');
-  assert(res7.length === 2 && res7[0].rank === 13 && res7[1].rank === 14, 'Voice Parser: Lọc bỏ chuẩn từ đệm ("cho tôi con ... và con ... nhé") -> [K, A]');
+  // Test từ đệm / khẩu ngữ tự nhiên: cho tôi con già với con xì nhé (từ nối "với", "cho tôi con", "nhé")
+  const res7 = VietnameseCardVoiceParser.parse('cho tôi con già với con xì nhé');
+  assert(res7.length === 2 && res7[0].rank === 13 && res7[1].rank === 14, 'Voice Parser: Lọc bỏ chuẩn từ đệm ("cho tôi con ... với con ... nhé") -> [K, A]');
 
   // Test khẩu ngữ "hai con", "ba con", "bốn con"
   const res8 = VietnameseCardVoiceParser.parse('hai con mười với bốn con át');
@@ -1438,6 +1438,30 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
 
   const pDa = VietnameseCardVoiceParser.parse('da');
   assert(pDa.length === 1 && pDa[0].rank === 13, 'Voice Parser: "da" -> K (13)');
+
+  // 23: Test biến thể J (giây, duy) và K (dài, vài, và)
+  const pGiay = VietnameseCardVoiceParser.parse('giây');
+  assert(pGiay.length === 1 && pGiay[0].rank === 11, 'Voice Parser: "giây" -> J (11)');
+
+  const pDuy = VietnameseCardVoiceParser.parse('duy');
+  assert(pDuy.length === 1 && pDuy[0].rank === 11, 'Voice Parser: "duy" -> J (11)');
+
+  const pDai = VietnameseCardVoiceParser.parse('dài');
+  assert(pDai.length === 1 && pDai[0].rank === 13, 'Voice Parser: "dài" -> K (13)');
+
+  const pVai = VietnameseCardVoiceParser.parse('vài');
+  assert(pVai.length === 1 && pVai[0].rank === 13, 'Voice Parser: "vài" -> K (13)');
+
+  const pVa = VietnameseCardVoiceParser.parse('và');
+  assert(pVa.length === 1 && pVa[0].rank === 13, 'Voice Parser: "và" -> K (13)');
+
+  const pPhrase = VietnameseCardVoiceParser.parse('cho dài và vài duy');
+  assert(pPhrase.length === 4 &&
+         pPhrase[0].rank === 13 &&
+         pPhrase[1].rank === 13 &&
+         pPhrase[2].rank === 13 &&
+         pPhrase[3].rank === 11,
+         'Voice Parser câu phức hợp: "cho dài và vài duy" -> [K, K, K, J]');
 
   const logText = app.getVoiceLogText();
   assert(logText.length > 0 && logText.includes('Segment #1'), 'Voice Log: Nhật ký lời nói ghi lại đầy đủ các gói tin');

@@ -1530,7 +1530,9 @@ class VietnameseCardVoiceParser {
     'bồi': 11, 'boi': 11, 'bôi': 11, 'bồ': 11, 'bội': 11, 'bổi': 11, 'bời': 11, 'bòi': 11,
     'bùi': 11, 'bui': 11, 'bụi': 11, 'bủi': 11,
     'ri': 11, 'gi': 11, 'di': 11, 'zi': 11, 'gì': 11, 'ghi': 11,
-    'dê': 11, 'de': 11, 'dây': 11, 'day': 11, 'chây': 11, 'chay': 11, 'j': 11, 'jack': 11,
+    'dê': 11, 'de': 11, 'dây': 11, 'day': 11, 'chây': 11, 'chay': 11,
+    'giây': 11, 'giay': 11, 'duy': 11,
+    'j': 11, 'jack': 11,
     // Q
     'đầm': 12, 'dam': 12, 'đâm': 12, 'đậm': 12, 'đẫm': 12, 'đằm': 12, 'trầm': 12,
     'quy': 12, 'qui': 12, 'quê': 12, 'que': 12, 'kiu': 12, 'kêu': 12, 'cui': 12,
@@ -1538,6 +1540,7 @@ class VietnameseCardVoiceParser {
     'nữ': 12, 'nu': 12, 'q': 12, 'queen': 12,
     // K
     'già': 13, 'gia': 13, 'dà': 13, 'da': 13,
+    'dài': 13, 'dai': 13, 'vài': 13, 'vai': 13, 'và': 13, 'va': 13,
     'k': 13, 'ka': 13, 'ca': 13, 'cả': 13, 'cá': 13, 'cà': 13,
     'cây': 13, 'cay': 13, 'gà': 13, 'ga': 13, 'vua': 13, 'king': 13
   };
@@ -1553,7 +1556,7 @@ class VietnameseCardVoiceParser {
     'cho', 'tôi', 'toi', 'tao', 'mình', 'minh',
     'con', 'lá', 'la', 'quân', 'quan',
     'nhà', 'nha', 'tụ', 'tu',
-    'với', 'voi', 'và', 'va',
+    'với', 'voi',
     'nhập', 'nhap', 'thêm', 'them', 'lấy', 'lay',
     'nữa', 'nua', 'nhé', 'nhe', 'rồi', 'roi',
     'không', 'khong',

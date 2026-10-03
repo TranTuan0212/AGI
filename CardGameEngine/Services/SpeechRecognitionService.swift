@@ -18,6 +18,7 @@ public class SpeechRecognitionService: ObservableObject {
     @Published public var voiceLogs: [String] = []
     private var lastSpokenText: String = ""
     private var packetIndex: Int = 0
+    private var lastRmsUpdateTime: CFTimeInterval = 0
     
     public func clearVoiceLogs() {
         voiceLogs.removeAll()
@@ -65,13 +66,13 @@ public class SpeechRecognitionService: ObservableObject {
     public static func getContextualStrings() -> [String] {
         var list = [
             "Át", "Xì", "Át cơ", "Át rô", "Át tép", "Át chuồn", "Át bích", "át", "xì", "át cơ", "át rô", "át tép", "át chuồn", "át bích",
-            "K", "Già", "Ka", "Ca", "Cây", "Da", "Dà", "k", "già", "ka", "ca", "cây", "da", "dà",
+            "K", "Già", "Ka", "Ca", "Cây", "Da", "Dà", "Dài", "Vài", "Và", "k", "già", "ka", "ca", "cây", "da", "dà", "dài", "vài", "và",
             "Q", "Đầm", "Quy", "Qui", "Kiu", "Huy", "q", "đầm", "quy", "qui", "kiu", "huy",
-            "J", "Bồi", "Ri", "Dây", "Day", "Chây", "Bồi cơ", "Bồi rô", "Bồi tép", "Bồi chuồn", "Bồi bích", "Con bồi", "Lá bồi",
-            "j", "bồi", "ri", "dây", "day", "chây", "bồi cơ", "bồi rô", "bồi tép", "bồi chuồn", "bồi bích",
+            "J", "Bồi", "Bùi", "Bui", "Ri", "Gi", "Di", "Dê", "Dây", "Day", "Chây", "Giây", "Duy", "Con bồi", "Lá bồi",
+            "j", "bồi", "bùi", "bui", "ri", "gi", "di", "dê", "dây", "day", "chây", "giây", "duy",
+            "Bồi cơ", "Bồi rô", "Bồi tép", "Bồi chuồn", "Bồi bích", "bồi cơ", "bồi rô", "bồi tép", "bồi chuồn", "bồi bích",
             "Đôi", "Sám", "Tứ quý", "đôi", "sám", "tứ quý",
-            "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13",
-            "Mười ba", "Mười hai", "Mười một", "Một một", "mười ba", "mười hai", "mười một", "một một",
+            "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
             "Mười", "Chín", "Tám", "Bảy", "Sáu", "Năm", "Bốn", "Ba", "Hai", "Heo", "Một",
             "mười", "chín", "tám", "bảy", "sáu", "năm", "bốn", "ba", "hai", "heo", "một",
             "Cơ", "Rô", "Tép", "Chuồn", "Bích", "cơ", "rô", "tép", "chuồn", "bích",
@@ -325,8 +326,10 @@ public class SpeechRecognitionService: ObservableObject {
             inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
                 guard let self = self else { return }
                 
-                // Real-time audio RMS level & clarity status calculation
-                if let channelData = buffer.floatChannelData?[0] {
+                // Real-time audio RMS level & clarity status calculation (throttled to ~12 FPS to free Main Thread)
+                let now = CACurrentMediaTime()
+                if now - self.lastRmsUpdateTime > 0.08, let channelData = buffer.floatChannelData?[0] {
+                    self.lastRmsUpdateTime = now
                     let frameLength = Int(buffer.frameLength)
                     if frameLength > 0 {
                         var sum: Float = 0.0

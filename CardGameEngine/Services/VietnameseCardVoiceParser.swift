@@ -57,6 +57,7 @@ public struct VietnameseCardVoiceParser {
         "bùi": .jack, "bui": .jack, "bụi": .jack, "bủi": .jack,
         "ri": .jack, "gi": .jack, "di": .jack, "zi": .jack, "gì": .jack, "ghi": .jack,
         "dê": .jack, "de": .jack, "dây": .jack, "day": .jack, "chây": .jack, "chay": .jack,
+        "giây": .jack, "giay": .jack, "duy": .jack,
         "j": .jack, "jack": .jack,
         
         // Q
@@ -69,6 +70,7 @@ public struct VietnameseCardVoiceParser {
         
         // K
         "già": .king, "gia": .king, "dà": .king, "da": .king,
+        "dài": .king, "dai": .king, "vài": .king, "vai": .king, "và": .king, "va": .king,
         "k": .king, "ka": .king, "ca": .king, "cả": .king, "cá": .king, "cà": .king,
         "cây": .king, "cay": .king, "gà": .king, "ga": .king, "vua": .king, "king": .king
     ]
@@ -93,7 +95,7 @@ public struct VietnameseCardVoiceParser {
         "cho", "tôi", "toi", "tao", "mình", "minh",
         "con", "lá", "la", "quân", "quan",
         "nhà", "nha", "tụ", "tu",
-        "với", "voi", "và", "va",
+        "với", "voi",
         "nhập", "nhap", "thêm", "them", "lấy", "lay",
         "nữa", "nua", "nhé", "nhe", "rồi", "roi",
         "không", "khong",
