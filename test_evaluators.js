@@ -1403,6 +1403,25 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   app.processVoiceInput('12', 1, 7150);
   assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 12, 'Snapshot 21.8: Apple cập nhật "12" -> Gán THẲNG lá 12 (Q) vào Tụ 1!');
   assert(app.players[1].cards.length === 0, 'Snapshot 21.8: Tụ 2 hoàn toàn rỗng, không bị đẩy lệch tụ!');
+
+  // 21.9: Kịch bản Apple sửa hồi tố "nam nắm năm" -> "5 5 5" -> Người dùng đọc tiếp "ba" ("5 5 5 3"):
+  app.startNewRound();
+  app.initPlayers();
+  // Bước 1: Nói "nam nắm năm" -> Nhận diện đúng 1 lá 5 vào Tụ 1
+  app.processVoiceInput('nam nắm năm', 1, 8000);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 5, 'Snapshot 21.9: Đọc "nam nắm năm" -> Tụ 1 nhận đúng 1 lá 5');
+
+  // Bước 2: Apple tự ý sửa hồi tố thành "5 5 5" mà không có từ mới nào nói thêm -> VÔ HIỆU HÓA sửa đổi của Apple!
+  app.processVoiceInput('5 5 5', 1, 8800);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 5, 'Snapshot 21.9: Apple sửa thành "5 5 5" -> Tụ 1 vẫn chỉ có 1 lá 5 duy nhất!');
+  assert(app.players[1].cards.length === 0, 'Snapshot 21.9: Tụ 2 hoàn toàn rỗng, KHÔNG bị nhảy thêm lá 5 rác!');
+  assert(app.players[2].cards.length === 0, 'Snapshot 21.9: Tụ 3 hoàn toàn rỗng!');
+
+  // Bước 3: Người dùng đọc tiếp "ba" cho Tụ 2 -> Stream tích luỹ "5 5 5 3" -> Tụ 2 nhận chuẩn xác lá 3!
+  app.processVoiceInput('5 5 5 3', 1, 9600);
+  assert(app.players[0].cards[0].rank === 5, 'Snapshot 21.9: Tụ 1 giữ nguyên lá 5');
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 3, 'Snapshot 21.9: Đọc tiếp "ba" (stream "5 5 5 3") -> Tụ 2 nhận chuẩn xác lá 3!');
+  assert(app.players[2].cards.length === 0, 'Snapshot 21.9: Tụ 3 vẫn chưa có bài!');
 }
 
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);

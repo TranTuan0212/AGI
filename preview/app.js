@@ -1715,7 +1715,7 @@ class VietnameseCardVoiceParser {
       // Check hidden card ("bỏ", "bỏ bài", "bỏ qua", "không thấy", "không")
       if (token === '__hidden__' || token === 'bỏ' || token === 'bo') {
         for (let k = 0; k < multiplier; k++) {
-          result.push({ isHidden: true });
+          result.push({ isHidden: true, tokenIndex: i });
         }
         multiplier = 1;
         hadPauseSinceLastCard = false;
@@ -1749,6 +1749,7 @@ class VietnameseCardVoiceParser {
       }
 
       if (activeRankMap[token] !== undefined) {
+        const tokenStart = i;
         const rawRank = activeRankMap[token];
         let detectedSuit = null;
 
@@ -1768,7 +1769,8 @@ class VietnameseCardVoiceParser {
           result.push({
             rank: rawRank,
             suit: detectedSuit,
-            wasMultiplied: count > 1
+            wasMultiplied: count > 1,
+            tokenIndex: tokenStart
           });
         }
       }
@@ -1804,6 +1806,7 @@ class AppController {
     this.currentVoiceSegmentId = 0;
     this.currentSegmentPlacedCards = [];
     this.lastVoiceCardPlacedTime = 0;
+    this.lastProcessedTokenIndex = -1;
     this.voiceCommitTimer = null;
     this.pendingTenCard = null;
     this.pendingTenTimer = null;
@@ -2156,6 +2159,7 @@ class AppController {
     this.processedVoiceCardsCount = 0;
     this.currentVoiceSegmentId = 0;
     this.currentSegmentPlacedCards = [];
+    this.lastProcessedTokenIndex = -1;
     if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
     this.voiceCommitTimer = null;
     this.isLastCardTenTentative = false;
@@ -2168,6 +2172,7 @@ class AppController {
       this.currentVoiceSegmentId = segmentId;
       this.processedVoiceCardsCount = 0;
       this.currentSegmentPlacedCards = [];
+      this.lastProcessedTokenIndex = -1;
       this.isLastCardTenTentative = false;
       this.isTenLocked = false;
     }
@@ -2217,6 +2222,7 @@ class AppController {
           // Apple tự động gộp 2 số đã chốt trong quá khứ thành 1 số (ví dụ: [Át/1, 2] -> 12/Q, [Át, Át] -> 11/J, [Át, 3] -> 13/K)
           // Token này đại diện cho CẢ 2 LÁ đã chốt trong bản đối chiếu -> Hấp thụ cả 2 lá quá khứ!
           confirmedIdx += 2;
+          this.lastProcessedTokenIndex = candidate.tokenIndex !== undefined ? candidate.tokenIndex : -1;
           i++;
         } else {
           // Apple sửa đổi từ cũ trong quá khứ -> Theo quy tắc: sau khi Apple sửa đều vô hiệu, giữ nguyên bản đối chiếu
@@ -2226,7 +2232,10 @@ class AppController {
       } else {
         // Đã đối chiếu xong toàn bộ các lá trong bản đối chiếu.
         // Các lá còn lại ở đuôi stream là lá MỚI THẬT SỰ xuất hiện theo thời gian thực!
-        newCardsToPlace.push(candidate);
+        // Chỉ nhận khi tokenIndex nằm sau vùng từ vựng đã xử lý của các lá trước
+        if (candidate.tokenIndex === undefined || candidate.tokenIndex > this.lastProcessedTokenIndex) {
+          newCardsToPlace.push(candidate);
+        }
         i++;
       }
     }
@@ -2294,6 +2303,7 @@ class AppController {
       if (placed) {
         this.confirmedVoiceCards.push(placed);
         this.currentSegmentPlacedCards.push(placed);
+        this.lastProcessedTokenIndex = Math.max(this.lastProcessedTokenIndex, item.tokenIndex !== undefined ? item.tokenIndex : -1);
       }
     }
 
@@ -2321,6 +2331,7 @@ class AppController {
     this.currentVoiceSegmentId++;
     this.processedVoiceCardsCount = 0;
     this.currentSegmentPlacedCards = [];
+    this.lastProcessedTokenIndex = -1;
     this.isLastCardTenTentative = false;
     this.isTenLocked = false;
   }
@@ -2688,6 +2699,7 @@ class AppController {
     this.communityCards = [];
     this.actionHistory = [];
     this.currentSegmentPlacedCards = [];
+    this.lastProcessedTokenIndex = -1;
     this.roundRobinPointer = 0;
     this.selectedPlayerIndex = 0;
     this.isSelectingCommunity = false;

@@ -67,6 +67,7 @@ public class GameViewModel: ObservableObject {
     private var processedVoiceCardsCount: Int = 0
     private var currentVoiceSegmentID: Int = 0
     private var lastVoiceCardPlacedTime: CFAbsoluteTime = 0
+    private var lastProcessedTokenIndex: Int = -1
     
     // Rank-Only Mode (A->K) for 3 Cây & 2 Lá
     @Published public var isRankOnlyMode: Bool {
@@ -198,6 +199,7 @@ public class GameViewModel: ObservableObject {
         processedVoiceCardsCount = 0
         currentVoiceSegmentID = 0
         lastVoiceCardPlacedTime = 0
+        lastProcessedTokenIndex = -1
         
         if shouldAutoRecord {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
@@ -215,6 +217,7 @@ public class GameViewModel: ObservableObject {
         processedVoiceCardsCount = 0
         currentVoiceSegmentID = 0
         lastVoiceCardPlacedTime = 0
+        lastProcessedTokenIndex = -1
         voiceService.requestAuthorization { [weak self] authorized in
             guard let self = self, authorized else { return }
             self.voiceBannerText = "🎙️ Đang nghe [\(self.voiceService.currentInputDeviceName)]... Hãy đọc bài"
@@ -503,6 +506,7 @@ public class GameViewModel: ObservableObject {
             flushPendingVoiceCards()
             currentVoiceSegmentID = segmentID
             currentSegmentConfirmedCards.removeAll()
+            lastProcessedTokenIndex = -1
         }
         
         let displaySpoken = VietnameseCardVoiceParser.separateDigits(text)
@@ -551,6 +555,7 @@ public class GameViewModel: ObservableObject {
                     // Apple tự động gộp 2 số đã chốt trong quá khứ thành 1 số (ví dụ: [1, 2] -> 12/Q, [1, 1] -> 11/J, [1, 3] -> 13/K)
                     // Token này đại diện cho CẢ 2 LÁ đã chốt trong bản đối chiếu -> Hấp thụ cả 2 lá quá khứ!
                     confirmedIdx += 2
+                    lastProcessedTokenIndex = candidate.tokenIndex
                     i += 1
                 } else {
                     // Apple sửa đổi từ cũ trong quá khứ -> Theo quy tắc: sau khi Apple sửa đều vô hiệu, giữ nguyên bản đối chiếu
@@ -560,7 +565,10 @@ public class GameViewModel: ObservableObject {
             } else {
                 // Đã đối chiếu xong toàn bộ các lá trong bản đối chiếu.
                 // Các lá còn lại ở đuôi stream là lá MỚI THẬT SỰ xuất hiện theo thời gian thực!
-                newCardsToPlace.append(candidate)
+                // Chỉ nhận khi tokenIndex nằm sau vùng từ vựng đã xử lý của các lá trước
+                if candidate.tokenIndex > lastProcessedTokenIndex {
+                    newCardsToPlace.append(candidate)
+                }
                 i += 1
             }
         }
@@ -618,6 +626,7 @@ public class GameViewModel: ObservableObject {
         if actionHistory.count > countBefore, let lastAction = actionHistory.last {
             confirmedVoiceCards.append(lastAction.card)
             currentSegmentConfirmedCards.append(lastAction.card)
+            lastProcessedTokenIndex = max(lastProcessedTokenIndex, item.tokenIndex)
         }
 
         // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)

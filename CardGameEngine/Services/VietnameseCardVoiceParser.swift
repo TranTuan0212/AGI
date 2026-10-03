@@ -5,12 +5,14 @@ public struct ParsedVoiceCard: Equatable {
     public let suit: Suit?
     public let isHidden: Bool
     public let wasMultiplied: Bool
+    public let tokenIndex: Int
     
-    public init(rank: Rank = .two, suit: Suit? = nil, isHidden: Bool = false, wasMultiplied: Bool = false) {
+    public init(rank: Rank = .two, suit: Suit? = nil, isHidden: Bool = false, wasMultiplied: Bool = false, tokenIndex: Int = 0) {
         self.rank = rank
         self.suit = suit
         self.isHidden = isHidden
         self.wasMultiplied = wasMultiplied
+        self.tokenIndex = tokenIndex
     }
 }
 
@@ -323,7 +325,7 @@ public struct VietnameseCardVoiceParser {
                 multiplier = 1
                 hadPauseSinceLastCard = false
                 for _ in 0..<countToAppend {
-                    result.append(ParsedVoiceCard(isHidden: true, wasMultiplied: countToAppend > 1))
+                    result.append(ParsedVoiceCard(isHidden: true, wasMultiplied: countToAppend > 1, tokenIndex: i))
                 }
                 i += 1
                 continue
@@ -358,6 +360,7 @@ public struct VietnameseCardVoiceParser {
             
             // Check if token matches a rank
             if let rank = activeRankMap[token] {
+                let tokenStart = i
                 var detectedSuit: Suit? = nil
                 
                 // Lookahead for suit
@@ -372,7 +375,7 @@ public struct VietnameseCardVoiceParser {
                 let countToAppend = multiplier
                 hadPauseSinceLastCard = false
                 for _ in 0..<countToAppend {
-                    result.append(ParsedVoiceCard(rank: rank, suit: detectedSuit, wasMultiplied: countToAppend > 1))
+                    result.append(ParsedVoiceCard(rank: rank, suit: detectedSuit, wasMultiplied: countToAppend > 1, tokenIndex: tokenStart))
                 }
             }
             
