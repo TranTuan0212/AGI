@@ -66,10 +66,10 @@ public class SpeechRecognitionService: ObservableObject {
     public static func getContextualStrings() -> [String] {
         var list = [
             "Át", "Xì", "Át cơ", "Át rô", "Át tép", "Át chuồn", "Át bích", "át", "xì", "át cơ", "át rô", "át tép", "át chuồn", "át bích",
-            "K", "Già", "Ka", "Ca", "Cây", "Da", "Dà", "Dài", "Vài", "Và", "k", "già", "ka", "ca", "cây", "da", "dà", "dài", "vài", "và",
+            "K", "Già", "Ka", "Ca", "Cây", "Da", "Dà", "Dài", "Vài", "Và", "Dạ", "k", "già", "ka", "ca", "cây", "da", "dà", "dài", "vài", "và", "dạ",
             "Q", "Đầm", "Quy", "Qui", "Kiu", "Huy", "q", "đầm", "quy", "qui", "kiu", "huy",
-            "J", "Bồi", "Bùi", "Bui", "Ri", "Gi", "Di", "Dê", "Dây", "Day", "Chây", "Giây", "Duy", "Con bồi", "Lá bồi",
-            "j", "bồi", "bùi", "bui", "ri", "gi", "di", "dê", "dây", "day", "chây", "giây", "duy",
+            "J", "Bồi", "Bồ", "Bồn", "Bùi", "Bui", "Ri", "Gi", "Di", "Dê", "Dây", "Day", "Chây", "Giây", "Duy", "Con bồi", "Lá bồi",
+            "j", "bồi", "bồ", "bồn", "bùi", "bui", "ri", "gi", "di", "dê", "dây", "day", "chây", "giây", "duy",
             "Bồi cơ", "Bồi rô", "Bồi tép", "Bồi chuồn", "Bồi bích", "bồi cơ", "bồi rô", "bồi tép", "bồi chuồn", "bồi bích",
             "Đôi", "Sám", "Tứ quý", "đôi", "sám", "tứ quý",
             "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",

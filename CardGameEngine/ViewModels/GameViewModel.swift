@@ -758,7 +758,6 @@ public class GameViewModel: ObservableObject {
     
     private func calculateChan19() {
         for i in 0..<players.count {
-            players[i].cards.sort { $0.rank < $1.rank }
             players[i].rankOrder = i + 1
             players[i].score = 0
             players[i].resultTitle = "\(players[i].cards.count) lá"

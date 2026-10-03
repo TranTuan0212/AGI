@@ -169,10 +169,9 @@ public struct PlayerCardsView: View {
                         
                         // Cards display
                         if viewModel.gameType == .chan19 {
-                            let sortedCards = player.cards.sorted { $0.rank < $1.rank }
                             let columns = [GridItem(.adaptive(minimum: 28, maximum: 36), spacing: 3)]
                             LazyVGrid(columns: columns, alignment: .leading, spacing: 3) {
-                                ForEach(sortedCards) { card in
+                                ForEach(player.cards) { card in
                                     MiniCardView(card: card) {
                                         viewModel.removeCard(card)
                                     }

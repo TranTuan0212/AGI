@@ -1528,6 +1528,7 @@ class VietnameseCardVoiceParser {
     'mười': 10, 'muoi': 10, 'chục': 10, 'chuc': 10, 'mời': 10, 'mươi': 10, '10': 10,
     // J
     'bồi': 11, 'boi': 11, 'bôi': 11, 'bồ': 11, 'bội': 11, 'bổi': 11, 'bời': 11, 'bòi': 11,
+    'bồn': 11, 'bôn': 11,
     'bùi': 11, 'bui': 11, 'bụi': 11, 'bủi': 11,
     'ri': 11, 'gi': 11, 'di': 11, 'zi': 11, 'gì': 11, 'ghi': 11,
     'dê': 11, 'de': 11, 'dây': 11, 'day': 11, 'chây': 11, 'chay': 11,
@@ -1539,7 +1540,7 @@ class VietnameseCardVoiceParser {
     'huy': 12, 'húy': 12, 'hui': 12,
     'nữ': 12, 'nu': 12, 'q': 12, 'queen': 12,
     // K
-    'già': 13, 'gia': 13, 'dà': 13, 'da': 13,
+    'già': 13, 'gia': 13, 'dà': 13, 'da': 13, 'dạ': 13,
     'dài': 13, 'dai': 13, 'vài': 13, 'vai': 13, 'và': 13, 'va': 13,
     'k': 13, 'ka': 13, 'ca': 13, 'cả': 13, 'cá': 13, 'cà': 13,
     'cây': 13, 'cay': 13, 'gà': 13, 'ga': 13, 'vua': 13, 'king': 13
@@ -2962,11 +2963,10 @@ class AppController {
         cardsContainer.appendChild(chiGroupsWrap);
       } else if (this.currentGameType === 'chan19') {
         cardsContainer.className = 'hand-cards-container chan19-container';
-        const sortedCards = [...p.cards].sort((a, b) => a.rank - b.rank);
         const overlapWrap = document.createElement('div');
         overlapWrap.className = 'chan19-cards-wrapper';
 
-        sortedCards.forEach(c => {
+        p.cards.forEach(c => {
           const mini = this.createMiniCard(c);
           overlapWrap.appendChild(mini);
         });

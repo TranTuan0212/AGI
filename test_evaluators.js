@@ -1463,6 +1463,29 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
          pPhrase[3].rank === 11,
          'Voice Parser câu phức hợp: "cho dài và vài duy" -> [K, K, K, J]');
 
+  // 24: Test biến thể mới "bồn", "bồ" cho J (11) và "dạ" cho K (13)
+  const pBon = VietnameseCardVoiceParser.parse('bồn');
+  assert(pBon.length === 1 && pBon[0].rank === 11, 'Voice Parser: "bồn" -> J (11)');
+
+  const pBo = VietnameseCardVoiceParser.parse('bồ');
+  assert(pBo.length === 1 && pBo[0].rank === 11, 'Voice Parser: "bồ" -> J (11)');
+
+  const pDaAccent = VietnameseCardVoiceParser.parse('dạ');
+  assert(pDaAccent.length === 1 && pDaAccent[0].rank === 13, 'Voice Parser: "dạ" -> K (13)');
+
+  // 25: Test Chắn 19 lá: Thứ tự bài được giữ nguyên theo thứ tự đọc vào (FIFO, không bị sort đẩy lên)
+  app.currentGameType = 'chan19';
+  app.playerCount = 3;
+  app.startNewRound();
+  app.initPlayers();
+  // Đọc "1 2 3 4" tuần tự cho 3 tụ
+  app.processVoiceInput('1 2 3 4', 1, 10500);
+  assert(app.players[0].cards.length === 2, 'Chắn 19: Tụ 1 nhận 2 lá sau 1 vòng rưỡi chia bài');
+  assert(app.players[0].cards[0].rank === 14, 'Chắn 19: Tụ 1 lá đầu tiên là Át (1) - đọc trước nằm trước');
+  assert(app.players[0].cards[1].rank === 4, 'Chắn 19: Tụ 1 lá thứ hai là 4 - đọc sau nằm sau, KHÔNG bị đẩy lên trước Át');
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Chắn 19: Tụ 2 nhận lá 2');
+  assert(app.players[2].cards.length === 1 && app.players[2].cards[0].rank === 3, 'Chắn 19: Tụ 3 nhận lá 3');
+
   const logText = app.getVoiceLogText();
   assert(logText.length > 0 && logText.includes('Segment #1'), 'Voice Log: Nhật ký lời nói ghi lại đầy đủ các gói tin');
   assert(app.voiceLogs.length > 0, 'Voice Log: Mảng voiceLogs lưu trữ chi tiết các thao tác');

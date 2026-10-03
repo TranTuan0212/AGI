@@ -54,6 +54,7 @@ public struct VietnameseCardVoiceParser {
         
         // J
         "bồi": .jack, "boi": .jack, "bôi": .jack, "bồ": .jack, "bội": .jack, "bổi": .jack, "bời": .jack, "bòi": .jack,
+        "bồn": .jack, "bôn": .jack,
         "bùi": .jack, "bui": .jack, "bụi": .jack, "bủi": .jack,
         "ri": .jack, "gi": .jack, "di": .jack, "zi": .jack, "gì": .jack, "ghi": .jack,
         "dê": .jack, "de": .jack, "dây": .jack, "day": .jack, "chây": .jack, "chay": .jack,
@@ -69,7 +70,7 @@ public struct VietnameseCardVoiceParser {
         "q": .queen, "queen": .queen,
         
         // K
-        "già": .king, "gia": .king, "dà": .king, "da": .king,
+        "già": .king, "gia": .king, "dà": .king, "da": .king, "dạ": .king,
         "dài": .king, "dai": .king, "vài": .king, "vai": .king, "và": .king, "va": .king,
         "k": .king, "ka": .king, "ca": .king, "cả": .king, "cá": .king, "cà": .king,
         "cây": .king, "cay": .king, "gà": .king, "ga": .king, "vua": .king, "king": .king
