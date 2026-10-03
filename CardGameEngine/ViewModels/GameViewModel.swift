@@ -61,6 +61,7 @@ public class GameViewModel: ObservableObject {
     @Published public var voiceService = SpeechRecognitionService()
     @Published public var voiceBannerText: String? = nil
     public private(set) var confirmedVoiceCards: [Card] = []
+    public private(set) var currentSegmentConfirmedCards: [Card] = []
     private var processedVoiceCardsCount: Int = 0
     private var currentVoiceSegmentID: Int = 0
     private var lastVoiceCardPlacedTime: CFAbsoluteTime = 0
@@ -155,6 +156,7 @@ public class GameViewModel: ObservableObject {
         confrontationMatrix.removeAll()
         actionHistory.removeAll()
         confirmedVoiceCards.removeAll()
+        currentSegmentConfirmedCards.removeAll()
         processedVoiceCardsCount = 0
         currentVoiceSegmentID = 0
         
@@ -184,6 +186,7 @@ public class GameViewModel: ObservableObject {
         roundRobinPointer = 0
         selectedPlayerIndex = 0
         confirmedVoiceCards.removeAll()
+        currentSegmentConfirmedCards.removeAll()
         processedVoiceCardsCount = 0
         currentVoiceSegmentID = 0
         lastVoiceCardPlacedTime = 0
@@ -197,6 +200,7 @@ public class GameViewModel: ObservableObject {
     
     public func autoStartVoiceForNewRound() {
         confirmedVoiceCards.removeAll()
+        currentSegmentConfirmedCards.removeAll()
         processedVoiceCardsCount = 0
         currentVoiceSegmentID = 0
         lastVoiceCardPlacedTime = 0
@@ -475,7 +479,12 @@ public class GameViewModel: ObservableObject {
     public func processSpokenVoice(_ text: String, segmentID: Int = 0) {
         if segmentID != 0 && segmentID != currentVoiceSegmentID {
             currentVoiceSegmentID = segmentID
-            processedVoiceCardsCount = 0
+            currentSegmentConfirmedCards.removeAll()
+        }
+        
+        let displaySpoken = VietnameseCardVoiceParser.separateDigits(text)
+        if !displaySpoken.isEmpty {
+            voiceBannerText = "🎙️ \"\(displaySpoken)\""
         }
         
         if isReadyToCalculate {
@@ -492,46 +501,52 @@ public class GameViewModel: ObservableObject {
         }
 
         let parsedCards = VietnameseCardVoiceParser.parse(text)
-        guard !parsedCards.isEmpty else {
-            let displaySpoken = VietnameseCardVoiceParser.separateDigits(text)
-            if !displaySpoken.isEmpty {
-                voiceBannerText = "🎙️ \"\(displaySpoken)\""
-            }
-            return
-        }
+        guard !parsedCards.isEmpty else { return }
 
-        // BẢN SAO ĐỐI CHIẾU THỜI GIAN THỰC (Realtime Confirmed Cards Snapshot)
-        // Nếu Apple sửa đổi hoặc thu ngắn câu trong quá khứ -> BỎ LUÔN (Vô hiệu hóa toàn bộ sửa đổi quá khứ)
-        guard parsedCards.count > processedVoiceCardsCount else {
-            return
-        }
-
-        let now = CFAbsoluteTimeGetCurrent()
-        let newCandidates = Array(parsedCards[processedVoiceCardsCount...])
-
-        var discardRankEcho: Rank? = nil
-        if let first = newCandidates.first, let lastConfirmed = confirmedVoiceCards.last {
-            if !first.isHidden && !first.wasMultiplied && first.rank == lastConfirmed.rank {
-                let elapsed = (now - lastVoiceCardPlacedTime)
-                if elapsed < 0.35 {
-                    discardRankEcho = lastConfirmed.rank
+        // BỘ LỌC REALTIME SONG SONG VỚI APPLE
+        // So khớp trực tiếp chuỗi lá bài của Apple với Bản đối chiếu thời gian thực của segment hiện tại (currentSegmentConfirmedCards).
+        // Mọi sửa đổi hồi tố của Apple ("nắm năm" -> "5 5", "hai" -> "2 2 2") đều bị hấp thụ/lọc sạch!
+        var confirmedIdx = 0
+        var newCardsToPlace: [ParsedVoiceCard] = []
+        
+        var i = 0
+        while i < parsedCards.count {
+            let candidate = parsedCards[i]
+            
+            if confirmedIdx < currentSegmentConfirmedCards.count {
+                let confirmedCard = currentSegmentConfirmedCards[confirmedIdx]
+                let matchesConfirmed = (!candidate.isHidden && candidate.rank == confirmedCard.rank) || (candidate.isHidden && confirmedCard.isHidden)
+                
+                if matchesConfirmed {
+                    confirmedIdx += 1
+                    i += 1
+                    
+                    // Lọc sạch âm vang / phân tách hồi tố của Apple đối với cùng 1 lá bài đã chốt
+                    while i < parsedCards.count {
+                        let nextCandidate = parsedCards[i]
+                        if !nextCandidate.wasMultiplied && !nextCandidate.isHidden && !confirmedCard.isHidden && nextCandidate.rank == confirmedCard.rank {
+                            // Apple sửa đổi / âm vang trùng lặp của lá đã chốt -> BỎ QUA
+                            i += 1
+                        } else {
+                            break
+                        }
+                    }
+                } else {
+                    // Apple sửa đổi từ cũ trong quá khứ -> Theo quy tắc: sau khi Apple sửa đều vô hiệu, giữ nguyên bản đối chiếu
+                    confirmedIdx += 1
+                    i += 1
                 }
+            } else {
+                // Đã đối chiếu xong toàn bộ các lá trong bản đối chiếu.
+                // Các lá còn lại ở đuôi stream là lá MỚI THẬT SỰ xuất hiện theo thời gian thực!
+                newCardsToPlace.append(candidate)
+                i += 1
             }
         }
+        
+        guard !newCardsToPlace.isEmpty else { return }
 
-        for item in newCandidates {
-            // Đánh dấu lá này đã được duyệt qua trong stream của Apple (để không bị duyệt lại ở các callback sau)
-            processedVoiceCardsCount += 1
-
-            // Kiểm tra xem candidate có nằm trong chùm âm vang / sửa đổi giật lùi của Apple không
-            if let echoRank = discardRankEcho, item.rank == echoRank && !item.wasMultiplied {
-                // BỎ LUÔN âm vang sửa đổi của Apple (ví dụ: "hai" -> Apple tự ý sửa thành "hai hại hai" / "2 2 2" / "222")
-                continue
-            } else {
-                discardRankEcho = nil
-            }
-
-            // Chia lá bài hợp lệ vào tụ người chơi đang chọn
+        for item in newCardsToPlace {
             let countBefore = actionHistory.count
             if item.isHidden {
                 onHiddenCardTapped()
@@ -548,11 +563,7 @@ public class GameViewModel: ObservableObject {
 
             if actionHistory.count > countBefore, let lastAction = actionHistory.last {
                 confirmedVoiceCards.append(lastAction.card)
-                lastVoiceCardPlacedTime = now
-
-                // Cập nhật banner hiển thị đoạn dài lời nói thời gian thực (realtime)
-                let displaySpoken = VietnameseCardVoiceParser.separateDigits(text)
-                voiceBannerText = "🎙️ \"\(displaySpoken)\""
+                currentSegmentConfirmedCards.append(lastAction.card)
             }
 
             // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)

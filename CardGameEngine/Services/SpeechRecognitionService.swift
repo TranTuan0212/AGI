@@ -167,7 +167,7 @@ public class SpeechRecognitionService: ObservableObject {
             let recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
             self.recognitionRequest = recognitionRequest
             recognitionRequest.shouldReportPartialResults = true
-            recognitionRequest.taskHint = .dictation
+            recognitionRequest.taskHint = .search
             if #available(iOS 13, *), speechRecognizer.supportsOnDeviceRecognition {
                 recognitionRequest.requiresOnDeviceRecognition = true
             }
@@ -211,7 +211,7 @@ public class SpeechRecognitionService: ObservableObject {
                     }
                     
                     let isFinal = result?.isFinal ?? false
-                    let transientCodes: Set<Int> = [216, 203, 1110, 1100, 1101, 1107]
+                    let transientCodes: Set<Int> = [203, 1110, 1100, 1101, 1107]
                     if let error = error {
                         let nsError = error as NSError
                         // Non-fatal transient completion or silent segment error
@@ -339,7 +339,6 @@ public class SpeechRecognitionService: ObservableObject {
         self.activeRequest = nil
         self.lock.unlock()
         self.recognitionRequest?.endAudio()
-        self.recognitionTask?.cancel()
         self.recognitionTask = nil
         self.recognitionRequest = nil
         
@@ -359,7 +358,7 @@ public class SpeechRecognitionService: ObservableObject {
             
             let newRequest = SFSpeechAudioBufferRecognitionRequest()
             newRequest.shouldReportPartialResults = true
-            newRequest.taskHint = .dictation
+            newRequest.taskHint = .search
             if #available(iOS 13, *), speechRecognizer.supportsOnDeviceRecognition {
                 newRequest.requiresOnDeviceRecognition = true
             }
@@ -387,7 +386,7 @@ public class SpeechRecognitionService: ObservableObject {
                         }
                     }
                     let isFinal = result?.isFinal ?? false
-                    let transientCodes: Set<Int> = [216, 203, 1110, 1100, 1101, 1107]
+                    let transientCodes: Set<Int> = [203, 1110, 1100, 1101, 1107]
                     if let error = error {
                         let nsError = error as NSError
                         if self.sessionID == newSessionID && self.currentTaskID == newTaskID && self.isRecording && transientCodes.contains(nsError.code) {

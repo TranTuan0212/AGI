@@ -1339,6 +1339,43 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 12, 'Snapshot 21.4: Đọc "12 12" -> Tụ 1 nhận lá Q (12)');
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 12, 'Snapshot 21.4: Đọc "12 12" -> Tụ 2 nhận lá Q (12)');
   assert(app.confirmedVoiceCards.length === 2, 'Snapshot 21.4: Bản đối chiếu ghi nhận đủ 2 lá Q (12)');
+
+  // 21.5: Kịch bản người dùng đọc "năm" -> iOS ban đầu nghe "nắm năm", sau 800ms sửa thành "5 5" (KHÔNG nhảy 2 quân 5)
+  app.startNewRound();
+  app.initPlayers();
+  // Bước 1: Realtime hiện ra "nắm năm" -> Nhận diện 1 lá 5 vào Tụ 1
+  app.processVoiceInput('nắm năm', 1, 1000);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 5, 'Snapshot 21.5: Đọc "năm" (Apple gửi "nắm năm") -> Tụ 1 nhận đúng 1 lá 5');
+  assert(app.currentSegmentPlacedCards.length === 1, 'Snapshot 21.5: Bản đối chiếu ghi nhận 1 lá 5 đã chốt');
+
+  // Bước 2: 800ms sau, Apple tự động sửa hồi tố thành "5 5" -> Bộ lọc realtime song song LOẠI BỎ sửa đổi của Apple!
+  app.processVoiceInput('5 5', 1, 1800);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 5, 'Snapshot 21.5: Apple sửa thành "5 5" sau 800ms -> Tụ 1 vẫn chỉ có 1 quân 5 duy nhất!');
+  assert(app.players[1].cards.length === 0, 'Snapshot 21.5: Tụ 2 hoàn toàn rỗng, KHÔNG bị nhảy 2 quân 5!');
+  assert(app.currentSegmentPlacedCards.length === 1, 'Snapshot 21.5: Bản đối chiếu segment vẫn chỉ có 1 lá 5');
+
+  // Bước 3: Người dùng đọc tiếp "ba" -> Apple gửi "5 5 3" -> Tụ 2 nhận chuẩn xác lá 3!
+  app.processVoiceInput('5 5 3', 1, 2500);
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 3, 'Snapshot 21.5: Đọc tiếp "ba" (stream "5 5 3") -> Tụ 2 nhận đúng lá 3!');
+  assert(app.currentSegmentPlacedCards.length === 2, 'Snapshot 21.5: Bản đối chiếu ghi nhận [5, 3]');
+
+  // 21.6: Kịch bản đọc liên tục thứ tự "một, hai, ba" trên luồng realtime duy nhất
+  app.startNewRound();
+  app.initPlayers();
+  // Nói "một"
+  app.processVoiceInput('một', 1, 3000);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 14, 'Snapshot 21.6: Đọc "một" -> Tụ 1 nhận Át (14)');
+
+  // Nói tiếp "hai" -> stream "một hai"
+  app.processVoiceInput('một hai', 1, 3800);
+  assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 2, 'Snapshot 21.6: Đọc tiếp "hai" -> Tụ 2 nhận lá 2');
+
+  // Nói tiếp "ba" -> stream "một hai ba"
+  app.processVoiceInput('một hai ba', 1, 4600);
+  assert(app.players[2].cards.length === 1 && app.players[2].cards[0].rank === 3, 'Snapshot 21.6: Đọc tiếp "ba" -> Tụ 3 nhận lá 3');
+  assert(app.players[0].cards[0].rank === 14, 'Snapshot 21.6: Tụ 1 = Át');
+  assert(app.players[1].cards[0].rank === 2, 'Snapshot 21.6: Tụ 2 = 2');
+  assert(app.players[2].cards[0].rank === 3, 'Snapshot 21.6: Tụ 3 = 3');
 }
 
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);

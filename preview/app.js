@@ -2189,44 +2189,63 @@ class AppController {
     }
 
     const voiceTextEl = document.getElementById('voice-text');
+    const displaySpoken = VietnameseCardVoiceParser.separateDigits(text);
+    if (voiceTextEl && displaySpoken) {
+      voiceTextEl.textContent = `"${displaySpoken}"`;
+    }
+
     let parsed = VietnameseCardVoiceParser.parse(text, false);
     if (!parsed || parsed.length === 0) {
-      const unglued = VietnameseCardVoiceParser.separateDigits(text);
-      if (voiceTextEl) voiceTextEl.textContent = `"${unglued}"`;
       return;
     }
 
-    // BẢN SAO ĐỐI CHIẾU THỜI GIAN THỰC (Realtime Confirmed Cards Snapshot)
-    // Nếu Apple sửa đổi hoặc thu ngắn câu trong quá khứ -> BỎ LUÔN (Vô hiệu hóa toàn bộ sửa đổi quá khứ)
-    if (parsed.length <= this.processedVoiceCardsCount) {
-      return;
-    }
+    // BỘ LỌC REALTIME SONG SONG VỚI APPLE
+    // So khớp trực tiếp chuỗi lá bài của Apple với Bản đối chiếu thời gian thực của segment hiện tại (currentSegmentPlacedCards).
+    // Mọi sửa đổi hồi tố của Apple ("nắm năm" -> "5 5", "hai" -> "2 2 2") đều bị hấp thụ/lọc sạch!
+    let confirmedIdx = 0;
+    const newCardsToPlace = [];
 
-    const now = (timestamp !== null) ? timestamp : (typeof performance !== 'undefined' ? performance.now() : Date.now());
-    const newCandidates = parsed.slice(this.processedVoiceCardsCount);
+    let i = 0;
+    while (i < parsed.length) {
+      const candidate = parsed[i];
 
-    let discardRankEcho = null;
-    const lastConfirmed = this.confirmedVoiceCards[this.confirmedVoiceCards.length - 1];
-    if (newCandidates.length > 0 && lastConfirmed && !newCandidates[0].isHidden && !newCandidates[0].wasMultiplied && newCandidates[0].rank === lastConfirmed.rank) {
-      const elapsed = (now - this.lastVoiceCardPlacedTime);
-      if (elapsed < 350) {
-        discardRankEcho = lastConfirmed.rank;
-      }
-    }
+      if (confirmedIdx < this.currentSegmentPlacedCards.length) {
+        const confirmedCard = this.currentSegmentPlacedCards[confirmedIdx];
+        const matchesConfirmed = (!candidate.isHidden && candidate.rank === confirmedCard.rank) || (candidate.isHidden && confirmedCard.isHidden);
 
-    for (let idx = 0; idx < newCandidates.length; idx++) {
-      const item = newCandidates[idx];
+        if (matchesConfirmed) {
+          confirmedIdx++;
+          i++;
 
-      // Đánh dấu lá này đã được duyệt qua trong stream của Apple (để không bị duyệt lại ở các callback sau)
-      this.processedVoiceCardsCount++;
-
-      // Kiểm tra xem candidate có nằm trong chùm âm vang / sửa đổi giật lùi của Apple không
-      if (discardRankEcho !== null && item.rank === discardRankEcho && !item.wasMultiplied) {
-        // BỎ LUÔN âm vang sửa đổi của Apple (ví dụ: "hai" -> Apple tự ý sửa thành "hai hại hai" / "2 2 2" / "222")
-        continue;
+          // Lọc sạch âm vang / phân tách hồi tố của Apple đối với cùng 1 lá bài đã chốt
+          while (i < parsed.length) {
+            const nextCandidate = parsed[i];
+            if (!nextCandidate.wasMultiplied && !nextCandidate.isHidden && !confirmedCard.isHidden && nextCandidate.rank === confirmedCard.rank) {
+              // Apple sửa đổi / âm vang trùng lặp của lá đã chốt -> BỎ QUA
+              i++;
+            } else {
+              break;
+            }
+          }
+        } else {
+          // Apple sửa đổi từ cũ trong quá khứ -> Theo quy tắc: sau khi Apple sửa đều vô hiệu, giữ nguyên bản đối chiếu
+          confirmedIdx++;
+          i++;
+        }
       } else {
-        discardRankEcho = null;
+        // Đã đối chiếu xong toàn bộ các lá trong bản đối chiếu.
+        // Các lá còn lại ở đuôi stream là lá MỚI THẬT SỰ xuất hiện theo thời gian thực!
+        newCardsToPlace.push(candidate);
+        i++;
       }
+    }
+
+    if (newCardsToPlace.length === 0) {
+      return;
+    }
+
+    for (let idx = 0; idx < newCardsToPlace.length; idx++) {
+      const item = newCardsToPlace[idx];
 
       // Chia lá bài hợp lệ vào tụ người chơi đang chọn
       const beforeCount = this.actionHistory.length;
@@ -2256,14 +2275,7 @@ class AppController {
         if (placed) {
           this.confirmedVoiceCards.push(placed);
           this.currentSegmentPlacedCards.push(placed);
-          this.lastVoiceCardPlacedTime = now;
         }
-      }
-
-      // Cập nhật banner hiển thị đoạn dài lời nói thời gian thực (realtime)
-      if (voiceTextEl) {
-        const displaySpoken = VietnameseCardVoiceParser.separateDigits(text);
-        voiceTextEl.textContent = `"${displaySpoken}"`;
       }
 
       // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)
