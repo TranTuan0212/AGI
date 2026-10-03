@@ -2260,18 +2260,10 @@ class AppController {
         }
       }
 
-      // Cập nhật banner hiển thị lá bài mới nhất
+      // Cập nhật banner hiển thị đoạn dài lời nói thời gian thực (realtime)
       if (voiceTextEl) {
-        if (item.isHidden) {
-          voiceTextEl.textContent = '"Bỏ / Ẩn"';
-        } else if (item.wasMultiplied) {
-          const sym = RANKS.find(r => r.raw === item.rank)?.sym || item.rank;
-          voiceTextEl.textContent = `"Đôi/Sám ${sym}"`;
-        } else {
-          const sym = RANKS.find(r => r.raw === item.rank)?.sym || item.rank;
-          const sSym = item.suit ? (SUITS.find(s => s.id === item.suit)?.symbol || '') : '';
-          voiceTextEl.textContent = `"${sym}${sSym}"`;
-        }
+        const displaySpoken = VietnameseCardVoiceParser.separateDigits(text);
+        voiceTextEl.textContent = `"${displaySpoken}"`;
       }
 
       // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)

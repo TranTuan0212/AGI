@@ -550,17 +550,9 @@ public class GameViewModel: ObservableObject {
                 confirmedVoiceCards.append(lastAction.card)
                 lastVoiceCardPlacedTime = now
 
-                // Cập nhật banner hiển thị lá bài mới nhất
-                if item.isHidden {
-                    voiceBannerText = "🎙️ \"Bỏ / Ẩn\""
-                } else if item.wasMultiplied {
-                    let sym = item.rank.displaySymbol
-                    voiceBannerText = "🎙️ \"Đôi/Sám \(sym)\""
-                } else if let suit = item.suit {
-                    voiceBannerText = "🎙️ \"\(item.rank.displaySymbol)\(suit.rawValue)\""
-                } else {
-                    voiceBannerText = "🎙️ \"\(item.rank.displaySymbol)\""
-                }
+                // Cập nhật banner hiển thị đoạn dài lời nói thời gian thực (realtime)
+                let displaySpoken = VietnameseCardVoiceParser.separateDigits(text)
+                voiceBannerText = "🎙️ \"\(displaySpoken)\""
             }
 
             // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)

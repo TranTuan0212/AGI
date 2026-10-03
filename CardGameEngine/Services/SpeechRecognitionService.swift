@@ -167,7 +167,7 @@ public class SpeechRecognitionService: ObservableObject {
             let recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
             self.recognitionRequest = recognitionRequest
             recognitionRequest.shouldReportPartialResults = true
-            recognitionRequest.taskHint = .search
+            recognitionRequest.taskHint = .dictation
             if #available(iOS 13, *), speechRecognizer.supportsOnDeviceRecognition {
                 recognitionRequest.requiresOnDeviceRecognition = true
             }
@@ -359,7 +359,7 @@ public class SpeechRecognitionService: ObservableObject {
             
             let newRequest = SFSpeechAudioBufferRecognitionRequest()
             newRequest.shouldReportPartialResults = true
-            newRequest.taskHint = .search
+            newRequest.taskHint = .dictation
             if #available(iOS 13, *), speechRecognizer.supportsOnDeviceRecognition {
                 newRequest.requiresOnDeviceRecognition = true
             }
