@@ -14,6 +14,31 @@ public class SpeechRecognitionService: ObservableObject {
     @Published public var clarityStatus: String = "⚪ Sẵn sàng"
     @Published public var clarityColor: String = "gray"
     
+    // Detailed Voice Logs with per-word timestamps (Before & After Apple edits)
+    @Published public var voiceLogs: [String] = []
+    private var lastSpokenText: String = ""
+    private var packetIndex: Int = 0
+    
+    public func clearVoiceLogs() {
+        voiceLogs.removeAll()
+        lastSpokenText = ""
+        packetIndex = 0
+    }
+    
+    public func getFormattedVoiceLog() -> String {
+        return voiceLogs.joined(separator: "\n\n")
+    }
+    
+    public func appendActionLog(_ note: String) {
+        DispatchQueue.main.async {
+            if let last = self.voiceLogs.last {
+                self.voiceLogs[self.voiceLogs.count - 1] = last + "\n" + note
+            } else {
+                self.voiceLogs.append(note)
+            }
+        }
+    }
+    
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "vi-VN"))
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
     private var recognitionTask: SFSpeechRecognitionTask?
@@ -203,9 +228,43 @@ public class SpeechRecognitionService: ObservableObject {
                     
                     if let result = result {
                         let text = result.bestTranscription.formattedString
+                        let segments = result.bestTranscription.segments
+                        
+                        self.packetIndex += 1
+                        let pIdx = self.packetIndex
+                        let previousText = self.lastSpokenText
+                        self.lastSpokenText = text
+                        
+                        let formatter = DateFormatter()
+                        formatter.dateFormat = "HH:mm:ss.SSS"
+                        let timeStr = formatter.string(from: Date())
+                        
+                        var logItem = "[\(timeStr)] 🎙️ Gói #\(pIdx): \"\(text)\""
+                        if !previousText.isEmpty && previousText != text {
+                            if !text.hasPrefix(previousText) {
+                                logItem += "\n  🔄 [APPLE SỬA ĐỔI]: Trước: \"\(previousText)\" ➔ Sau: \"\(text)\""
+                            } else {
+                                let added = String(text.dropFirst(previousText.count)).trimmingCharacters(in: .whitespaces)
+                                if !added.isEmpty {
+                                    logItem += "\n  ➕ [TỪ NỐI THÊM]: \"+\(added)\""
+                                }
+                            }
+                        }
+                        
+                        for s in segments {
+                            let startFmt = String(format: "%.2fs", s.timestamp)
+                            let endFmt = String(format: "%.2fs", s.timestamp + s.duration)
+                            let confFmt = String(format: "%.0f%%", s.confidence * 100)
+                            logItem += "\n  • \"\(s.substring)\" [\(startFmt) - \(endFmt), tin cậy: \(confFmt)]"
+                        }
+                        
                         DispatchQueue.main.async {
                             guard self.sessionID == newSessionID else { return }
                             self.recognizedText = text
+                            self.voiceLogs.append(logItem)
+                            if self.voiceLogs.count > 200 {
+                                self.voiceLogs.removeFirst(self.voiceLogs.count - 200)
+                            }
                             onResult(text, initialSegmentID)
                         }
                     }

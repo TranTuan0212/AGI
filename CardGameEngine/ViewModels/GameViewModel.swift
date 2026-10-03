@@ -587,9 +587,10 @@ public class GameViewModel: ObservableObject {
             let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             let isEndingWithMuoi = trimmedText.hasSuffix("mười") || trimmedText.hasSuffix("muoi") || trimmedText.hasSuffix("10")
 
-            // Nếu là lá 10 đứng ở cuối câu và từ kết thúc bằng "mười" -> Chờ nhịp nối (~280ms) xem có phải mười một/hai/ba không
+            // Nếu là lá 10 đứng ở cuối câu và từ kết thúc bằng "mười" -> Chờ nhịp nối (~380ms) xem có phải mười một/hai/ba không
             if isLastItem && item.rank == .ten && !item.isHidden && !item.wasMultiplied && isEndingWithMuoi {
                 self.pendingTenCard = item
+                self.voiceService.appendActionLog("  ➔ ⏳ [CHỜ TỪ NỐI] Đang giữ lá 10 chờ nhịp nối (~380ms)...")
                 let workItem = DispatchWorkItem { [weak self] in
                     guard let self = self, let pending = self.pendingTenCard else { return }
                     self.executePlaceVoiceCard(pending)
@@ -597,7 +598,7 @@ public class GameViewModel: ObservableObject {
                     self.pendingTenWorkItem = nil
                 }
                 self.pendingTenWorkItem = workItem
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.28, execute: workItem)
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.38, execute: workItem)
             } else {
                 executePlaceVoiceCard(item)
             }
@@ -627,7 +628,17 @@ public class GameViewModel: ObservableObject {
             confirmedVoiceCards.append(lastAction.card)
             currentSegmentConfirmedCards.append(lastAction.card)
             lastProcessedTokenIndex = max(lastProcessedTokenIndex, item.tokenIndex)
+            voiceService.appendActionLog("  ➔ ✅ [CHIA BÀI] Gán lá \(lastAction.card.rank.displaySymbol) vào \(lastAction.target)")
         }
+    }
+    
+    public func getVoiceLogText() -> String {
+        return voiceService.getFormattedVoiceLog()
+    }
+    
+    public func clearVoiceLogs() {
+        voiceService.clearVoiceLogs()
+    }
 
         // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)
         if isReadyToCalculate {

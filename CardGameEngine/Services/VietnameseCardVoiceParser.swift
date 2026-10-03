@@ -280,12 +280,12 @@ public struct VietnameseCardVoiceParser {
         
         if isTenLocked {
             normalized = normalized
-                .replacingOccurrences(of: "\\b(mười|muoi)\\s+(một|mot|1)\\b", with: "10 1", options: .regularExpression)
+                .replacingOccurrences(of: "\\b(mười|muoi)\\s+(một|mot|mốt|1)\\b", with: "10 1", options: .regularExpression)
                 .replacingOccurrences(of: "\\b(mười|muoi)\\s+(hai|2)\\b", with: "10 2", options: .regularExpression)
                 .replacingOccurrences(of: "\\b(mười|muoi)\\s+(ba|3)\\b", with: "10 3", options: .regularExpression)
         } else {
             normalized = normalized
-                .replacingOccurrences(of: "\\b(mười|muoi)\\s+(một|mot|1)\\b", with: "11", options: .regularExpression)
+                .replacingOccurrences(of: "\\b(mười|muoi)\\s+(một|mot|mốt|1)\\b", with: "11", options: .regularExpression)
                 .replacingOccurrences(of: "\\b(mười|muoi)\\s+(hai|2)\\b", with: "12", options: .regularExpression)
                 .replacingOccurrences(of: "\\b(mười|muoi)\\s+(ba|3)\\b", with: "13", options: .regularExpression)
         }

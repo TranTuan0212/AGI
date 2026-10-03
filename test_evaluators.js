@@ -1422,6 +1422,20 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(app.players[0].cards[0].rank === 5, 'Snapshot 21.9: Tụ 1 giữ nguyên lá 5');
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 3, 'Snapshot 21.9: Đọc tiếp "ba" (stream "5 5 5 3") -> Tụ 2 nhận chuẩn xác lá 3!');
   assert(app.players[2].cards.length === 0, 'Snapshot 21.9: Tụ 3 vẫn chưa có bài!');
+
+  // 22: Test "mười mốt", "mười 1" & Nhật ký lời nói thực tế (Voice Log with Timestamps)
+  const pMuoiMot = VietnameseCardVoiceParser.parse('mười mốt');
+  assert(pMuoiMot.length === 1 && pMuoiMot[0].rank === 11, 'Voice Parser: "mười mốt" -> J (11)');
+
+  const pMuoi1 = VietnameseCardVoiceParser.parse('mười 1');
+  assert(pMuoi1.length === 1 && pMuoi1[0].rank === 11, 'Voice Parser: "mười 1" -> J (11)');
+
+  const logText = app.getVoiceLogText();
+  assert(logText.length > 0 && logText.includes('Segment #1'), 'Voice Log: Nhật ký lời nói ghi lại đầy đủ các gói tin');
+  assert(app.voiceLogs.length > 0, 'Voice Log: Mảng voiceLogs lưu trữ chi tiết các thao tác');
+
+  app.clearVoiceLogs();
+  assert(app.voiceLogs.length === 0, 'Voice Log: Xóa nhật ký thành công');
 }
 
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);

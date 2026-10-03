@@ -1674,12 +1674,12 @@ class VietnameseCardVoiceParser {
 
     if (isTenLocked) {
       normalized = normalized
-        .replace(/\b(mười|muoi)\s+(một|mot|1)\b/gi, '10 1')
+        .replace(/\b(mười|muoi)\s+(một|mot|mốt|1)\b/gi, '10 1')
         .replace(/\b(mười|muoi)\s+(hai|2)\b/gi, '10 2')
         .replace(/\b(mười|muoi)\s+(ba|3)\b/gi, '10 3');
     } else {
       normalized = normalized
-        .replace(/\b(mười|muoi)\s+(một|mot|1)\b/gi, '11')
+        .replace(/\b(mười|muoi)\s+(một|mot|mốt|1)\b/gi, '11')
         .replace(/\b(mười|muoi)\s+(hai|2)\b/gi, '12')
         .replace(/\b(mười|muoi)\s+(ba|3)\b/gi, '13');
     }
@@ -1813,6 +1813,9 @@ class AppController {
     this.isLastCardTenTentative = false;
     this.isTenLocked = false;
     this.recognition = null;
+    this.voiceLogs = [];
+    this.lastSpokenText = '';
+    this.packetIndex = 0;
     try {
       this.history = JSON.parse(localStorage.getItem('card_game_history') || '[]');
     } catch (e) {
@@ -2197,6 +2200,35 @@ class AppController {
       return;
     }
 
+    this.packetIndex++;
+    const pIdx = this.packetIndex;
+    const prev = this.lastSpokenText;
+    this.lastSpokenText = text;
+
+    const now = new Date();
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}`;
+    let logItem = `[${timeStr}] 🎙️ [Segment #${this.currentVoiceSegmentId}] Gói #${pIdx}: "${text}"`;
+
+    if (prev && prev !== text) {
+      if (!text.startsWith(prev)) {
+        logItem += `\n  🔄 [APPLE SỬA ĐỔI]: Trước: "${prev}" ➔ Sau: "${text}"`;
+      } else {
+        const added = text.slice(prev.length).trim();
+        if (added) {
+          logItem += `\n  ➕ [TỪ NỐI THÊM]: "+${added}"`;
+        }
+      }
+    }
+
+    for (const p of parsed) {
+      logItem += `\n  • Chữ/Lá: ${p.rank}${p.suit ? p.suit : ''} [token: ${p.tokenIndex}]`;
+    }
+
+    this.voiceLogs.push(logItem);
+    if (this.voiceLogs.length > 200) {
+      this.voiceLogs.shift();
+    }
+
     // BỘ LỌC REALTIME SONG SONG VỚI APPLE
     // So khớp trực tiếp chuỗi lá bài của Apple với Bản đối chiếu thời gian thực của segment hiện tại (currentSegmentPlacedCards).
     // Mọi sửa đổi hồi tố của Apple ("nắm năm" -> "5 5", "hai" -> "2 2 2") đều bị hấp thụ/lọc sạch!
@@ -2223,6 +2255,7 @@ class AppController {
           // Token này đại diện cho CẢ 2 LÁ đã chốt trong bản đối chiếu -> Hấp thụ cả 2 lá quá khứ!
           confirmedIdx += 2;
           this.lastProcessedTokenIndex = candidate.tokenIndex !== undefined ? candidate.tokenIndex : -1;
+          this.appendActionLog(`  ➔ 🛡️ [HẤP THỤ GỘP] Apple gộp quá khứ thành ${candidate.rank} -> Giữ nguyên 2 lá đã chia`);
           i++;
         } else {
           // Apple sửa đổi từ cũ trong quá khứ -> Theo quy tắc: sau khi Apple sửa đều vô hiệu, giữ nguyên bản đối chiếu
@@ -2257,16 +2290,17 @@ class AppController {
       const trimmed = text.trim().toLowerCase();
       const isEndingWithMuoi = trimmed.endsWith('mười') || trimmed.endsWith('muoi') || trimmed.endsWith('10');
 
-      // Nếu là lá 10 đứng ở cuối câu và từ kết thúc bằng "mười" -> Chờ nhịp nối (~280ms) xem có phải mười một/hai/ba không
+      // Nếu là lá 10 đứng ở cuối câu và từ kết thúc bằng "mười" -> Chờ nhịp nối (~380ms) xem có phải mười một/hai/ba không
       if (isLastItem && item.rank === 10 && !item.isHidden && !item.wasMultiplied && isEndingWithMuoi) {
         this.pendingTenCard = item;
+        this.appendActionLog('  ➔ ⏳ [CHỜ TỪ NỐI] Đang giữ lá 10 chờ nhịp nối (~380ms)...');
         this.pendingTenTimer = setTimeout(() => {
           if (this.pendingTenCard) {
             this.executePlaceVoiceCard(this.pendingTenCard);
             this.pendingTenCard = null;
             this.pendingTenTimer = null;
           }
-        }, 280);
+        }, 380);
       } else {
         this.executePlaceVoiceCard(item);
       }
@@ -2323,6 +2357,24 @@ class AppController {
     if (this.pendingTenCard) {
       this.executePlaceVoiceCard(this.pendingTenCard);
       this.pendingTenCard = null;
+    }
+  }
+
+  clearVoiceLogs() {
+    this.voiceLogs = [];
+    this.lastSpokenText = '';
+    this.packetIndex = 0;
+  }
+
+  getVoiceLogText() {
+    return this.voiceLogs.join('\n\n');
+  }
+
+  appendActionLog(note) {
+    if (this.voiceLogs.length > 0) {
+      this.voiceLogs[this.voiceLogs.length - 1] += '\n' + note;
+    } else {
+      this.voiceLogs.push(note);
     }
   }
 

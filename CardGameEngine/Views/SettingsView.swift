@@ -11,6 +11,7 @@ public struct SettingsView: View {
     @State private var manualCustomKeyword: String = ""
     @State private var customKeywordsVersion: Int = 0
     @State private var recordedTokens: [String] = []
+    @State private var isLogCopied: Bool = false
     
     public var body: some View {
         NavigationView {
@@ -198,6 +199,58 @@ public struct SettingsView: View {
                             .foregroundColor(.secondary)
                     }
                     .padding(.vertical, 4)
+                }
+                
+                Section(header: Text("📋 Nhật Ký Lời Nói Thực Tế (Voice Log & Timestamps)")) {
+                    HStack {
+                        Button(action: {
+                            let text = viewModel.getVoiceLogText()
+                            UIPasteboard.general.string = text
+                            isLogCopied = true
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                isLogCopied = false
+                            }
+                        }) {
+                            HStack(spacing: 6) {
+                                Image(systemName: isLogCopied ? "checkmark.circle.fill" : "doc.on.doc.fill")
+                                Text(isLogCopied ? "ĐÃ SAO CHÉP!" : "Sao Chép Nhật Ký")
+                            }
+                            .font(.subheadline.bold())
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(isLogCopied ? Color.green : Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        Spacer()
+                        
+                        if !viewModel.voiceService.voiceLogs.isEmpty {
+                            Button("Xóa Nhật Ký") {
+                                viewModel.clearVoiceLogs()
+                            }
+                            .font(.caption)
+                            .foregroundColor(.red)
+                        }
+                    }
+                    
+                    if viewModel.voiceService.voiceLogs.isEmpty {
+                        Text("Chưa có bản ghi âm lời nói nào. Hãy bật mic đọc bài để tự động lưu lại toàn bộ nhật ký từng chữ kèm timestamp (trước & sau khi Apple sửa) để gửi báo cáo.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    } else {
+                        ScrollView(.vertical, showsIndicators: true) {
+                            Text(viewModel.getVoiceLogText())
+                                .font(.system(size: 11, design: .monospaced))
+                                .foregroundColor(.primary)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(8)
+                                .background(Color.secondary.opacity(0.08))
+                                .cornerRadius(8)
+                        }
+                        .frame(maxHeight: 250)
+                    }
                 }
                 
                 Section(header: Text("Hướng Dẫn Cơ Chế Chia Bài")) {
