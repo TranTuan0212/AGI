@@ -62,6 +62,8 @@ public class GameViewModel: ObservableObject {
     @Published public var voiceBannerText: String? = nil
     public private(set) var confirmedVoiceCards: [Card] = []
     public private(set) var currentSegmentConfirmedCards: [Card] = []
+    private var pendingTenCard: ParsedVoiceCard? = nil
+    private var pendingTenWorkItem: DispatchWorkItem? = nil
     private var processedVoiceCardsCount: Int = 0
     private var currentVoiceSegmentID: Int = 0
     private var lastVoiceCardPlacedTime: CFAbsoluteTime = 0
@@ -157,6 +159,9 @@ public class GameViewModel: ObservableObject {
         actionHistory.removeAll()
         confirmedVoiceCards.removeAll()
         currentSegmentConfirmedCards.removeAll()
+        pendingTenWorkItem?.cancel()
+        pendingTenWorkItem = nil
+        pendingTenCard = nil
         processedVoiceCardsCount = 0
         currentVoiceSegmentID = 0
         
@@ -187,6 +192,9 @@ public class GameViewModel: ObservableObject {
         selectedPlayerIndex = 0
         confirmedVoiceCards.removeAll()
         currentSegmentConfirmedCards.removeAll()
+        pendingTenWorkItem?.cancel()
+        pendingTenWorkItem = nil
+        pendingTenCard = nil
         processedVoiceCardsCount = 0
         currentVoiceSegmentID = 0
         lastVoiceCardPlacedTime = 0
@@ -201,6 +209,9 @@ public class GameViewModel: ObservableObject {
     public func autoStartVoiceForNewRound() {
         confirmedVoiceCards.removeAll()
         currentSegmentConfirmedCards.removeAll()
+        pendingTenWorkItem?.cancel()
+        pendingTenWorkItem = nil
+        pendingTenCard = nil
         processedVoiceCardsCount = 0
         currentVoiceSegmentID = 0
         lastVoiceCardPlacedTime = 0
@@ -476,8 +487,20 @@ public class GameViewModel: ObservableObject {
         }
     }
     
+    public func flushPendingVoiceCards() {
+        if let workItem = pendingTenWorkItem {
+            workItem.cancel()
+            pendingTenWorkItem = nil
+        }
+        if let pending = pendingTenCard {
+            executePlaceVoiceCard(pending)
+            pendingTenCard = nil
+        }
+    }
+
     public func processSpokenVoice(_ text: String, segmentID: Int = 0) {
         if segmentID != 0 && segmentID != currentVoiceSegmentID {
+            flushPendingVoiceCards()
             currentVoiceSegmentID = segmentID
             currentSegmentConfirmedCards.removeAll()
         }
@@ -553,40 +576,71 @@ public class GameViewModel: ObservableObject {
             }
         }
         
+        // Nếu có lá 10 đang chờ từ nối nhưng chuỗi mới đã có cập nhật -> Huỷ hẹn giờ cũ
+        if pendingTenWorkItem != nil {
+            pendingTenWorkItem?.cancel()
+            pendingTenWorkItem = nil
+            pendingTenCard = nil
+        }
+
         guard !newCardsToPlace.isEmpty else { return }
 
-        for item in newCardsToPlace {
-            let countBefore = actionHistory.count
-            if item.isHidden {
-                onHiddenCardTapped()
-            } else if isRankOnlyActive || item.suit == nil {
-                onRankTapped(item.rank)
-            } else if let suit = item.suit {
-                let card = Card(rank: item.rank, suit: suit)
-                if cardOwner(card) == nil {
-                    onCardTapped(card)
-                } else {
-                    onRankTapped(item.rank)
+        for (idx, item) in newCardsToPlace.enumerated() {
+            let isLastItem = (idx == newCardsToPlace.count - 1)
+            let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            let isEndingWithMuoi = trimmedText.hasSuffix("mười") || trimmedText.hasSuffix("muoi") || trimmedText.hasSuffix("10")
+
+            // Nếu là lá 10 đứng ở cuối câu và từ kết thúc bằng "mười" -> Chờ nhịp nối (~280ms) xem có phải mười một/hai/ba không
+            if isLastItem && item.rank == .ten && !item.isHidden && !item.wasMultiplied && isEndingWithMuoi {
+                self.pendingTenCard = item
+                let workItem = DispatchWorkItem { [weak self] in
+                    guard let self = self, let pending = self.pendingTenCard else { return }
+                    self.executePlaceVoiceCard(pending)
+                    self.pendingTenCard = nil
+                    self.pendingTenWorkItem = nil
                 }
+                self.pendingTenWorkItem = workItem
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.28, execute: workItem)
+            } else {
+                executePlaceVoiceCard(item)
             }
 
-            if actionHistory.count > countBefore, let lastAction = actionHistory.last {
-                confirmedVoiceCards.append(lastAction.card)
-                currentSegmentConfirmedCards.append(lastAction.card)
-            }
-
-            // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)
             if isReadyToCalculate {
-                if voiceService.isRecording {
-                    voiceService.stopRecording(callEndAudio: false)
-                    voiceBannerText = "✅ Đã chia đủ bài - Xong ván!"
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
-                        if self?.voiceService.isRecording == false {
-                            self?.voiceBannerText = nil
-                        }
+                break
+            }
+        }
+    }
+
+    private func executePlaceVoiceCard(_ item: ParsedVoiceCard) {
+        let countBefore = actionHistory.count
+        if item.isHidden {
+            onHiddenCardTapped()
+        } else if isRankOnlyActive || item.suit == nil {
+            onRankTapped(item.rank)
+        } else if let suit = item.suit {
+            let card = Card(rank: item.rank, suit: suit)
+            if cardOwner(card) == nil {
+                onCardTapped(card)
+            } else {
+                onRankTapped(item.rank)
+            }
+        }
+
+        if actionHistory.count > countBefore, let lastAction = actionHistory.last {
+            confirmedVoiceCards.append(lastAction.card)
+            currentSegmentConfirmedCards.append(lastAction.card)
+        }
+
+        // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)
+        if isReadyToCalculate {
+            if voiceService.isRecording {
+                voiceService.stopRecording(callEndAudio: false)
+                voiceBannerText = "✅ Đã chia đủ bài - Xong ván!"
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                    if self?.voiceService.isRecording == false {
+                        self?.voiceBannerText = nil
                     }
                 }
-                break
             }
         }
     }

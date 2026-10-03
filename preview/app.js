@@ -1817,6 +1817,8 @@ class AppController {
     this.currentSegmentPlacedCards = [];
     this.lastVoiceCardPlacedTime = 0;
     this.voiceCommitTimer = null;
+    this.pendingTenCard = null;
+    this.pendingTenTimer = null;
     this.isLastCardTenTentative = false;
     this.isTenLocked = false;
     this.recognition = null;
@@ -1858,6 +1860,9 @@ class AppController {
     this.processedVoiceCardsCount = 0;
     if (this.voiceCommitTimer) clearTimeout(this.voiceCommitTimer);
     this.voiceCommitTimer = null;
+    if (this.pendingTenTimer) clearTimeout(this.pendingTenTimer);
+    this.pendingTenTimer = null;
+    this.pendingTenCard = null;
     this.isLastCardTenTentative = false;
     this.isTenLocked = false;
     this.lastVoiceCardPlacedTime = 0;
@@ -2249,54 +2254,93 @@ class AppController {
       }
     }
 
+    // Nếu có lá 10 đang chờ từ nối nhưng chuỗi mới đã có cập nhật -> Huỷ hẹn giờ cũ
+    if (this.pendingTenTimer) {
+      clearTimeout(this.pendingTenTimer);
+      this.pendingTenTimer = null;
+      this.pendingTenCard = null;
+    }
+
     if (newCardsToPlace.length === 0) {
       return;
     }
 
     for (let idx = 0; idx < newCardsToPlace.length; idx++) {
       const item = newCardsToPlace[idx];
+      const isLastItem = (idx === newCardsToPlace.length - 1);
+      const trimmed = text.trim().toLowerCase();
+      const isEndingWithMuoi = trimmed.endsWith('mười') || trimmed.endsWith('muoi') || trimmed.endsWith('10');
 
-      // Chia lá bài hợp lệ vào tụ người chơi đang chọn
-      const beforeCount = this.actionHistory.length;
-      if (item.isHidden) {
-        this.onHiddenCardClick();
-      } else if (this.isRankOnlyActive() || !item.suit) {
+      // Nếu là lá 10 đứng ở cuối câu và từ kết thúc bằng "mười" -> Chờ nhịp nối (~280ms) xem có phải mười một/hai/ba không
+      if (isLastItem && item.rank === 10 && !item.isHidden && !item.wasMultiplied && isEndingWithMuoi) {
+        this.pendingTenCard = item;
+        this.pendingTenTimer = setTimeout(() => {
+          if (this.pendingTenCard) {
+            this.executePlaceVoiceCard(this.pendingTenCard);
+            this.pendingTenCard = null;
+            this.pendingTenTimer = null;
+          }
+        }, 280);
+      } else {
+        this.executePlaceVoiceCard(item);
+      }
+
+      if (this.isReady()) break;
+    }
+  }
+
+  executePlaceVoiceCard(item) {
+    const beforeCount = this.actionHistory.length;
+    if (item.isHidden) {
+      this.onHiddenCardClick();
+    } else if (this.isRankOnlyActive() || !item.suit) {
+      const rObj = RANKS.find(r => r.raw === item.rank);
+      if (rObj) this.onRankClick(rObj);
+    } else {
+      const deck = this.generateFullDeck();
+      const found = deck.find(c => c.rank === item.rank && c.suit === item.suit);
+      if (found && !this.getCardOwner(found.id)) {
+        this.onCardClick(found);
+      } else {
         const rObj = RANKS.find(r => r.raw === item.rank);
         if (rObj) this.onRankClick(rObj);
-      } else {
-        const deck = this.generateFullDeck();
-        const found = deck.find(c => c.rank === item.rank && c.suit === item.suit);
-        if (found && !this.getCardOwner(found.id)) {
-          this.onCardClick(found);
-        } else {
-          const rObj = RANKS.find(r => r.raw === item.rank);
-          if (rObj) this.onRankClick(rObj);
-        }
       }
+    }
 
-      if (this.actionHistory.length > beforeCount) {
-        const lastAction = this.actionHistory[this.actionHistory.length - 1];
-        let placed = null;
-        for (const p of this.players) {
-          placed = p.cards.find(c => c.id === lastAction.cardId);
-          if (placed) break;
-        }
-        if (placed) {
-          this.confirmedVoiceCards.push(placed);
-          this.currentSegmentPlacedCards.push(placed);
-        }
+    if (this.actionHistory.length > beforeCount) {
+      const lastAction = this.actionHistory[this.actionHistory.length - 1];
+      let placed = null;
+      for (const p of this.players) {
+        placed = p.cards.find(c => c.id === lastAction.cardId);
+        if (placed) break;
       }
+      if (placed) {
+        this.confirmedVoiceCards.push(placed);
+        this.currentSegmentPlacedCards.push(placed);
+      }
+    }
 
-      // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)
-      if (this.isReady() && this.isVoiceRecording) {
-        this.stopVoiceRecording();
-        if (voiceTextEl) voiceTextEl.textContent = "✅ Đã chia đủ bài - Xong ván!";
-        break;
-      }
+    // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)
+    if (this.isReady() && this.isVoiceRecording) {
+      this.stopVoiceRecording();
+      const voiceTextEl = document.getElementById('voice-text');
+      if (voiceTextEl) voiceTextEl.textContent = "✅ Đã chia đủ bài - Xong ván!";
+    }
+  }
+
+  flushPendingVoiceCards() {
+    if (this.pendingTenTimer) {
+      clearTimeout(this.pendingTenTimer);
+      this.pendingTenTimer = null;
+    }
+    if (this.pendingTenCard) {
+      this.executePlaceVoiceCard(this.pendingTenCard);
+      this.pendingTenCard = null;
     }
   }
 
   resetVoiceSegment() {
+    this.flushPendingVoiceCards();
     this.currentVoiceSegmentId++;
     this.processedVoiceCardsCount = 0;
     this.currentSegmentPlacedCards = [];
