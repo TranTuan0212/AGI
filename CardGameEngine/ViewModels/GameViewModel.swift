@@ -154,9 +154,9 @@ public class GameViewModel: ObservableObject {
         showdownSummary = ""
         confrontationMatrix.removeAll()
         actionHistory.removeAll()
+        confirmedVoiceCards.removeAll()
         processedVoiceCardsCount = 0
         currentVoiceSegmentID = 0
-        currentSegmentPlacedCards.removeAll()
         
         if shouldAutoRecord {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
