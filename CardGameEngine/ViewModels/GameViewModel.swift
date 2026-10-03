@@ -622,20 +622,6 @@ public class GameViewModel: ObservableObject {
     public func clearVoiceLogs() {
         voiceService.clearVoiceLogs()
     }
-
-        // Tự động dừng ghi âm khi đã chia đủ bài (Xong ván)
-        if isReadyToCalculate {
-            if voiceService.isRecording {
-                voiceService.stopRecording(callEndAudio: false)
-                voiceBannerText = "✅ Đã chia đủ bài - Xong ván!"
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
-                    if self?.voiceService.isRecording == false {
-                        self?.voiceBannerText = nil
-                    }
-                }
-            }
-        }
-    }
     
     // Clear calculated results when cards change
     private func clearResultsState() {
