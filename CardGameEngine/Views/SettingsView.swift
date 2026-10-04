@@ -41,7 +41,7 @@ public struct SettingsView: View {
                     }
                 }
 
-                Section(header: Text("🛡️ Bản Quyền Giọng Nói")) {
+                Section(header: Text("🛡️ Quản Lý Bản Quyền")) {
                     HStack {
                         Text("Thiết bị")
                         Spacer()
@@ -93,8 +93,9 @@ public struct SettingsView: View {
                         .foregroundColor(.blue)
                     }
                 }
-
-                Section(header: Text("Chế Độ Giọng Nói (Voice Mode)")) {
+                
+                if licenseService.isVoiceUnlocked {
+                    Section(header: Text("Chế Độ Giọng Nói (Voice Mode)")) {
                     Toggle("Chế độ chuyên giọng nói (Ẩn bàn phím)", isOn: $viewModel.isVoiceMode)
                     
                     HStack {
@@ -330,6 +331,7 @@ public struct SettingsView: View {
                         }
                         .frame(maxHeight: 250)
                     }
+                }
                 }
                 
                 Section(header: Text("Hướng Dẫn Cơ Chế Chia Bài")) {

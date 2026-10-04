@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct ContentView: View {
     @StateObject private var viewModel = GameViewModel()
+    @ObservedObject private var licenseService = LicenseService.shared
     @State private var isShowingSettings = false
     
     public init() {}
@@ -113,11 +114,11 @@ public struct ContentView: View {
                 
                 // 3. LOWER: Pinned 52-Card Deck & Actions (Nhập ở dưới)
                 VStack(spacing: 6) {
-                    if viewModel.isVoiceMode {
+                    if licenseService.isVoiceUnlocked && viewModel.isVoiceMode {
                         VoiceOnlyControlView(viewModel: viewModel, voiceService: viewModel.voiceService)
                     } else {
-                        // Voice Banner Notification
-                        if let banner = viewModel.voiceBannerText {
+                        // Voice Banner Notification (Chỉ hiện khi đã kích hoạt)
+                        if licenseService.isVoiceUnlocked, let banner = viewModel.voiceBannerText {
                             HStack(spacing: 6) {
                                 Image(systemName: viewModel.voiceService.isRecording ? "waveform" : "mic.fill")
                                     .font(.system(size: 11, weight: .bold))
@@ -149,24 +150,26 @@ public struct ContentView: View {
                                 .cornerRadius(9)
                             }
                             
-                            // Nút Giọng Nói To Bản (Chạm để nói / Bấm lại để dừng)
-                            Button(action: { viewModel.toggleVoiceRecognition() }) {
-                                VStack(spacing: 2) {
-                                    Image(systemName: viewModel.voiceService.isRecording ? "stop.circle.fill" : "mic.fill")
-                                        .font(.system(size: 16, weight: .bold))
-                                    Text(viewModel.voiceService.isRecording ? "DỪNG LẠI" : "NÓI BÀI")
-                                        .font(.system(size: 10, weight: .black))
+                            // Nút Giọng Nói To Bản (Chỉ hiển thị khi đã kích hoạt bản quyền giọng nói)
+                            if licenseService.isVoiceUnlocked {
+                                Button(action: { viewModel.toggleVoiceRecognition() }) {
+                                    VStack(spacing: 2) {
+                                        Image(systemName: viewModel.voiceService.isRecording ? "stop.circle.fill" : "mic.fill")
+                                            .font(.system(size: 16, weight: .bold))
+                                        Text(viewModel.voiceService.isRecording ? "DỪNG LẠI" : "NÓI BÀI")
+                                            .font(.system(size: 10, weight: .black))
+                                    }
+                                    .foregroundColor(.white)
+                                    .frame(minWidth: 64, maxWidth: 80, minHeight: 44)
+                                    .background(
+                                        viewModel.voiceService.isRecording ?
+                                        LinearGradient(colors: [Color.red, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing) :
+                                        LinearGradient(colors: [Color.blue, Color.purple], startPoint: .topLeading, endPoint: .bottomTrailing)
+                                    )
+                                    .cornerRadius(9)
+                                    .shadow(color: (viewModel.voiceService.isRecording ? Color.red : Color.blue).opacity(0.35), radius: 3, y: 1.5)
+                                    .animation(.easeInOut(duration: 0.15), value: viewModel.voiceService.isRecording)
                                 }
-                                .foregroundColor(.white)
-                                .frame(minWidth: 64, maxWidth: 80, minHeight: 44)
-                                .background(
-                                    viewModel.voiceService.isRecording ?
-                                    LinearGradient(colors: [Color.red, Color.orange], startPoint: .topLeading, endPoint: .bottomTrailing) :
-                                    LinearGradient(colors: [Color.blue, Color.purple], startPoint: .topLeading, endPoint: .bottomTrailing)
-                                )
-                                .cornerRadius(9)
-                                .shadow(color: (viewModel.voiceService.isRecording ? Color.red : Color.blue).opacity(0.35), radius: 3, y: 1.5)
-                                .animation(.easeInOut(duration: 0.15), value: viewModel.voiceService.isRecording)
                             }
                             
                             // Nút chính ở giữa: KHÔNG THẤY (BÀI ẨN) / VÁN MỚI (To bản, nổi bật nhất)

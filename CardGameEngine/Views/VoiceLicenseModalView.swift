@@ -25,12 +25,12 @@ public struct VoiceLicenseModalView: View {
                             Circle()
                                 .fill(LinearGradient(colors: [Color.blue, Color.purple], startPoint: .topLeading, endPoint: .bottomTrailing))
                                 .frame(width: 64, height: 64)
-                            Image(systemName: "mic.badge.shield.check")
+                            Image(systemName: "checkmark.seal.fill")
                                 .font(.system(size: 30, weight: .bold))
                                 .foregroundColor(.white)
                         }
 
-                        Text("Bản Quyền Giọng Nói")
+                        Text("Kích Hoạt Bản Quyền")
                             .font(.title2.bold())
                         Text("Mỗi máy cần một Key riêng được hệ thống sinh ra theo mã phần cứng độc bản.")
                             .font(.caption)

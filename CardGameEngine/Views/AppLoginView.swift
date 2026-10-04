@@ -35,16 +35,16 @@ public struct AppLoginView: View {
                                 .frame(width: 72, height: 72)
                                 .shadow(color: Color.blue.opacity(0.4), radius: 12, x: 0, y: 6)
 
-                            Image(systemName: "waveform.badge.mic")
+                            Image(systemName: "doc.text.fill")
                                 .font(.system(size: 32, weight: .bold))
                                 .foregroundColor(.white)
                         }
 
-                        Text("Voice Entry Pro")
+                        Text("Card Entry Pro")
                             .font(.system(size: 26, weight: .black, design: .rounded))
                             .foregroundColor(.white)
 
-                        Text("Hệ Thống Ghi Chép & Nhập Liệu Giọng Nói Kỹ Thuật Số")
+                        Text("Hệ Thống Ghi Chép & Nhập Liệu Kỹ Thuật Số")
                             .font(.caption)
                             .foregroundColor(.gray)
                             .multilineTextAlignment(.center)

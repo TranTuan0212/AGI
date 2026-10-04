@@ -154,6 +154,30 @@ public class SpeechRecognitionService: ObservableObject {
         startRecording(onResult: { text, _ in onResult(text) }, onError: onError)
     }
     
+    private func stopHardwareSynchronously() {
+        lock.lock()
+        isAcceptingAudio = false
+        activeRequest = nil
+        lock.unlock()
+        
+        if let engine = self.audioEngine {
+            if isTapInstalled {
+                _ = ObjcTryCatch({
+                    engine.inputNode.removeTap(onBus: 0)
+                }, nil)
+                self.isTapInstalled = false
+            }
+            if engine.isRunning {
+                engine.stop()
+            }
+            self.audioEngine = nil
+        }
+        self.recognitionRequest?.endAudio()
+        self.recognitionRequest = nil
+        self.recognitionTask?.cancel()
+        self.recognitionTask = nil
+    }
+
     public func startRecording(onResult: @escaping (String, Int) -> Void, onError: ((String) -> Void)? = nil) {
         // Kiểm tra bản quyền giọng nói trước khi khởi động microphone
         LicenseService.shared.checkLicenseOffline()
@@ -164,8 +188,17 @@ public class SpeechRecognitionService: ObservableObject {
             return
         }
 
-        // Cancel and clean up any previous task safely
-        stopRecording()
+        // Kiểm tra quyền ghi âm trước khi gọi AudioSession
+        let audioSession = AVAudioSession.sharedInstance()
+        if audioSession.recordPermission == .denied {
+            let msg = "Quyền micro bị từ chối. Vui lòng bật Micro trong Cài đặt iPhone để nói bài."
+            self.errorMessage = msg
+            onError?(msg)
+            return
+        }
+
+        // Dừng phần cứng đồng bộ an toàn, không kích hoạt deactivation race condition
+        stopHardwareSynchronously()
         
         guard let speechRecognizer = speechRecognizer, speechRecognizer.isAvailable else {
             let msg = "Nhận diện giọng nói tiếng Việt hiện không khả dụng trên thiết bị."
@@ -183,7 +216,6 @@ public class SpeechRecognitionService: ObservableObject {
         self.currentOnResult = onResult
         
         do {
-            let audioSession = AVAudioSession.sharedInstance()
             try audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
             
             // Prefer Bluetooth microphone if connected
@@ -196,7 +228,13 @@ public class SpeechRecognitionService: ObservableObject {
                 }
             }
             
-            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+            do {
+                try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+            } catch {
+                // Thử lại 1 lần nếu AudioSession đang bận chuyển trạng thái
+                usleep(50000)
+                try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+            }
             self.updateAudioInputDevice()
             
             let recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
@@ -493,7 +531,8 @@ public class SpeechRecognitionService: ObservableObject {
         lock.unlock()
         
         // Invalidate session ID so background handlers drop trailing events
-        sessionID = UUID()
+        let currentDeadSessionID = UUID()
+        sessionID = currentDeadSessionID
         
         // Instant 0ms UI update on main thread
         DispatchQueue.main.async {
@@ -514,7 +553,7 @@ public class SpeechRecognitionService: ObservableObject {
         self.recognitionTask = nil
         
         // Perform hardware teardown on background queue to ensure 0ms UI latency
-        DispatchQueue.global(qos: .userInitiated).async {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             // Step 2: Remove tap first while engine is still valid, then stop engine
             if let engine = engineToStop {
                 if wasTapInstalled {
@@ -539,8 +578,10 @@ public class SpeechRecognitionService: ObservableObject {
                 taskToCancel?.cancel()
             }, nil)
             
-            // Step 5: Deactivate audio session to return hardware to normal state
-            try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            // Step 5: Deactivate audio session to return hardware to normal state ONLY if no new session has started
+            if self?.sessionID == currentDeadSessionID {
+                try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            }
         }
     }
 }
