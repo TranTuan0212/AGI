@@ -8,6 +8,10 @@ public enum LicenseStatus {
     case expired(expiredAt: Date)
 }
 
+public extension Notification.Name {
+    static let licenseLost = Notification.Name("LicenseServiceLicenseLost")
+}
+
 /// LicenseService quản lý bản quyền Giọng nói:
 /// - Kích hoạt lần đầu / Gia hạn: Cần mạng kết nối Server
 /// - Khi sử dụng Giọng nói: Hoàn toàn 100% OFFLINE (không gửi request mạng)
@@ -46,11 +50,35 @@ public class LicenseService: ObservableObject {
         }
     }
 
+    private let licenseOwnerKey = "voice_license_owner_username"
+
+    /// Ghi nhận tài khoản sở hữu bản quyền hiện tại
+    public func bindLicenseToCurrentUser() {
+        if let user = AppAuthManager.shared.currentUsername {
+            KeychainManager.shared.save(key: licenseOwnerKey, value: user)
+        }
+    }
+
+    /// Xóa bản quyền nếu tài khoản đăng nhập khác chủ sở hữu bản quyền đã lưu
+    public func clearLicenseIfOwnerMismatch(currentUser: String) {
+        if let owner = KeychainManager.shared.load(key: licenseOwnerKey), owner == currentUser { return }
+        clearLicense()
+    }
+
+    /// Xóa toàn bộ bản quyền trên máy (về trạng thái chưa kích hoạt)
+    public func clearLicense() {
+        KeychainManager.shared.delete(key: licenseTokenKey)
+        KeychainManager.shared.delete(key: licenseDataKey)
+        KeychainManager.shared.delete(key: licenseOwnerKey)
+        checkLicenseOffline()
+    }
+
     /// Kiểm tra bản quyền hoàn toàn Offline từ iOS Keychain (không cần kết nối mạng)
     public func checkLicenseOffline() {
         guard let token = KeychainManager.shared.load(key: licenseTokenKey), !token.isEmpty else {
             DispatchQueue.main.async {
                 self.isVoiceUnlocked = false
+                NotificationCenter.default.post(name: .licenseLost, object: nil)
                 self.licenseStatus = .unactivated
                 self.remainingTimeText = "Chưa kích hoạt"
             }
@@ -76,6 +104,8 @@ public class LicenseService: ObservableObject {
                 }
             } else {
                 self.isVoiceUnlocked = false
+                // Mất bản quyền: dừng ngay mọi hoạt động mic đang chạy
+                NotificationCenter.default.post(name: .licenseLost, object: nil)
                 if let exp = verifyResult.expiresAt {
                     self.licenseStatus = .expired(expiredAt: exp)
                     self.remainingTimeText = "Đã hết hạn vào: \(self.formatDate(exp))"
@@ -151,6 +181,7 @@ public class LicenseService: ObservableObject {
             }
 
             // Cập nhật trạng thái
+            self.bindLicenseToCurrentUser()
             self.checkLicenseOffline()
 
             DispatchQueue.main.async {
@@ -221,6 +252,7 @@ public class LicenseService: ObservableObject {
                 KeychainManager.shared.save(key: self.licenseDataKey, value: jsonString)
             }
 
+            self.bindLicenseToCurrentUser()
             self.checkLicenseOffline()
 
             DispatchQueue.main.async {

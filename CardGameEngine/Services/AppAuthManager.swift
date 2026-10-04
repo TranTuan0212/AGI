@@ -147,6 +147,7 @@ public class AppAuthManager: ObservableObject {
                 let username = user["username"] as? String ?? cleanUsername
                 let expiresAt = user["expiresAt"] as? String
 
+                LicenseService.shared.clearLicenseIfOwnerMismatch(currentUser: username)
                 self.authToken = token
                 self.currentUsername = username
                 self.userExpiresAt = expiresAt
@@ -182,5 +183,6 @@ public class AppAuthManager: ObservableObject {
         KeychainManager.shared.delete(key: tokenKeychainKey)
         UserDefaults.standard.removeObject(forKey: usernameDefaultsKey)
         UserDefaults.standard.removeObject(forKey: expiresDefaultsKey)
+        LicenseService.shared.clearLicense()
     }
 }

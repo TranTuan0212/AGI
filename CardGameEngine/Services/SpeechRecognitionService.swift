@@ -98,6 +98,10 @@ public class SpeechRecognitionService: ObservableObject {
         ) { [weak self] _ in
             self?.updateAudioInputDevice()
         }
+        NotificationCenter.default.addObserver(forName: .licenseLost, object: nil, queue: .main) { [weak self] _ in
+            guard let self = self, self.isRecording else { return }
+            self.stopRecording(callEndAudio: false)
+        }
     }
     
     deinit {
