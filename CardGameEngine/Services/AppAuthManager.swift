@@ -33,6 +33,11 @@ public class AppAuthManager: ObservableObject {
 
         // Tự động khôi phục phiên đăng nhập đã lưu (Ghi nhớ đăng nhập)
         restoreSavedSession()
+
+        // Mỗi lần mở lại app từ nền -> kiểm tra lại online với server
+        NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.validateSessionOnline()
+        }
     }
 
     /// Khôi phục phiên đăng nhập từ iOS Keychain
@@ -59,6 +64,45 @@ public class AppAuthManager: ObservableObject {
         self.currentUsername = savedUser
         self.userExpiresAt = savedExpires
         self.isAuthenticated = true
+
+        validateSessionOnline()
+    }
+
+    /// Kiểm tra online với server (GET /api/auth/me) giống app Live.
+    /// - Server trả 401/403/404 (tài khoản bị xóa, token vô hiệu, hết hạn) -> đăng xuất + xóa bản quyền.
+    /// - Lỗi mạng (không có kết nối) -> giữ nguyên phiên để dùng offline.
+    public func validateSessionOnline() {
+        guard let token = self.authToken, !token.isEmpty else { return }
+        let clean = AppAuthManager.normalizeURL(serverURL)
+        guard let url = URL(string: "\(clean)/api/auth/me") else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.timeoutInterval = 8.0
+
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            guard let self = self, error == nil, let http = response as? HTTPURLResponse else { return }
+            DispatchQueue.main.async {
+                if [401, 403, 404].contains(http.statusCode) {
+                    self.logout()
+                    self.errorMessage = "Tài khoản không còn hiệu lực. Vui lòng đăng nhập lại!"
+                    return
+                }
+                guard http.statusCode == 200, let data = data,
+                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let user = json["user"] as? [String: Any] else { return }
+                if let exp = user["expiresAt"] as? String {
+                    self.userExpiresAt = exp
+                    UserDefaults.standard.set(exp, forKey: self.expiresDefaultsKey)
+                }
+                if let uname = user["username"] as? String, uname != self.currentUsername {
+                    // Token thuộc tài khoản khác chủ bản quyền -> xóa bản quyền cũ
+                    LicenseService.shared.clearLicenseIfOwnerMismatch(currentUser: uname)
+                    self.currentUsername = uname
+                    UserDefaults.standard.set(uname, forKey: self.usernameDefaultsKey)
+                }
+            }
+        }.resume()
     }
 
     public static func normalizeURL(_ raw: String) -> String {
