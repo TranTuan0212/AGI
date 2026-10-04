@@ -6,8 +6,6 @@ public struct AppLoginView: View {
     @State private var usernameInput: String = ""
     @State private var passwordInput: String = ""
     @State private var showPassword: Bool = false
-    @State private var showServerConfig: Bool = false
-    @State private var serverInput: String = AppAuthManager.defaultServerURL
 
     public init() {}
 
@@ -197,50 +195,6 @@ public struct AppLoginView: View {
                     .background(Color.white.opacity(0.03))
                     .cornerRadius(12)
                     .padding(.horizontal, 20)
-
-                    // Cấu hình Server (Ẩn/Hiện)
-                    VStack(spacing: 8) {
-                        Button(action: { showServerConfig.toggle() }) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "gearshape")
-                                Text(showServerConfig ? "Ẩn cấu hình máy chủ" : "Cấu hình địa chỉ máy chủ")
-                                Image(systemName: showServerConfig ? "chevron.up" : "chevron.down")
-                            }
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                        }
-
-                        if showServerConfig {
-                            VStack(alignment: .leading, spacing: 6) {
-                                TextField("URL Máy chủ...", text: $serverInput)
-                                    .font(.caption.monospaced())
-                                    .autocapitalization(.none)
-                                    .disableAutocorrection(true)
-                                    .foregroundColor(.white)
-                                    .padding(10)
-                                    .background(Color.white.opacity(0.06))
-                                    .cornerRadius(8)
-
-                                Button(action: {
-                                    authManager.serverURL = serverInput
-                                    showServerConfig = false
-                                }) {
-                                    Text("Lưu Địa Chỉ")
-                                        .font(.caption.bold())
-                                        .foregroundColor(.blue)
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(Color.blue.opacity(0.15))
-                                        .cornerRadius(8)
-                                }
-                            }
-                            .padding(12)
-                            .background(Color.white.opacity(0.03))
-                            .cornerRadius(10)
-                            .padding(.horizontal, 20)
-                        }
-                    }
-                    .padding(.top, 8)
                 }
                 .padding(.bottom, 40)
             }
@@ -248,8 +202,7 @@ public struct AppLoginView: View {
     }
 
     private func handleLogin() {
-        let clean = serverInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        authManager.serverURL = clean.isEmpty ? AppAuthManager.defaultServerURL : clean
+        authManager.serverURL = AppAuthManager.defaultServerURL
         authManager.login(username: usernameInput, password: passwordInput) { success in
             if success {
                 // Đăng nhập thành công, app tự động switch sang ContentView
