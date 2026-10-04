@@ -7,7 +7,7 @@ public struct AppLoginView: View {
     @State private var passwordInput: String = ""
     @State private var showPassword: Bool = false
     @State private var showServerConfig: Bool = false
-    @State private var serverInput: String = AppAuthManager.shared.serverURL
+    @State private var serverInput: String = AppAuthManager.defaultServerURL
 
     public init() {}
 
@@ -248,7 +248,8 @@ public struct AppLoginView: View {
     }
 
     private func handleLogin() {
-        authManager.serverURL = serverInput
+        let clean = serverInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        authManager.serverURL = clean.isEmpty ? AppAuthManager.defaultServerURL : clean
         authManager.login(username: usernameInput, password: passwordInput) { success in
             if success {
                 // Đăng nhập thành công, app tự động switch sang ContentView

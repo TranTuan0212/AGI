@@ -28,11 +28,8 @@ public class AppAuthManager: ObservableObject {
     @Published public var isLoading: Bool = false
 
     private init() {
-        if let savedUrl = UserDefaults.standard.string(forKey: serverUrlDefaultsKey), !savedUrl.isEmpty {
-            self.serverURL = savedUrl
-        } else {
-            self.serverURL = AppAuthManager.defaultServerURL
-        }
+        self.serverURL = AppAuthManager.defaultServerURL
+        UserDefaults.standard.set(AppAuthManager.defaultServerURL, forKey: serverUrlDefaultsKey)
 
         // Tự động khôi phục phiên đăng nhập đã lưu (Ghi nhớ đăng nhập)
         restoreSavedSession()
