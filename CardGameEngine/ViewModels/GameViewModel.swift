@@ -119,7 +119,9 @@ public class GameViewModel: ObservableObject {
     
     public init() {
         self.isRankOnlyMode = UserDefaults.standard.bool(forKey: "isRankOnlyMode")
-        self.isVoiceMode = UserDefaults.standard.bool(forKey: "isVoiceMode")
+        LicenseService.shared.checkLicenseOffline()
+        let savedVoice = UserDefaults.standard.bool(forKey: "isVoiceMode")
+        self.isVoiceMode = LicenseService.shared.isVoiceUnlocked && savedVoice
         setupInitialPlayers()
         setupVoiceServiceObservation()
     }
@@ -151,7 +153,8 @@ public class GameViewModel: ObservableObject {
     }
     
     public func resetTable() {
-        let shouldAutoRecord = isVoiceMode || voiceService.isRecording
+        LicenseService.shared.checkLicenseOffline()
+        let shouldAutoRecord = LicenseService.shared.isVoiceUnlocked && (isVoiceMode || voiceService.isRecording)
         if voiceService.isRecording {
             voiceService.stopRecording(callEndAudio: false)
             voiceBannerText = nil
@@ -184,7 +187,8 @@ public class GameViewModel: ObservableObject {
     }
     
     public func startNewRound() {
-        let shouldAutoRecord = isVoiceMode || voiceService.isRecording
+        LicenseService.shared.checkLicenseOffline()
+        let shouldAutoRecord = LicenseService.shared.isVoiceUnlocked && (isVoiceMode || voiceService.isRecording)
         if voiceService.isRecording {
             voiceService.stopRecording(callEndAudio: false)
             voiceBannerText = nil
@@ -219,6 +223,15 @@ public class GameViewModel: ObservableObject {
     }
     
     public func autoStartVoiceForNewRound() {
+        LicenseService.shared.checkLicenseOffline()
+        guard LicenseService.shared.isVoiceUnlocked else {
+            self.isVoiceMode = false
+            self.voiceService.stopRecording(callEndAudio: false)
+            self.voiceBannerText = nil
+            self.showVoiceLicenseModal = true
+            return
+        }
+
         confirmedVoiceCards.removeAll()
         currentSegmentConfirmedCards.removeAll()
         pendingTenWorkItem?.cancel()

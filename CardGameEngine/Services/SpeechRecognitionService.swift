@@ -155,6 +155,15 @@ public class SpeechRecognitionService: ObservableObject {
     }
     
     public func startRecording(onResult: @escaping (String, Int) -> Void, onError: ((String) -> Void)? = nil) {
+        // Kiểm tra bản quyền giọng nói trước khi khởi động microphone
+        LicenseService.shared.checkLicenseOffline()
+        guard LicenseService.shared.isVoiceUnlocked else {
+            let msg = "Chức năng giọng nói chưa được kích hoạt bản quyền."
+            self.errorMessage = msg
+            onError?(msg)
+            return
+        }
+
         // Cancel and clean up any previous task safely
         stopRecording()
         
