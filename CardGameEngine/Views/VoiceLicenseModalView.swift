@@ -54,36 +54,12 @@ public struct VoiceLicenseModalView: View {
                                 .foregroundColor(.primary)
                         }
 
-                        Divider()
-
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Mã Định Danh Hệ Thống (Device Fingerprint):")
+                        HStack {
+                            Image(systemName: "checkmark.shield.fill")
+                                .foregroundColor(.green)
+                            Text("Thiết bị đã được tự động định danh phần cứng trên hệ thống. Admin có sẵn Key kích hoạt cho máy này.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-
-                            Text(DeviceIdentityService.shared.getDeviceFingerprint())
-                                .font(.system(.subheadline, design: .monospaced).bold())
-                                .foregroundColor(.purple)
-                                .textSelection(.enabled)
-                        }
-
-                        Button(action: {
-                            UIPasteboard.general.string = DeviceIdentityService.shared.getDeviceFingerprint()
-                            isCopied = true
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                                isCopied = false
-                            }
-                        }) {
-                            HStack {
-                                Image(systemName: isCopied ? "checkmark.circle.fill" : "doc.on.doc")
-                                Text(isCopied ? "ĐÃ SAO CHÉP MÃ MÁY!" : "Sao Chép Mã Máy Gửi Admin")
-                                    .fontWeight(.bold)
-                            }
-                            .font(.subheadline)
-                            .foregroundColor(isCopied ? .green : .white)
-                            .frame(maxWidth: .infinity, minHeight: 40)
-                            .background(isCopied ? Color.green.opacity(0.15) : Color.blue)
-                            .cornerRadius(10)
                         }
                     }
                     .padding(14)

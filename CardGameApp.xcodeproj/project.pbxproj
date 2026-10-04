@@ -35,6 +35,8 @@
 		LIC00002F5A6012345678902 /* DeviceIdentityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = LIC00002E5F6012345678902 /* DeviceIdentityService.swift */; };
 		LIC00003F5A6012345678903 /* LicenseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = LIC00003E5F6012345678903 /* LicenseService.swift */; };
 		LIC00004F5A6012345678904 /* VoiceLicenseModalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LIC00004E5F6012345678904 /* VoiceLicenseModalView.swift */; };
+		AUTH0001F5A6012345678901 /* AppAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AUTH0001E5F6012345678901 /* AppAuthManager.swift */; };
+		AUTH0002F5A6012345678902 /* AppLoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AUTH0002E5F6012345678902 /* AppLoginView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -70,6 +72,8 @@
 		LIC00002E5F6012345678902 /* DeviceIdentityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceIdentityService.swift; sourceTree = "<group>"; };
 		LIC00003E5F6012345678903 /* LicenseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseService.swift; sourceTree = "<group>"; };
 		LIC00004E5F6012345678904 /* VoiceLicenseModalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceLicenseModalView.swift; sourceTree = "<group>"; };
+		AUTH0001E5F6012345678901 /* AppAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAuthManager.swift; sourceTree = "<group>"; };
+		AUTH0002E5F6012345678902 /* AppLoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLoginView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -143,6 +147,7 @@
 				19D4098C52EE2450AD816B46 /* ResultModalView.swift */,
 				3FAFB429590C61B761CDF86D /* SettingsView.swift */,
 				LIC00004E5F6012345678904 /* VoiceLicenseModalView.swift */,
+				AUTH0002E5F6012345678902 /* AppLoginView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -150,6 +155,7 @@
 		C1D2E3F4A5B6012345678901 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				AUTH0001E5F6012345678901 /* AppAuthManager.swift */,
 				A1B2C3D4E5F6012345678901 /* VietnameseCardVoiceParser.swift */,
 				A1B2C3D4E5F6012345678902 /* SpeechRecognitionService.swift */,
 				CC0011AA22BB33CC44DD5502 /* ObjcExceptionCatcher.h */,
@@ -272,6 +278,8 @@
 				LIC00002F5A6012345678902 /* DeviceIdentityService.swift in Sources */,
 				LIC00003F5A6012345678903 /* LicenseService.swift in Sources */,
 				LIC00004F5A6012345678904 /* VoiceLicenseModalView.swift in Sources */,
+				AUTH0001F5A6012345678901 /* AppAuthManager.swift in Sources */,
+				AUTH0002F5A6012345678902 /* AppLoginView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

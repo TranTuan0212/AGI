@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>GiaLapSoBai</string>
+	<string>Voice Entry</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -47,8 +47,8 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Ứng dụng cần sử dụng microphone để nhận diện giọng nói khi nhập bài.</string>
+	<string>Ứng dụng cần quyền sử dụng microphone để ghi nhận giọng nói tiếng Việt khi nhập liệu số liệu.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Ứng dụng cần quyền nhận diện giọng nói tiếng Việt để tự động nhận dạng các quân bài bạn đọc.</string>
+	<string>Ứng dụng cần quyền nhận diện giọng nói tiếng Việt để tự động nhận dạng các lệnh đọc và số liệu.</string>
 </dict>
 </plist>

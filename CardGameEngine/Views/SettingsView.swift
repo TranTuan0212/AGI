@@ -19,6 +19,28 @@ public struct SettingsView: View {
     public var body: some View {
         NavigationView {
             Form {
+                Section(header: Text("👤 Tài Khoản Hệ Thống")) {
+                    HStack {
+                        Text("Tài khoản")
+                        Spacer()
+                        Text(AppAuthManager.shared.currentUsername ?? "User")
+                            .font(.subheadline.bold())
+                            .foregroundColor(.blue)
+                    }
+
+                    Button(action: {
+                        AppAuthManager.shared.logout()
+                        presentationMode.wrappedValue.dismiss()
+                    }) {
+                        HStack {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                            Text("Đăng Xuất Tài Khoản")
+                                .fontWeight(.bold)
+                        }
+                        .foregroundColor(.red)
+                    }
+                }
+
                 Section(header: Text("🛡️ Bản Quyền Giọng Nói")) {
                     HStack {
                         Text("Thiết bị")

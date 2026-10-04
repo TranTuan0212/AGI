@@ -2,9 +2,15 @@ import SwiftUI
 
 @main
 struct CardGameApp: App {
+    @StateObject private var authManager = AppAuthManager.shared
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            if authManager.isAuthenticated {
+                ContentView()
+            } else {
+                AppLoginView()
+            }
         }
     }
 }
