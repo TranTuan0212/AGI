@@ -13,16 +13,72 @@ public struct SettingsView: View {
     @State private var customKeywordsVersion: Int = 0
     @State private var recordedTokens: [String] = []
     @State private var isLogCopied: Bool = false
+    @State private var isShowingLicenseModal: Bool = false
+    @ObservedObject var licenseService = LicenseService.shared
     
     public var body: some View {
         NavigationView {
             Form {
+                Section(header: Text("🛡️ Bản Quyền Giọng Nói")) {
+                    HStack {
+                        Text("Thiết bị")
+                        Spacer()
+                        Text(DeviceIdentityService.shared.getDeviceModelName())
+                            .font(.subheadline.bold())
+                            .foregroundColor(.primary)
+                    }
+
+                    HStack {
+                        Text("Trạng thái")
+                        Spacer()
+                        if licenseService.isVoiceUnlocked {
+                            Text("ĐANG HOẠT ĐỘNG")
+                                .font(.caption.bold())
+                                .foregroundColor(.green)
+                        } else {
+                            Text(licenseService.remainingTimeText.contains("hết hạn") ? "ĐÃ HẾT HẠN" : "CHƯA KÍCH HOẠT")
+                                .font(.caption.bold())
+                                .foregroundColor(.red)
+                        }
+                    }
+
+                    if let exp = licenseService.expiresAtDate {
+                        HStack {
+                            Text("Hết hạn")
+                            Spacer()
+                            Text(licenseService.isLifetime ? "Vĩnh viễn" : licenseService.formatDate(exp))
+                                .font(.subheadline.bold())
+                                .foregroundColor(licenseService.isVoiceUnlocked ? .secondary : .red)
+                        }
+                    }
+
+                    HStack {
+                        Text("Thời gian còn lại")
+                        Spacer()
+                        Text(licenseService.remainingTimeText)
+                            .font(.subheadline.bold())
+                            .foregroundColor(licenseService.isVoiceUnlocked ? .green : .red)
+                    }
+
+                    Button(action: {
+                        isShowingLicenseModal = true
+                    }) {
+                        HStack {
+                            Image(systemName: "key.fill")
+                            Text("Quản Lý & Gia Hạn Bản Quyền")
+                                .fontWeight(.bold)
+                        }
+                        .foregroundColor(.blue)
+                    }
+                }
+
                 Section(header: Text("Chế Độ Giọng Nói (Voice Mode)")) {
                     Toggle("Chế độ chuyên giọng nói (Ẩn bàn phím)", isOn: $viewModel.isVoiceMode)
                     
                     HStack {
                         Text("Thiết bị thu âm")
                         Spacer()
+
                         Text(viewModel.voiceService.currentInputDeviceName)
                             .font(.subheadline)
                             .foregroundColor(.blue)
@@ -282,7 +338,11 @@ public struct SettingsView: View {
                     isTrainingRecording = false
                 }
             }
+            .sheet(isPresented: $isShowingLicenseModal) {
+                VoiceLicenseModalView()
+            }
         }
+
     }
     
     private var currentLearnedKeywords: [String] {

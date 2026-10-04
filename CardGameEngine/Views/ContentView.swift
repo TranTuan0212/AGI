@@ -252,7 +252,11 @@ public struct ContentView: View {
             .sheet(isPresented: $isShowingSettings) {
                 SettingsView(viewModel: viewModel)
             }
+            .sheet(isPresented: $viewModel.showVoiceLicenseModal) {
+                VoiceLicenseModalView()
+            }
         }
+
 
         .navigationViewStyle(StackNavigationViewStyle())
     }

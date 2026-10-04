@@ -79,12 +79,22 @@ public class GameViewModel: ObservableObject {
         }
     }
     
+    @Published public var showVoiceLicenseModal: Bool = false
+    
     // Voice-Only Mode (Hides keyboard, shows large mic & voice actions)
     @Published public var isVoiceMode: Bool {
         didSet {
+            if isVoiceMode && !LicenseService.shared.isVoiceUnlocked {
+                DispatchQueue.main.async {
+                    self.isVoiceMode = false
+                    self.showVoiceLicenseModal = true
+                }
+                return
+            }
             UserDefaults.standard.set(isVoiceMode, forKey: "isVoiceMode")
         }
     }
+
     
     public var isRankOnlyActive: Bool {
         return isRankOnlyMode && (gameType == .lieng3 || gameType == .xiDach2 || gameType == .samLoc10 || gameType == .chan19)
@@ -460,7 +470,15 @@ public class GameViewModel: ObservableObject {
                 }
             }
         } else {
+            // Kiểm tra Bản quyền giọng nói theo máy (chạy Offline 100%)
+            LicenseService.shared.checkLicenseOffline()
+            if !LicenseService.shared.isVoiceUnlocked {
+                self.showVoiceLicenseModal = true
+                return
+            }
+
             voiceService.requestAuthorization { [weak self] authorized in
+
                 guard let self = self else { return }
                 if authorized {
                     self.voiceBannerText = "🎙️ Đang nghe [\(self.voiceService.currentInputDeviceName)]... Hãy đọc bài"

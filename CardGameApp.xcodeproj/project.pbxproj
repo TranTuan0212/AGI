@@ -31,6 +31,10 @@
 		B1C2D3E4F5A6012345678901 /* VietnameseCardVoiceParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6012345678901 /* VietnameseCardVoiceParser.swift */; };
 		B1C2D3E4F5A6012345678902 /* SpeechRecognitionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6012345678902 /* SpeechRecognitionService.swift */; };
 		CC0011AA22BB33CC44DD5501 /* ObjcExceptionCatcher.m in Sources */ = {isa = PBXBuildFile; fileRef = CC0011AA22BB33CC44DD5500 /* ObjcExceptionCatcher.m */; };
+		LIC00001F5A6012345678901 /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = LIC00001E5F6012345678901 /* KeychainManager.swift */; };
+		LIC00002F5A6012345678902 /* DeviceIdentityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = LIC00002E5F6012345678902 /* DeviceIdentityService.swift */; };
+		LIC00003F5A6012345678903 /* LicenseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = LIC00003E5F6012345678903 /* LicenseService.swift */; };
+		LIC00004F5A6012345678904 /* VoiceLicenseModalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LIC00004E5F6012345678904 /* VoiceLicenseModalView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -62,6 +66,10 @@
 		CC0011AA22BB33CC44DD5500 /* ObjcExceptionCatcher.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ObjcExceptionCatcher.m; sourceTree = "<group>"; };
 		CC0011AA22BB33CC44DD5502 /* ObjcExceptionCatcher.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ObjcExceptionCatcher.h; sourceTree = "<group>"; };
 		CC0011AA22BB33CC44DD5503 /* CardGameApp-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "CardGameApp-Bridging-Header.h"; sourceTree = "<group>"; };
+		LIC00001E5F6012345678901 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
+		LIC00002E5F6012345678902 /* DeviceIdentityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceIdentityService.swift; sourceTree = "<group>"; };
+		LIC00003E5F6012345678903 /* LicenseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LicenseService.swift; sourceTree = "<group>"; };
+		LIC00004E5F6012345678904 /* VoiceLicenseModalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceLicenseModalView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -134,6 +142,7 @@
 				815E19FFE88C94B079A70D55 /* PlayerCardsView.swift */,
 				19D4098C52EE2450AD816B46 /* ResultModalView.swift */,
 				3FAFB429590C61B761CDF86D /* SettingsView.swift */,
+				LIC00004E5F6012345678904 /* VoiceLicenseModalView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -145,6 +154,9 @@
 				A1B2C3D4E5F6012345678902 /* SpeechRecognitionService.swift */,
 				CC0011AA22BB33CC44DD5502 /* ObjcExceptionCatcher.h */,
 				CC0011AA22BB33CC44DD5500 /* ObjcExceptionCatcher.m */,
+				LIC00001E5F6012345678901 /* KeychainManager.swift */,
+				LIC00002E5F6012345678902 /* DeviceIdentityService.swift */,
+				LIC00003E5F6012345678903 /* LicenseService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -256,6 +268,10 @@
 				B1C2D3E4F5A6012345678901 /* VietnameseCardVoiceParser.swift in Sources */,
 				B1C2D3E4F5A6012345678902 /* SpeechRecognitionService.swift in Sources */,
 				CC0011AA22BB33CC44DD5501 /* ObjcExceptionCatcher.m in Sources */,
+				LIC00001F5A6012345678901 /* KeychainManager.swift in Sources */,
+				LIC00002F5A6012345678902 /* DeviceIdentityService.swift in Sources */,
+				LIC00003F5A6012345678903 /* LicenseService.swift in Sources */,
+				LIC00004F5A6012345678904 /* VoiceLicenseModalView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
