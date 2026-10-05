@@ -207,7 +207,8 @@ public class AppAuthManager: ObservableObject {
 
                 // Nếu tài khoản đã được kích hoạt license trước đó và server trả về token, lưu luôn
                 if let licToken = json["licenseToken"] as? String, !licToken.isEmpty {
-                    KeychainManager.shared.save(key: "voice_offline_license_token", value: licToken)
+                    KeychainManager.shared.save(key: "voice_license_token", value: licToken)
+                    LicenseService.shared.bindLicenseToCurrentUser()
                     LicenseService.shared.checkLicenseOffline()
                 }
 
