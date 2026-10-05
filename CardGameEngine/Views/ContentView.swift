@@ -246,7 +246,11 @@ public struct ContentView: View {
                     }
                 }
             }
-            .sheet(isPresented: $viewModel.isShowResultModal) {
+            .sheet(isPresented: $viewModel.isShowResultModal, onDismiss: {
+                if viewModel.isVoiceMode {
+                    viewModel.resetTable()
+                }
+            }) {
                 ResultModalView(viewModel: viewModel)
             }
             .sheet(isPresented: $viewModel.isShowingHistory) {

@@ -112,6 +112,9 @@ public struct ResultModalView: View {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Đóng") {
                         viewModel.isShowResultModal = false
+                        if viewModel.isVoiceMode {
+                            viewModel.resetTable()
+                        }
                     }
                 }
             }
