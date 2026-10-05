@@ -95,6 +95,31 @@ public class GameViewModel: ObservableObject {
         }
     }
 
+    // Floating Close Button (Nút Đóng nổi thứ 2 trong Bảng Điểm)
+    @Published public var isFloatingCloseButtonEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(isFloatingCloseButtonEnabled, forKey: "isFloatingCloseButtonEnabled")
+        }
+    }
+
+    @Published public var floatingCloseButtonRatioX: CGFloat {
+        didSet {
+            UserDefaults.standard.set(Double(floatingCloseButtonRatioX), forKey: "floatingCloseButtonRatioX")
+        }
+    }
+
+    @Published public var floatingCloseButtonRatioY: CGFloat {
+        didSet {
+            UserDefaults.standard.set(Double(floatingCloseButtonRatioY), forKey: "floatingCloseButtonRatioY")
+        }
+    }
+
+    @Published public var floatingCloseButtonSize: CGFloat {
+        didSet {
+            UserDefaults.standard.set(Double(floatingCloseButtonSize), forKey: "floatingCloseButtonSize")
+        }
+    }
+
     
     public var isRankOnlyActive: Bool {
         return isRankOnlyMode && (gameType == .lieng3 || gameType == .xiDach2 || gameType == .samLoc10 || gameType == .chan19)
@@ -122,6 +147,13 @@ public class GameViewModel: ObservableObject {
         LicenseService.shared.checkLicenseOffline()
         let savedVoice = UserDefaults.standard.bool(forKey: "isVoiceMode")
         self.isVoiceMode = LicenseService.shared.isVoiceUnlocked && savedVoice
+        self.isFloatingCloseButtonEnabled = UserDefaults.standard.bool(forKey: "isFloatingCloseButtonEnabled")
+        let savedRatioX = UserDefaults.standard.double(forKey: "floatingCloseButtonRatioX")
+        self.floatingCloseButtonRatioX = savedRatioX > 0 ? CGFloat(savedRatioX) : 0.82
+        let savedRatioY = UserDefaults.standard.double(forKey: "floatingCloseButtonRatioY")
+        self.floatingCloseButtonRatioY = savedRatioY > 0 ? CGFloat(savedRatioY) : 0.82
+        let savedSize = UserDefaults.standard.double(forKey: "floatingCloseButtonSize")
+        self.floatingCloseButtonSize = savedSize > 0 ? CGFloat(savedSize) : 60
         setupInitialPlayers()
         setupVoiceServiceObservation()
     }

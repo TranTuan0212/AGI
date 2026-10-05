@@ -14,6 +14,7 @@ public struct SettingsView: View {
     @State private var recordedTokens: [String] = []
     @State private var isLogCopied: Bool = false
     @State private var isShowingLicenseModal: Bool = false
+    @State private var isShowingFloatingConfig: Bool = false
     @ObservedObject var licenseService = LicenseService.shared
     
     public var body: some View {
@@ -110,6 +111,32 @@ public struct SettingsView: View {
                     Text("Khi bật, toàn bộ bàn phím chọn lá bài sẽ được ẩn đi. Ứng dụng chỉ hiển thị icon micro to bản cùng các thao tác liên quan, giúp nhập bài bằng giọng nói nhanh chóng và rộng rãi.")
                         .font(.caption)
                         .foregroundColor(.secondary)
+                }
+                
+                Section(header: Text("🎯 Nút Đóng Thứ 2 (Bảng Điểm)")) {
+                    Toggle("Bật nút đóng thứ 2 trong bảng điểm", isOn: $viewModel.isFloatingCloseButtonEnabled)
+                    
+                    if viewModel.isFloatingCloseButtonEnabled {
+                        Button(action: {
+                            isShowingFloatingConfig = true
+                        }) {
+                            HStack {
+                                Image(systemName: "hand.draw.fill")
+                                    .foregroundColor(.blue)
+                                Text("Chỉnh Sửa Vị Trí & Phóng To/Thu Nhỏ")
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.primary)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        
+                        Text("Khi bật, một nút đóng nổi thứ 2 sẽ xuất hiện trên bảng điểm kết quả. Bấm vào nút trên để mở Bảng điểm ảo, kéo thả nút đến vị trí thuận tay và chỉnh kích thước to/nhỏ tùy ý.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
                 }
                 
                 Section(header: Text("🎙️ Bộ Lọc & Huấn Luyện Âm Đọc (J - Q - K)")) {
@@ -364,6 +391,9 @@ public struct SettingsView: View {
             }
             .sheet(isPresented: $isShowingLicenseModal) {
                 VoiceLicenseModalView()
+            }
+            .sheet(isPresented: $isShowingFloatingConfig) {
+                FloatingCloseButtonConfigView(viewModel: viewModel)
             }
         }
 

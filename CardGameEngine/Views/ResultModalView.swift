@@ -6,105 +6,152 @@ public struct ResultModalView: View {
     
     public var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 16) {
-                    // Winner Banner
-                    VStack(spacing: 8) {
-                        Text(viewModel.showdownSummary)
-                            .font(.headline)
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal)
-                        
-                        Text(viewModel.gameType.rawValue)
-                            .font(.subheadline)
-                            .foregroundColor(.white.opacity(0.85))
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 18)
-                    .background(
-                        LinearGradient(
-                            colors: [Color.blue, Color.purple],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .cornerRadius(14)
-                    .padding(.horizontal)
-                    
-                    // Rankings List
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Bảng Xếp Hạng & Đánh Giá Bài")
-                            .font(.headline)
-                            .padding(.horizontal)
-                        
-                        let sortedPlayers = viewModel.players.sorted { ($0.rankOrder ?? 99) < ($1.rankOrder ?? 99) }
-                        
-                        ForEach(sortedPlayers) { player in
-                            HStack(alignment: .top, spacing: 12) {
-                                // Medal / Rank badge
-                                ZStack {
-                                    Circle()
-                                        .fill(rankBadgeColor(player.rankOrder ?? 0))
-                                        .frame(width: 36, height: 36)
-                                    
-                                    Text("\(player.rankOrder ?? 0)")
-                                        .font(.headline)
-                                        .fontWeight(.bold)
-                                        .foregroundColor(.white)
-                                }
+            GeometryReader { geo in
+                ZStack {
+                    ScrollView {
+                        VStack(spacing: 16) {
+                            // Winner Banner
+                            VStack(spacing: 8) {
+                                Text(viewModel.showdownSummary)
+                                    .font(.headline)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal)
                                 
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Text(player.name)
-                                            .font(.headline)
-                                        
-                                        let isTie = viewModel.players.filter({ $0.rankOrder == player.rankOrder }).count > 1
-                                        if isTie {
-                                            Text("ĐỒNG HẠNG")
-                                                .font(.caption2)
+                                Text(viewModel.gameType.rawValue)
+                                    .font(.subheadline)
+                                    .foregroundColor(.white.opacity(0.85))
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 18)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.blue, Color.purple],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .cornerRadius(14)
+                            .padding(.horizontal)
+                            
+                            // Rankings List
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("Bảng Xếp Hạng & Đánh Giá Bài")
+                                    .font(.headline)
+                                    .padding(.horizontal)
+                                
+                                let sortedPlayers = viewModel.players.sorted { ($0.rankOrder ?? 99) < ($1.rankOrder ?? 99) }
+                                
+                                ForEach(sortedPlayers) { player in
+                                    HStack(alignment: .top, spacing: 12) {
+                                        // Medal / Rank badge
+                                        ZStack {
+                                            Circle()
+                                                .fill(rankBadgeColor(player.rankOrder ?? 0))
+                                                .frame(width: 36, height: 36)
+                                            
+                                            Text("\(player.rankOrder ?? 0)")
+                                                .font(.headline)
                                                 .fontWeight(.bold)
-                                                .foregroundColor(.orange)
-                                                .padding(.horizontal, 6)
-                                                .padding(.vertical, 2)
-                                                .background(Color.orange.opacity(0.15))
-                                                .cornerRadius(4)
-                                        }
-                                        
-                                        if player.isLung {
-                                            Text("LỦNG")
-                                                .font(.caption2)
-                                                .fontWeight(.black)
                                                 .foregroundColor(.white)
-                                                .padding(.horizontal, 6)
-                                                .padding(.vertical, 2)
-                                                .background(Color.red)
-                                                .cornerRadius(4)
                                         }
                                         
-                                        Spacer()
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            HStack {
+                                                Text(player.name)
+                                                    .font(.headline)
+                                                
+                                                let isTie = viewModel.players.filter({ $0.rankOrder == player.rankOrder }).count > 1
+                                                if isTie {
+                                                    Text("ĐỒNG HẠNG")
+                                                        .font(.caption2)
+                                                        .fontWeight(.bold)
+                                                        .foregroundColor(.orange)
+                                                        .padding(.horizontal, 6)
+                                                        .padding(.vertical, 2)
+                                                        .background(Color.orange.opacity(0.15))
+                                                        .cornerRadius(4)
+                                                }
+                                                
+                                                if player.isLung {
+                                                    Text("LỦNG")
+                                                        .font(.caption2)
+                                                        .fontWeight(.black)
+                                                        .foregroundColor(.white)
+                                                        .padding(.horizontal, 6)
+                                                        .padding(.vertical, 2)
+                                                        .background(Color.red)
+                                                        .cornerRadius(4)
+                                                }
+                                                
+                                                Spacer()
+                                            }
+                                            
+                                            Text(player.resultTitle)
+                                                .font(.subheadline)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.blue)
+                                            
+                                            Text(player.resultDetail)
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                                .fixedSize(horizontal: false, vertical: true)
+                                        }
                                     }
-                                    
-                                    Text(player.resultTitle)
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                        .foregroundColor(.blue)
-                                    
-                                    Text(player.resultDetail)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                        .fixedSize(horizontal: false, vertical: true)
+                                    .padding(12)
+                                    .background(Color(.secondarySystemBackground))
+                                    .cornerRadius(12)
+                                    .padding(.horizontal)
                                 }
                             }
-                            .padding(12)
-                            .background(Color(.secondarySystemBackground))
-                            .cornerRadius(12)
-                            .padding(.horizontal)
+                            
+                            Spacer().frame(height: 70) // Khoảng trống cuộn tránh che khuất bởi nút nổi
                         }
+                        .padding(.vertical)
+                    }
+                    
+                    // Nút Đóng Thứ 2 (Floating Close Button)
+                    if viewModel.isFloatingCloseButtonEnabled {
+                        let btnX = geo.size.width * viewModel.floatingCloseButtonRatioX
+                        let btnY = geo.size.height * viewModel.floatingCloseButtonRatioY
+                        let btnSize = viewModel.floatingCloseButtonSize
+                        
+                        Button(action: {
+                            viewModel.isShowResultModal = false
+                            if viewModel.isVoiceMode {
+                                viewModel.resetTable()
+                            }
+                        }) {
+                            VStack(spacing: 2) {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: btnSize * 0.36, weight: .black))
+                                if btnSize >= 50 {
+                                    Text("ĐÓNG")
+                                        .font(.system(size: max(8, btnSize * 0.18), weight: .black))
+                                }
+                            }
+                            .foregroundColor(.white)
+                            .frame(width: btnSize, height: btnSize)
+                            .background(
+                                Circle().fill(
+                                    LinearGradient(
+                                        colors: [Color.red, Color(red: 0.9, green: 0.2, blue: 0.2)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                            )
+                            .overlay(
+                                Circle()
+                                    .stroke(Color.white.opacity(0.85), lineWidth: 2.5)
+                            )
+                            .shadow(color: Color.black.opacity(0.35), radius: 6, x: 0, y: 3)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .position(x: btnX, y: btnY)
                     }
                 }
-                .padding(.vertical)
             }
             .navigationTitle("Kết Quả So Bài")
             .navigationBarTitleDisplayMode(.inline)

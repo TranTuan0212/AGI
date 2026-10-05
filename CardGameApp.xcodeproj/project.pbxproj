@@ -37,6 +37,7 @@
 		LIC00004F5A6012345678904 /* VoiceLicenseModalView.swift in Sources */ = {isa = PBXBuildFile; fileRef = LIC00004E5F6012345678904 /* VoiceLicenseModalView.swift */; };
 		AUTH0001F5A6012345678901 /* AppAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AUTH0001E5F6012345678901 /* AppAuthManager.swift */; };
 		AUTH0002F5A6012345678902 /* AppLoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AUTH0002E5F6012345678902 /* AppLoginView.swift */; };
+		FLT00001F5A6012345678901 /* FloatingCloseButtonConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FLT00001E5F6012345678901 /* FloatingCloseButtonConfigView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -74,6 +75,7 @@
 		LIC00004E5F6012345678904 /* VoiceLicenseModalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VoiceLicenseModalView.swift; sourceTree = "<group>"; };
 		AUTH0001E5F6012345678901 /* AppAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAuthManager.swift; sourceTree = "<group>"; };
 		AUTH0002E5F6012345678902 /* AppLoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLoginView.swift; sourceTree = "<group>"; };
+		FLT00001E5F6012345678901 /* FloatingCloseButtonConfigView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingCloseButtonConfigView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -148,6 +150,7 @@
 				3FAFB429590C61B761CDF86D /* SettingsView.swift */,
 				LIC00004E5F6012345678904 /* VoiceLicenseModalView.swift */,
 				AUTH0002E5F6012345678902 /* AppLoginView.swift */,
+				FLT00001E5F6012345678901 /* FloatingCloseButtonConfigView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -280,6 +283,7 @@
 				LIC00004F5A6012345678904 /* VoiceLicenseModalView.swift in Sources */,
 				AUTH0001F5A6012345678901 /* AppAuthManager.swift in Sources */,
 				AUTH0002F5A6012345678902 /* AppLoginView.swift in Sources */,
+				FLT00001F5A6012345678901 /* FloatingCloseButtonConfigView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
