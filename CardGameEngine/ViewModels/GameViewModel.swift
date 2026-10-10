@@ -323,11 +323,16 @@ public class GameViewModel: ObservableObject {
         }
         
         let commTargetCount = gameType.communityCardsCount
+        let allPlayersFull = !players.isEmpty && players.indices.allSatisfy { players[$0].cards.count >= targetCards(for: $0) }
         
-        if isSelectingCommunity && commTargetCount > 0 && communityCards.count < commTargetCount {
+        if (isSelectingCommunity || allPlayersFull) && commTargetCount > 0 && communityCards.count < commTargetCount {
             communityCards.append(card)
             actionHistory.append((card: card, target: "COMMUNITY"))
             isSelectingCommunity = communityCards.count < commTargetCount
+            if isReadyToCalculate {
+                calculateResults()
+            }
+            return
         } else if inputMode == .roundRobin {
             // Find next player who still needs cards
             var dealtToPlayer = false
@@ -429,11 +434,16 @@ public class GameViewModel: ObservableObject {
         let cardId = "rank_\(rank.rawValue)_\(UUID().uuidString)"
         let card = Card(rank: rank, suit: .spades, customId: cardId, isRankOnly: true)
         let commTargetCount = gameType.communityCardsCount
+        let allPlayersFull = !players.isEmpty && players.indices.allSatisfy { players[$0].cards.count >= targetCards(for: $0) }
         
-        if isSelectingCommunity && commTargetCount > 0 && communityCards.count < commTargetCount {
+        if (isSelectingCommunity || allPlayersFull) && commTargetCount > 0 && communityCards.count < commTargetCount {
             communityCards.append(card)
             actionHistory.append((card: card, target: "COMMUNITY"))
             isSelectingCommunity = communityCards.count < commTargetCount
+            if isReadyToCalculate {
+                calculateResults()
+            }
+            return
         } else if inputMode == .roundRobin {
             var nextNeedingIdx: Int? = nil
             for i in 0..<players.count {
@@ -509,11 +519,16 @@ public class GameViewModel: ObservableObject {
         let cardId = "hidden_\(UUID().uuidString)"
         let card = Card(rank: .two, suit: .spades, customId: cardId, isHidden: true)
         let commTargetCount = gameType.communityCardsCount
+        let allPlayersFull = !players.isEmpty && players.indices.allSatisfy { players[$0].cards.count >= targetCards(for: $0) }
         
-        if isSelectingCommunity && commTargetCount > 0 && communityCards.count < commTargetCount {
+        if (isSelectingCommunity || allPlayersFull) && commTargetCount > 0 && communityCards.count < commTargetCount {
             communityCards.append(card)
             actionHistory.append((card: card, target: "COMMUNITY"))
             isSelectingCommunity = communityCards.count < commTargetCount
+            if isReadyToCalculate {
+                calculateResults()
+            }
+            return
         } else if inputMode == .roundRobin {
             var nextNeedingIdx: Int? = nil
             for i in 0..<players.count {

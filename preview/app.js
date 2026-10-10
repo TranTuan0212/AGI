@@ -2496,10 +2496,18 @@ class AppController {
 
     const cfg = GAME_CONFIGS[this.currentGameType];
     const commTarget = cfg ? (cfg.community || 0) : 0;
-    if (this.isSelectingCommunity && commTarget > 0 && this.communityCards.length < commTarget) {
+    const allPlayersFull = this.players.length > 0 && this.players.every((p, idx) => p.cards.length >= this.targetCards(idx));
+
+    if ((this.isSelectingCommunity || allPlayersFull) && commTarget > 0 && this.communityCards.length < commTarget) {
       this.communityCards.push(card);
       this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
       this.isSelectingCommunity = this.communityCards.length < commTarget;
+      this.renderPlayers();
+      this.updateUI();
+      if (this.isReady()) {
+        this.calculate();
+      }
+      return;
     } else if (this.inputMode === 'roundRobin') {
       let found = false;
       for (let i = 0; i < this.players.length; i++) {
@@ -2591,10 +2599,18 @@ class AppController {
 
     const cfg = GAME_CONFIGS[this.currentGameType];
     const commTarget = cfg ? (cfg.community || 0) : 0;
-    if (this.isSelectingCommunity && commTarget > 0 && this.communityCards.length < commTarget) {
+    const allPlayersFull = this.players.length > 0 && this.players.every((p, idx) => p.cards.length >= this.targetCards(idx));
+
+    if ((this.isSelectingCommunity || allPlayersFull) && commTarget > 0 && this.communityCards.length < commTarget) {
       this.communityCards.push(card);
       this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
       this.isSelectingCommunity = this.communityCards.length < commTarget;
+      this.renderPlayers();
+      this.updateUI();
+      if (this.isReady()) {
+        this.calculate();
+      }
+      return;
     } else if (this.inputMode === 'roundRobin') {
       let found = false;
       for (let i = 0; i < this.players.length; i++) {
@@ -2678,12 +2694,20 @@ class AppController {
     }
 
     const cfg = GAME_CONFIGS[this.currentGameType];
-    const commTarget = cfg.community;
+    const commTarget = cfg ? (cfg.community || 0) : 0;
+    const allPlayersFull = this.players.length > 0 && this.players.every((p, idx) => p.cards.length >= this.targetCards(idx));
 
-    if (this.isSelectingCommunity && commTarget > 0 && this.communityCards.length < commTarget) {
+    if ((this.isSelectingCommunity || allPlayersFull) && commTarget > 0 && this.communityCards.length < commTarget) {
       this.communityCards.push(card);
       this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
       this.isSelectingCommunity = this.communityCards.length < commTarget;
+      this.renderDeck();
+      this.renderPlayers();
+      this.updateUI();
+      if (this.isReady()) {
+        this.calculate();
+      }
+      return;
     } else if (this.inputMode === 'roundRobin') {
       // Find next player who still needs cards
       let found = false;

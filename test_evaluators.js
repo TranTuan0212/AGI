@@ -1609,6 +1609,35 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   app.processVoiceInput('át cơ hai cơ ba cơ bốn cơ năm rô sáu tép bảy bích tám cơ chín rô', 1);
   assert(app.communityCards.length === 5, 'Poker Voice RR: Đủ cả 5 lá bài chung từ luồng đọc liên tục');
   assert(app.isReady() === true, 'Poker Voice RR: Bàn cược sẵn sàng so điểm tức thì');
+
+  // 23.2. Kịch bản Poker 3 người chơi: Đọc bài tẩy ở Segment 1, ngắt nhịp nghỉ rồi đọc tiếp Bài Chung ở Segment 2
+  const app3 = new AppCtrl();
+  app3.currentGameType = 'texasHoldem';
+  app3.playerCount = 3;
+  app3.initPlayers();
+  app3.startNewRound();
+  app3.renderDeck = () => {};
+  app3.renderPlayerCards = () => {};
+  app3.renderCommunityCards = () => {};
+  app3.renderPlayers = () => {};
+  app3.updateUI = () => {};
+
+  // Segment 1: Chia xoay vòng 3 tụ x 2 lá = 6 lá
+  app3.processVoiceInput('hai cơ ba cơ bốn cơ năm cơ sáu cơ bảy cơ', 1);
+  assert(app3.players[0].cards.length === 2, 'Poker Voice Segment: Tụ 1 đủ 2 lá');
+  assert(app3.players[1].cards.length === 2, 'Poker Voice Segment: Tụ 2 đủ 2 lá');
+  assert(app3.players[2].cards.length === 2, 'Poker Voice Segment: Tụ 3 đủ 2 lá');
+  assert(app3.isSelectingCommunity === true, 'Poker Voice Segment: Tự động sẵn sàng nhận Bài Chung');
+
+  // Ngắt nhịp nghỉ, reset sang Segment 2
+  app3.resetVoiceSegment();
+
+  // Segment 2: Đọc tiếp 5 lá bài chung
+  app3.processVoiceInput('tám rô chín tép mười bích đầm cơ già rô', 2);
+  assert(app3.communityCards.length === 5, 'Poker Voice Segment: Đọc ở Segment 2 tự động tràn đầy đủ 5 lá vào Bài Chung');
+  assert(app3.communityCards[0].sym === '8', 'Poker Voice Segment: Lá đầu bài chung là 8');
+  assert(app3.communityCards[4].sym === 'K', 'Poker Voice Segment: Lá cuối bài chung là K');
+  assert(app3.isReady() === true, 'Poker Voice Segment: Ván bài Poker hoàn tất 100%');
 }
 
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);
