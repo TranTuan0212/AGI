@@ -180,11 +180,13 @@ public class PokerEvaluator {
             let kicker1 = grouped.count > 1 ? grouped[1].rank : 0
             let kicker2 = grouped.count > 2 ? grouped[2].rank : 0
             let kickers = [kicker1, kicker2].filter { $0 > 0 }
+            let kickerStr = kickers.map { rankSymbol($0) }.joined(separator: ", ")
+            let kickerDesc = kickers.isEmpty ? "" : " (Kicker \(kickerStr))"
             return PokerHandScore(
                 handType: .threeOfAKind,
                 tieBreakers: [triple] + kickers,
                 cards: sortedCards,
-                descriptionVN: "Sám cô \(rankSymbol(triple))" + (kickers.isEmpty ? "" : " (Kicker \(kickers.map { rankSymbol($0) }.joined(separator: ", ")))")
+                descriptionVN: "Sám cô \(rankSymbol(triple))\(kickerDesc)"
             )
         }
         
@@ -208,11 +210,13 @@ public class PokerEvaluator {
             for k in 1..<grouped.count {
                 if kickers.count < 3 { kickers.append(grouped[k].rank) }
             }
+            let kickerStr = kickers.map { rankSymbol($0) }.joined(separator: ", ")
+            let kickerDesc = kickers.isEmpty ? "" : " (Kickers: \(kickerStr))"
             return PokerHandScore(
                 handType: .onePair,
                 tieBreakers: [pair] + kickers,
                 cards: sortedCards,
-                descriptionVN: "Một đôi \(rankSymbol(pair))" + (kickers.isEmpty ? "" : " (Kickers: \(kickers.map { rankSymbol($0) }.joined(separator: ", ")))")
+                descriptionVN: "Một đôi \(rankSymbol(pair))\(kickerDesc)"
             )
         }
         

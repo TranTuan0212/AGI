@@ -153,7 +153,7 @@ public struct PlayerCardsView: View {
                                         .foregroundColor(.red)
                                 }
                             } else if let rank = player.rankOrder {
-                                playerRankBadgeView(for: player, rank: rank, isWinner: isWinner)
+                                PlayerRankBadgeView(player: player, rank: rank, isWinner: isWinner, allPlayers: viewModel.players)
                             } else if isHighlight {
                                 Text(viewModel.inputMode == .roundRobin ? "▶ Lượt" : "▶ Đang chọn")
                                     .font(.system(size: 9, weight: .bold))
@@ -317,23 +317,38 @@ public struct PlayerCardsView: View {
         case .fourOfAKind: return .orange
         }
     }
+    }
+}
+
+struct PlayerRankBadgeView: View {
+    let player: Player
+    let rank: Int
+    let isWinner: Bool
+    let allPlayers: [Player]
     
-    @ViewBuilder
-    private func playerRankBadgeView(for player: Player, rank: Int, isWinner: Bool) -> some View {
-        let isTie = viewModel.players.filter({ $0.rankOrder == rank }).count > 1
-        let badgeText = rank == 1 ? (isTie ? "👑 Đ.Hạng 1" : "👑 Nhất") :
-                        (rank == 2 ? (isTie ? "🥈 Đ.Hạng 2" : "🥈 Nhì") :
-                        (rank == 3 ? (isTie ? "🥉 Đ.Hạng 3" : "🥉 Ba") :
-                        (isTie ? "Đ.Hạng \(rank)" : "Hạng \(rank)")))
-        let badgeBgColor: Color = {
-            switch rank {
-            case 1: return Color(red: 0.95, green: 0.2, blue: 0.2) // Đỏ tươi nổi bật
-            case 2: return Color(red: 0.0, green: 0.48, blue: 1.0) // Xanh dương đậm
-            case 3: return Color(red: 1.0, green: 0.58, blue: 0.0) // Cam hổ phách
-            default: return Color(white: 0.35) // Xám đen đậm
-            }
-        }()
-        
+    private var isTie: Bool {
+        allPlayers.filter({ $0.rankOrder == rank }).count > 1
+    }
+    
+    private var badgeText: String {
+        switch rank {
+        case 1: return isTie ? "👑 Đ.Hạng 1" : "👑 Nhất"
+        case 2: return isTie ? "🥈 Đ.Hạng 2" : "🥈 Nhì"
+        case 3: return isTie ? "🥉 Đ.Hạng 3" : "🥉 Ba"
+        default: return isTie ? "Đ.Hạng \(rank)" : "Hạng \(rank)"
+        }
+    }
+    
+    private var badgeBgColor: Color {
+        switch rank {
+        case 1: return Color(red: 0.95, green: 0.2, blue: 0.2) // Đỏ tươi nổi bật
+        case 2: return Color(red: 0.0, green: 0.48, blue: 1.0) // Xanh dương đậm
+        case 3: return Color(red: 1.0, green: 0.58, blue: 0.0) // Cam hổ phách
+        default: return Color(white: 0.35) // Xám đen đậm
+        }
+    }
+    
+    var body: some View {
         HStack(spacing: 5) {
             Text(badgeText)
                 .font(.system(size: 11, weight: .bold))

@@ -409,7 +409,7 @@ public class GameViewModel: ObservableObject {
     
     // Clear Community Cards (Dấu X xóa nhanh bài chung cho Poker)
     public func clearCommunityCards() {
-        actionHistory.removeAll(where: { $0.target == "COMMUNITY" })
+        actionHistory.removeAll { $0.target == "COMMUNITY" }
         communityCards.removeAll()
         isSelectingCommunity = true
         clearResultsState()

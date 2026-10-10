@@ -88,6 +88,10 @@ public struct Binh9ChiScore: Comparable {
         }
         return false
     }
+    
+    public static func == (lhs: Binh9ChiScore, rhs: Binh9ChiScore) -> Bool {
+        return !(lhs < rhs) && !(rhs < lhs)
+    }
 }
 
 public struct Binh9Arrangement {

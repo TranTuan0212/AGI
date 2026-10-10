@@ -42,88 +42,7 @@ public struct ResultModalView: View {
                                     .padding(.horizontal)
                                 
                                 ForEach(sortedPlayers) { player in
-                                    let isUnknown = player.rankOrder == nil || player.resultTitle == "???" || player.cards.contains(where: { $0.isHidden })
-                                    let isTie = !isUnknown && player.rankOrder != nil && viewModel.players.filter({ $0.rankOrder == player.rankOrder }).count > 1
-                                    
-                                    HStack(alignment: .top, spacing: 12) {
-                                        // Medal / Rank badge
-                                        if isUnknown {
-                                            ZStack {
-                                                Circle()
-                                                    .fill(Color.red)
-                                                    .frame(width: 36, height: 36)
-                                                Text("?")
-                                                    .font(.headline)
-                                                    .fontWeight(.black)
-                                                    .foregroundColor(.white)
-                                            }
-                                        } else {
-                                            ZStack {
-                                                Circle()
-                                                    .fill(rankBadgeColor(player.rankOrder ?? 0))
-                                                    .frame(width: 36, height: 36)
-                                                
-                                                Text("\(player.rankOrder ?? 0)")
-                                                    .font(.headline)
-                                                    .fontWeight(.bold)
-                                                    .foregroundColor(.white)
-                                            }
-                                        }
-                                        
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            HStack {
-                                                Text(player.name)
-                                                    .font(.headline)
-                                                
-                                                if isUnknown {
-                                                    Text("LOẠI KHỎI BXH")
-                                                        .font(.caption2)
-                                                        .fontWeight(.black)
-                                                        .foregroundColor(.white)
-                                                        .padding(.horizontal, 6)
-                                                        .padding(.vertical, 2)
-                                                        .background(Color.red)
-                                                        .cornerRadius(4)
-                                                } else if isTie {
-                                                    Text("ĐỒNG HẠNG")
-                                                        .font(.caption2)
-                                                        .fontWeight(.bold)
-                                                        .foregroundColor(.orange)
-                                                        .padding(.horizontal, 6)
-                                                        .padding(.vertical, 2)
-                                                        .background(Color.orange.opacity(0.15))
-                                                        .cornerRadius(4)
-                                                }
-                                                
-                                                if player.isLung {
-                                                    Text("LỦNG")
-                                                        .font(.caption2)
-                                                        .fontWeight(.black)
-                                                        .foregroundColor(.white)
-                                                        .padding(.horizontal, 6)
-                                                        .padding(.vertical, 2)
-                                                        .background(Color.red)
-                                                        .cornerRadius(4)
-                                                }
-                                                
-                                                Spacer()
-                                            }
-                                            
-                                            Text(player.resultTitle)
-                                                .font(.subheadline)
-                                                .fontWeight(.bold)
-                                                .foregroundColor(isUnknown ? .red : .blue)
-                                            
-                                            Text(player.resultDetail)
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                                .fixedSize(horizontal: false, vertical: true)
-                                        }
-                                    }
-                                    .padding(12)
-                                    .background(Color(.secondarySystemBackground))
-                                    .cornerRadius(12)
-                                    .padding(.horizontal)
+                                    PlayerResultRowView(player: player, allPlayers: viewModel.players)
                                 }
                             }
                             
@@ -208,5 +127,110 @@ public struct ResultModalView: View {
         case 3: return Color.brown
         default: return Color.blue.opacity(0.6)
         }
+    }
+}
+
+struct PlayerResultRowView: View {
+    let player: Player
+    let allPlayers: [Player]
+    
+    private var isUnknown: Bool {
+        player.rankOrder == nil || player.resultTitle == "???" || player.cards.contains(where: { $0.isHidden })
+    }
+    
+    private var isTie: Bool {
+        guard !isUnknown, let rank = player.rankOrder else { return false }
+        return allPlayers.filter({ $0.rankOrder == rank }).count > 1
+    }
+    
+    private func rankBadgeColor(_ rank: Int) -> Color {
+        switch rank {
+        case 1: return Color.yellow
+        case 2: return Color.gray
+        case 3: return Color.brown
+        default: return Color.blue.opacity(0.6)
+        }
+    }
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            // Medal / Rank badge
+            if isUnknown {
+                ZStack {
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 36, height: 36)
+                    Text("?")
+                        .font(.headline)
+                        .fontWeight(.black)
+                        .foregroundColor(.white)
+                }
+            } else {
+                ZStack {
+                    Circle()
+                        .fill(rankBadgeColor(player.rankOrder ?? 0))
+                        .frame(width: 36, height: 36)
+                    
+                    Text("\(player.rankOrder ?? 0)")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                        .foregroundColor(.white)
+                }
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(player.name)
+                        .font(.headline)
+                    
+                    if isUnknown {
+                        Text("LOẠI KHỎI BXH")
+                            .font(.caption2)
+                            .fontWeight(.black)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.red)
+                            .cornerRadius(4)
+                    } else if isTie {
+                        Text("ĐỒNG HẠNG")
+                            .font(.caption2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.orange)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.orange.opacity(0.15))
+                            .cornerRadius(4)
+                    }
+                    
+                    if player.isLung {
+                        Text("LỦNG")
+                            .font(.caption2)
+                            .fontWeight(.black)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color.red)
+                            .cornerRadius(4)
+                    }
+                    
+                    Spacer()
+                }
+                
+                Text(player.resultTitle)
+                    .font(.subheadline)
+                    .fontWeight(.bold)
+                    .foregroundColor(isUnknown ? .red : .blue)
+                
+                Text(player.resultDetail)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(12)
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(12)
+        .padding(.horizontal)
     }
 }
