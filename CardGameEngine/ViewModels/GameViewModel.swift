@@ -324,7 +324,11 @@ public class GameViewModel: ObservableObject {
         
         let commTargetCount = gameType.communityCardsCount
         
-        if inputMode == .roundRobin {
+        if isSelectingCommunity && commTargetCount > 0 && communityCards.count < commTargetCount {
+            communityCards.append(card)
+            actionHistory.append((card: card, target: "COMMUNITY"))
+            isSelectingCommunity = communityCards.count < commTargetCount
+        } else if inputMode == .roundRobin {
             // Find next player who still needs cards
             var dealtToPlayer = false
             var attempts = 0
@@ -360,9 +364,10 @@ public class GameViewModel: ObservableObject {
             }
             
             // If all players have full cards, deal to community cards
-            if !dealtToPlayer && communityCards.count < commTargetCount {
+            if !dealtToPlayer && commTargetCount > 0 && communityCards.count < commTargetCount {
                 communityCards.append(card)
                 actionHistory.append((card: card, target: "COMMUNITY"))
+                isSelectingCommunity = communityCards.count < commTargetCount
             }
             
         } else {
@@ -371,6 +376,7 @@ public class GameViewModel: ObservableObject {
                 if communityCards.count < commTargetCount {
                     communityCards.append(card)
                     actionHistory.append((card: card, target: "COMMUNITY"))
+                    isSelectingCommunity = communityCards.count < commTargetCount
                 }
             } else if selectedPlayerIndex < players.count {
                 let targetCount = targetCards(for: selectedPlayerIndex)
@@ -424,7 +430,11 @@ public class GameViewModel: ObservableObject {
         let card = Card(rank: rank, suit: .spades, customId: cardId, isRankOnly: true)
         let commTargetCount = gameType.communityCardsCount
         
-        if inputMode == .roundRobin {
+        if isSelectingCommunity && commTargetCount > 0 && communityCards.count < commTargetCount {
+            communityCards.append(card)
+            actionHistory.append((card: card, target: "COMMUNITY"))
+            isSelectingCommunity = communityCards.count < commTargetCount
+        } else if inputMode == .roundRobin {
             var nextNeedingIdx: Int? = nil
             for i in 0..<players.count {
                 let checkIdx = (roundRobinPointer + i) % players.count
@@ -439,14 +449,25 @@ public class GameViewModel: ObservableObject {
                 actionHistory.append((card: card, target: players[idx].id))
                 roundRobinPointer = (idx + 1) % players.count
                 selectedPlayerIndex = roundRobinPointer
+                
+                let allFull = players.indices.allSatisfy { players[$0].cards.count >= targetCards(for: $0) }
+                if allFull && commTargetCount > 0 && communityCards.count < commTargetCount {
+                    isSelectingCommunity = true
+                } else {
+                    isSelectingCommunity = false
+                }
             } else if commTargetCount > 0 && communityCards.count < commTargetCount {
                 communityCards.append(card)
                 actionHistory.append((card: card, target: "COMMUNITY"))
+                isSelectingCommunity = communityCards.count < commTargetCount
             }
         } else {
-            if isSelectingCommunity && commTargetCount > 0 && communityCards.count < commTargetCount {
-                communityCards.append(card)
-                actionHistory.append((card: card, target: "COMMUNITY"))
+            if isSelectingCommunity {
+                if communityCards.count < commTargetCount {
+                    communityCards.append(card)
+                    actionHistory.append((card: card, target: "COMMUNITY"))
+                    isSelectingCommunity = communityCards.count < commTargetCount
+                }
             } else {
                 let targetCount = targetCards(for: selectedPlayerIndex)
                 if players[selectedPlayerIndex].cards.count < targetCount {
@@ -471,6 +492,7 @@ public class GameViewModel: ObservableObject {
                 } else if commTargetCount > 0 && communityCards.count < commTargetCount {
                     communityCards.append(card)
                     actionHistory.append((card: card, target: "COMMUNITY"))
+                    isSelectingCommunity = communityCards.count < commTargetCount
                 }
             }
         }
@@ -488,7 +510,11 @@ public class GameViewModel: ObservableObject {
         let card = Card(rank: .two, suit: .spades, customId: cardId, isHidden: true)
         let commTargetCount = gameType.communityCardsCount
         
-        if inputMode == .roundRobin {
+        if isSelectingCommunity && commTargetCount > 0 && communityCards.count < commTargetCount {
+            communityCards.append(card)
+            actionHistory.append((card: card, target: "COMMUNITY"))
+            isSelectingCommunity = communityCards.count < commTargetCount
+        } else if inputMode == .roundRobin {
             var nextNeedingIdx: Int? = nil
             for i in 0..<players.count {
                 let checkIdx = (roundRobinPointer + i) % players.count
@@ -503,14 +529,25 @@ public class GameViewModel: ObservableObject {
                 actionHistory.append((card: card, target: players[idx].id))
                 roundRobinPointer = (idx + 1) % players.count
                 selectedPlayerIndex = roundRobinPointer
+                
+                let allFull = players.indices.allSatisfy { players[$0].cards.count >= targetCards(for: $0) }
+                if allFull && commTargetCount > 0 && communityCards.count < commTargetCount {
+                    isSelectingCommunity = true
+                } else {
+                    isSelectingCommunity = false
+                }
             } else if commTargetCount > 0 && communityCards.count < commTargetCount {
                 communityCards.append(card)
                 actionHistory.append((card: card, target: "COMMUNITY"))
+                isSelectingCommunity = communityCards.count < commTargetCount
             }
         } else {
-            if isSelectingCommunity && commTargetCount > 0 && communityCards.count < commTargetCount {
-                communityCards.append(card)
-                actionHistory.append((card: card, target: "COMMUNITY"))
+            if isSelectingCommunity {
+                if communityCards.count < commTargetCount {
+                    communityCards.append(card)
+                    actionHistory.append((card: card, target: "COMMUNITY"))
+                    isSelectingCommunity = communityCards.count < commTargetCount
+                }
             } else {
                 let targetCount = targetCards(for: selectedPlayerIndex)
                 if players[selectedPlayerIndex].cards.count < targetCount {
@@ -535,6 +572,7 @@ public class GameViewModel: ObservableObject {
                 } else if commTargetCount > 0 && communityCards.count < commTargetCount {
                     communityCards.append(card)
                     actionHistory.append((card: card, target: "COMMUNITY"))
+                    isSelectingCommunity = communityCards.count < commTargetCount
                 }
             }
         }

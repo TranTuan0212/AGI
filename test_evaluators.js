@@ -1566,6 +1566,51 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(app.players[1].rankOrder === 1, 'Holdem Tụ 1 Ẩn: Tụ 2 bài rõ thắng pot (rankOrder = 1)');
 }
 
+// 23. Test Poker Đọc Giọng Nói Tuần Tự Tự Động Nhảy Vào Bài Chung
+{
+  const appCodeFull = fs.readFileSync('preview/app.js', 'utf8');
+  const fakeEl = { style: {}, dataset: {}, classList: { add: () => {}, remove: () => {} }, appendChild: () => {}, querySelector: () => fakeEl, querySelectorAll: () => [], addEventListener: () => {}, setAttribute: () => {} };
+  const sandbox = {
+    window: { addEventListener: () => {} },
+    document: { getElementById: () => fakeEl, querySelectorAll: () => [], querySelector: () => fakeEl, createElement: () => fakeEl },
+    localStorage: { getItem: () => null, setItem: () => {} },
+    console: console,
+    setTimeout: (fn, ms) => setTimeout(fn, ms),
+    clearTimeout: (id) => clearTimeout(id),
+    Date: Date
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(appCodeFull, sandbox);
+  const AppCtrl = vm.runInContext('AppController', sandbox);
+  const app = new AppCtrl();
+  app.currentGameType = 'texasHoldem';
+  app.playerCount = 2;
+  app.initPlayers();
+  app.startNewRound();
+  app.renderDeck = () => {};
+  app.renderPlayerCards = () => {};
+  app.renderCommunityCards = () => {};
+  app.renderPlayers = () => {};
+  app.updateUI = () => {};
+
+  // Chia tuần tự 2 tụ, mỗi tụ 2 lá (4 lá)
+  app.processVoiceInput('át cơ hai cơ ba cơ bốn cơ', 1);
+  assert(app.players[0].cards.length === 2, 'Poker Voice RR: Tụ 1 nhận đủ 2 lá bài tẩy');
+  assert(app.players[1].cards.length === 2, 'Poker Voice RR: Tụ 2 nhận đủ 2 lá bài tẩy');
+  assert(app.isSelectingCommunity === true, 'Poker Voice RR: Sau khi đủ bài các tụ, tự động chuyển sang Bài Chung');
+
+  // Đọc tiếp nối 5 lá bài chung trong cùng stream
+  app.processVoiceInput('át cơ hai cơ ba cơ bốn cơ năm rô', 1);
+  assert(app.communityCards.length === 1 && app.communityCards[0].sym === '5', 'Poker Voice RR: Lá thứ 5 tự động nhảy vào Bài Chung (Flop 1)');
+
+  app.processVoiceInput('át cơ hai cơ ba cơ bốn cơ năm rô sáu tép', 1);
+  assert(app.communityCards.length === 2 && app.communityCards[1].sym === '6', 'Poker Voice RR: Lá thứ 6 tự động nhảy vào Bài Chung (Flop 2)');
+
+  app.processVoiceInput('át cơ hai cơ ba cơ bốn cơ năm rô sáu tép bảy bích tám cơ chín rô', 1);
+  assert(app.communityCards.length === 5, 'Poker Voice RR: Đủ cả 5 lá bài chung từ luồng đọc liên tục');
+  assert(app.isReady() === true, 'Poker Voice RR: Bàn cược sẵn sàng so điểm tức thì');
+}
+
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);
 
 

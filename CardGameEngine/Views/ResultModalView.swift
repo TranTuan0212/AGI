@@ -226,6 +226,17 @@ struct PlayerResultRowView: View {
                     .font(.caption)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+                
+                if !player.cards.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 4) {
+                            ForEach(player.cards) { card in
+                                MiniCardView(card: card) { }
+                            }
+                        }
+                    }
+                    .padding(.top, 2)
+                }
             }
         }
         .padding(12)

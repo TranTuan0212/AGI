@@ -85,9 +85,7 @@ public struct PlayerCardsView: View {
                         .stroke(isCommSelected ? Color.green : Color.orange.opacity(0.3), lineWidth: isCommSelected ? 1.5 : 1)
                 )
                 .onTapGesture {
-                    if viewModel.inputMode == .manual {
-                        viewModel.isSelectingCommunity = true
-                    }
+                    viewModel.isSelectingCommunity = true
                 }
             }
             
@@ -289,9 +287,9 @@ public struct PlayerCardsView: View {
                             .stroke(isWinner ? Color.yellow : (isHighlight ? Color.accentColor : Color.clear), lineWidth: 1.5)
                     )
                     .onTapGesture {
+                        viewModel.isSelectingCommunity = false
                         if viewModel.inputMode == .manual {
                             viewModel.selectedPlayerIndex = idx
-                            viewModel.isSelectingCommunity = false
                         }
                     }
                 }

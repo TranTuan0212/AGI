@@ -2320,9 +2320,13 @@ class AppController {
     if (this.actionHistory.length > beforeCount) {
       const lastAction = this.actionHistory[this.actionHistory.length - 1];
       let placed = null;
-      for (const p of this.players) {
-        placed = p.cards.find(c => c.id === lastAction.cardId);
-        if (placed) break;
+      if (lastAction.target === 'COMMUNITY') {
+        placed = this.communityCards.find(c => c.id === lastAction.cardId);
+      } else {
+        for (const p of this.players) {
+          placed = p.cards.find(c => c.id === lastAction.cardId);
+          if (placed) break;
+        }
       }
       if (placed) {
         this.confirmedVoiceCards.push(placed);
@@ -2492,7 +2496,11 @@ class AppController {
 
     const cfg = GAME_CONFIGS[this.currentGameType];
     const commTarget = cfg ? (cfg.community || 0) : 0;
-    if (this.inputMode === 'roundRobin') {
+    if (this.isSelectingCommunity && commTarget > 0 && this.communityCards.length < commTarget) {
+      this.communityCards.push(card);
+      this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
+      this.isSelectingCommunity = this.communityCards.length < commTarget;
+    } else if (this.inputMode === 'roundRobin') {
       let found = false;
       for (let i = 0; i < this.players.length; i++) {
         const pIdx = (this.roundRobinPointer + i) % this.players.length;
@@ -2522,15 +2530,14 @@ class AppController {
       if (!found && this.communityCards.length < commTarget) {
         this.communityCards.push(card);
         this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
-        if (this.communityCards.length < commTarget) {
-          this.isSelectingCommunity = true;
-        }
+        this.isSelectingCommunity = this.communityCards.length < commTarget;
       }
     } else {
       if (this.isSelectingCommunity) {
         if (this.communityCards.length < commTarget) {
           this.communityCards.push(card);
           this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
+          this.isSelectingCommunity = this.communityCards.length < commTarget;
         }
       } else {
         const curP = this.players[this.selectedPlayerIndex];
@@ -2584,7 +2591,11 @@ class AppController {
 
     const cfg = GAME_CONFIGS[this.currentGameType];
     const commTarget = cfg ? (cfg.community || 0) : 0;
-    if (this.inputMode === 'roundRobin') {
+    if (this.isSelectingCommunity && commTarget > 0 && this.communityCards.length < commTarget) {
+      this.communityCards.push(card);
+      this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
+      this.isSelectingCommunity = this.communityCards.length < commTarget;
+    } else if (this.inputMode === 'roundRobin') {
       let found = false;
       for (let i = 0; i < this.players.length; i++) {
         const pIdx = (this.roundRobinPointer + i) % this.players.length;
@@ -2614,15 +2625,14 @@ class AppController {
       if (!found && this.communityCards.length < commTarget) {
         this.communityCards.push(card);
         this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
-        if (this.communityCards.length < commTarget) {
-          this.isSelectingCommunity = true;
-        }
+        this.isSelectingCommunity = this.communityCards.length < commTarget;
       }
     } else {
       if (this.isSelectingCommunity) {
         if (this.communityCards.length < commTarget) {
           this.communityCards.push(card);
           this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
+          this.isSelectingCommunity = this.communityCards.length < commTarget;
         }
       } else {
         const curP = this.players[this.selectedPlayerIndex];
@@ -2670,7 +2680,11 @@ class AppController {
     const cfg = GAME_CONFIGS[this.currentGameType];
     const commTarget = cfg.community;
 
-    if (this.inputMode === 'roundRobin') {
+    if (this.isSelectingCommunity && commTarget > 0 && this.communityCards.length < commTarget) {
+      this.communityCards.push(card);
+      this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
+      this.isSelectingCommunity = this.communityCards.length < commTarget;
+    } else if (this.inputMode === 'roundRobin') {
       // Find next player who still needs cards
       let found = false;
       for (let i = 0; i < this.players.length; i++) {
@@ -2705,9 +2719,7 @@ class AppController {
       if (!found && this.communityCards.length < commTarget) {
         this.communityCards.push(card);
         this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
-        if (this.communityCards.length < commTarget) {
-          this.isSelectingCommunity = true;
-        }
+        this.isSelectingCommunity = this.communityCards.length < commTarget;
       }
     } else {
       // Manual selection
@@ -2715,6 +2727,7 @@ class AppController {
         if (this.communityCards.length < commTarget) {
           this.communityCards.push(card);
           this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
+          this.isSelectingCommunity = this.communityCards.length < commTarget;
         }
       } else {
         const curr = this.players[this.selectedPlayerIndex];
@@ -2911,11 +2924,9 @@ class AppController {
         commContainer.appendChild(ph);
       }
       commSection.onclick = () => {
-        if (this.inputMode === 'manual') {
-          this.isSelectingCommunity = true;
-          this.renderPlayers();
-          this.updateUI();
-        }
+        this.isSelectingCommunity = true;
+        this.renderPlayers();
+        this.updateUI();
       };
     } else {
       commSection.style.display = 'none';
@@ -2936,12 +2947,12 @@ class AppController {
       const mat = document.createElement('div');
       mat.className = `player-compact-card ${isActive && !hasResult ? 'active' : ''} ${isWinner ? 'winner-mat' : ''}`;
       mat.addEventListener('click', () => {
+        this.isSelectingCommunity = false;
         if (this.inputMode === 'manual') {
           this.selectedPlayerIndex = idx;
-          this.isSelectingCommunity = false;
-          this.renderPlayers();
-          this.updateUI();
         }
+        this.renderPlayers();
+        this.updateUI();
       });
 
       let rankBadgeHtml = '';
@@ -3771,6 +3782,29 @@ class AppController {
           <div class="rank-hand-detail">${p.resultDetail}</div>
         </div>
       `;
+
+      if (p.cards && p.cards.length > 0) {
+        const cardsDiv = document.createElement('div');
+        cardsDiv.className = 'rank-cards-row';
+        cardsDiv.style.cssText = 'display:flex;gap:4px;margin-top:6px;overflow-x:auto;';
+        p.cards.forEach(c => {
+          const mini = document.createElement('div');
+          if (c.isHidden) {
+            mini.className = 'mini-card hidden-card';
+            mini.innerHTML = `<span class="mini-card-rank">?</span><span class="mini-card-suit">Ẩn</span>`;
+          } else if (c.isRankOnly) {
+            let colorCls = c.sym === 'A' ? 'red' : (['J', 'Q', 'K'].includes(c.sym) ? 'blue' : 'black');
+            mini.className = `mini-card rank-only ${colorCls}`;
+            mini.innerHTML = `<span class="mini-card-rank">${c.sym}</span>`;
+          } else {
+            mini.className = `mini-card ${c.isRed ? 'red' : 'black'}`;
+            mini.innerHTML = `<span class="mini-card-rank">${c.sym}</span><span class="mini-card-suit">${c.suitIcon}</span>`;
+          }
+          cardsDiv.appendChild(mini);
+        });
+        item.querySelector('.rank-info').appendChild(cardsDiv);
+      }
+
       container.appendChild(item);
     });
 
