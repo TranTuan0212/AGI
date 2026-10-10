@@ -146,12 +146,15 @@ public class GameViewModel: ObservableObject {
         self.isRankOnlyMode = UserDefaults.standard.bool(forKey: "isRankOnlyMode")
         LicenseService.shared.checkLicenseOffline()
         let savedVoice = UserDefaults.standard.bool(forKey: "isVoiceMode")
-        self.isVoiceMode = LicenseService.shared.isVoiceUnlocked && savedVoice
-        self.isFloatingCloseButtonEnabled = UserDefaults.standard.bool(forKey: "isFloatingCloseButtonEnabled")
+        if UserDefaults.standard.object(forKey: "isFloatingCloseButtonEnabled") != nil {
+            self.isFloatingCloseButtonEnabled = UserDefaults.standard.bool(forKey: "isFloatingCloseButtonEnabled")
+        } else {
+            self.isFloatingCloseButtonEnabled = true
+        }
         let savedRatioX = UserDefaults.standard.double(forKey: "floatingCloseButtonRatioX")
-        self.floatingCloseButtonRatioX = savedRatioX > 0 ? CGFloat(savedRatioX) : 0.82
+        self.floatingCloseButtonRatioX = savedRatioX > 0 ? CGFloat(savedRatioX) : 0.85
         let savedRatioY = UserDefaults.standard.double(forKey: "floatingCloseButtonRatioY")
-        self.floatingCloseButtonRatioY = savedRatioY > 0 ? CGFloat(savedRatioY) : 0.82
+        self.floatingCloseButtonRatioY = savedRatioY > 0 ? CGFloat(savedRatioY) : 0.85
         let savedSize = UserDefaults.standard.double(forKey: "floatingCloseButtonSize")
         self.floatingCloseButtonSize = savedSize > 0 ? CGFloat(savedSize) : 60
         setupInitialPlayers()
@@ -404,12 +407,21 @@ public class GameViewModel: ObservableObject {
         }
     }
     
+    // Clear Community Cards (Dấu X xóa nhanh bài chung cho Poker)
+    public func clearCommunityCards() {
+        actionHistory.removeAll(where: { $0.target == "COMMUNITY" })
+        communityCards.removeAll()
+        isSelectingCommunity = true
+        clearResultsState()
+    }
+
     // Rank-Only Tap Handler (allows multiple taps of the same rank without locking)
     public func onRankTapped(_ rank: Rank) {
         clearResultsState()
         
         let cardId = "rank_\(rank.rawValue)_\(UUID().uuidString)"
         let card = Card(rank: rank, suit: .spades, customId: cardId, isRankOnly: true)
+        let commTargetCount = gameType.communityCardsCount
         
         if inputMode == .roundRobin {
             var nextNeedingIdx: Int? = nil
@@ -426,25 +438,38 @@ public class GameViewModel: ObservableObject {
                 actionHistory.append((card: card, target: players[idx].id))
                 roundRobinPointer = (idx + 1) % players.count
                 selectedPlayerIndex = roundRobinPointer
+            } else if commTargetCount > 0 && communityCards.count < commTargetCount {
+                communityCards.append(card)
+                actionHistory.append((card: card, target: "COMMUNITY"))
             }
         } else {
-            let targetCount = targetCards(for: selectedPlayerIndex)
-            if players[selectedPlayerIndex].cards.count < targetCount {
-                players[selectedPlayerIndex].cards.append(card)
-                actionHistory.append((card: card, target: players[selectedPlayerIndex].id))
-                
-                if players[selectedPlayerIndex].cards.count == targetCount {
-                    var nextNeedingIdx: Int? = nil
-                    for i in 0..<players.count {
-                        let checkIdx = (selectedPlayerIndex + 1 + i) % players.count
-                        if players[checkIdx].cards.count < targetCards(for: checkIdx) {
-                            nextNeedingIdx = checkIdx
-                            break
+            if isSelectingCommunity && commTargetCount > 0 && communityCards.count < commTargetCount {
+                communityCards.append(card)
+                actionHistory.append((card: card, target: "COMMUNITY"))
+            } else {
+                let targetCount = targetCards(for: selectedPlayerIndex)
+                if players[selectedPlayerIndex].cards.count < targetCount {
+                    players[selectedPlayerIndex].cards.append(card)
+                    actionHistory.append((card: card, target: players[selectedPlayerIndex].id))
+                    
+                    if players[selectedPlayerIndex].cards.count == targetCount {
+                        var nextNeedingIdx: Int? = nil
+                        for i in 0..<players.count {
+                            let checkIdx = (selectedPlayerIndex + 1 + i) % players.count
+                            if players[checkIdx].cards.count < targetCards(for: checkIdx) {
+                                nextNeedingIdx = checkIdx
+                                break
+                            }
+                        }
+                        if let next = nextNeedingIdx {
+                            selectedPlayerIndex = next
+                        } else if commTargetCount > 0 && communityCards.count < commTargetCount {
+                            isSelectingCommunity = true
                         }
                     }
-                    if let next = nextNeedingIdx {
-                        selectedPlayerIndex = next
-                    }
+                } else if commTargetCount > 0 && communityCards.count < commTargetCount {
+                    communityCards.append(card)
+                    actionHistory.append((card: card, target: "COMMUNITY"))
                 }
             }
         }
@@ -460,6 +485,7 @@ public class GameViewModel: ObservableObject {
         
         let cardId = "hidden_\(UUID().uuidString)"
         let card = Card(rank: .two, suit: .spades, customId: cardId, isHidden: true)
+        let commTargetCount = gameType.communityCardsCount
         
         if inputMode == .roundRobin {
             var nextNeedingIdx: Int? = nil
@@ -476,25 +502,38 @@ public class GameViewModel: ObservableObject {
                 actionHistory.append((card: card, target: players[idx].id))
                 roundRobinPointer = (idx + 1) % players.count
                 selectedPlayerIndex = roundRobinPointer
+            } else if commTargetCount > 0 && communityCards.count < commTargetCount {
+                communityCards.append(card)
+                actionHistory.append((card: card, target: "COMMUNITY"))
             }
         } else {
-            let targetCount = targetCards(for: selectedPlayerIndex)
-            if players[selectedPlayerIndex].cards.count < targetCount {
-                players[selectedPlayerIndex].cards.append(card)
-                actionHistory.append((card: card, target: players[selectedPlayerIndex].id))
-                
-                if players[selectedPlayerIndex].cards.count == targetCount {
-                    var nextNeedingIdx: Int? = nil
-                    for i in 0..<players.count {
-                        let checkIdx = (selectedPlayerIndex + 1 + i) % players.count
-                        if players[checkIdx].cards.count < targetCards(for: checkIdx) {
-                            nextNeedingIdx = checkIdx
-                            break
+            if isSelectingCommunity && commTargetCount > 0 && communityCards.count < commTargetCount {
+                communityCards.append(card)
+                actionHistory.append((card: card, target: "COMMUNITY"))
+            } else {
+                let targetCount = targetCards(for: selectedPlayerIndex)
+                if players[selectedPlayerIndex].cards.count < targetCount {
+                    players[selectedPlayerIndex].cards.append(card)
+                    actionHistory.append((card: card, target: players[selectedPlayerIndex].id))
+                    
+                    if players[selectedPlayerIndex].cards.count == targetCount {
+                        var nextNeedingIdx: Int? = nil
+                        for i in 0..<players.count {
+                            let checkIdx = (selectedPlayerIndex + 1 + i) % players.count
+                            if players[checkIdx].cards.count < targetCards(for: checkIdx) {
+                                nextNeedingIdx = checkIdx
+                                break
+                            }
+                        }
+                        if let next = nextNeedingIdx {
+                            selectedPlayerIndex = next
+                        } else if commTargetCount > 0 && communityCards.count < commTargetCount {
+                            isSelectingCommunity = true
                         }
                     }
-                    if let next = nextNeedingIdx {
-                        selectedPlayerIndex = next
-                    }
+                } else if commTargetCount > 0 && communityCards.count < commTargetCount {
+                    communityCards.append(card)
+                    actionHistory.append((card: card, target: "COMMUNITY"))
                 }
             }
         }
@@ -820,30 +859,57 @@ public class GameViewModel: ObservableObject {
     // MARK: - Game Calculation Logic
     
     private func calculateChan19() {
+        var currentRank = 1
         for i in 0..<players.count {
-            players[i].rankOrder = i + 1
-            players[i].score = 0
-            players[i].resultTitle = "\(players[i].cards.count) lá"
-            players[i].resultDetail = "Chắn Trung Quốc (19 lá)"
+            if players[i].cards.contains(where: { $0.isHidden }) {
+                players[i].rankOrder = nil
+                players[i].score = -1
+                players[i].resultTitle = "???"
+                players[i].resultDetail = "Chưa rõ quân bài (Không thấy) • Loại khỏi BXH"
+            } else {
+                players[i].rankOrder = currentRank
+                players[i].score = 0
+                players[i].resultTitle = "\(players[i].cards.count) lá"
+                players[i].resultDetail = "Chắn Trung Quốc (19 lá)"
+                currentRank += 1
+            }
+        }
+        let rank1Players = players.filter { $0.rankOrder == 1 }
+        if let winner = rank1Players.first {
+            showdownSummary = "🏆 \(winner.name) Thắng Chắn với \(winner.resultTitle)!"
+        } else {
+            showdownSummary = "⚠️ Không thể xác định người thắng (Có quân bài ẩn)"
         }
     }
     
     private func calculateSamLoc() {
-        let inputList = players.enumerated().map { (index: $0.offset, name: $0.element.name, cards: $0.element.cards) }
-        let ranked = SamLocEvaluator.rankPlayers(players: inputList)
-        
-        for item in ranked {
-            let idx = item.index
-            players[idx].rankOrder = item.rank
-            players[idx].score = item.scoreDelta
-            if let instant = item.result.instantWin {
-                players[idx].resultTitle = instant.rawValue
-            } else if item.result.trashCount == 0 {
-                players[idx].resultTitle = "🎉 Hết Rác (Bài Vào Bộ Hết)"
+        var validPlayers = [(index: Int, name: String, cards: [Card])]()
+        for (i, p) in players.enumerated() {
+            if p.cards.contains(where: { $0.isHidden }) {
+                players[i].rankOrder = nil
+                players[i].score = -1
+                players[i].resultTitle = "???"
+                players[i].resultDetail = "Chưa rõ quân bài (Không thấy) • Loại khỏi BXH"
             } else {
-                players[idx].resultTitle = "Còn \(item.result.trashCount) lá rác"
+                validPlayers.append((index: i, name: p.name, cards: p.cards))
             }
-            players[idx].resultDetail = item.result.summary
+        }
+        
+        if !validPlayers.isEmpty {
+            let ranked = SamLocEvaluator.rankPlayers(players: validPlayers)
+            for item in ranked {
+                let idx = item.index
+                players[idx].rankOrder = item.rank
+                players[idx].score = item.scoreDelta
+                if let instant = item.result.instantWin {
+                    players[idx].resultTitle = instant.rawValue
+                } else if item.result.trashCount == 0 {
+                    players[idx].resultTitle = "🎉 Hết Rác (Bài Vào Bộ Hết)"
+                } else {
+                    players[idx].resultTitle = "Còn \(item.result.trashCount) lá rác"
+                }
+                players[idx].resultDetail = item.result.summary
+            }
         }
         
         let rank1Players = players.filter { $0.rankOrder == 1 }
@@ -852,29 +918,43 @@ public class GameViewModel: ObservableObject {
             showdownSummary = "👑 Đồng Hạng 1: \(names) (Hòa ván Sâm với \(rank1Players[0].resultTitle))!"
         } else if let winner = rank1Players.first {
             showdownSummary = "🏆 \(winner.name) Thắng ván Sâm với \(winner.resultTitle)!"
+        } else {
+            showdownSummary = "⚠️ Không thể xác định người thắng (Có quân bài ẩn)"
         }
     }
     
     private func calculatePhom() {
-        let inputList = players.enumerated().map { (index: $0.offset, name: $0.element.name, cards: $0.element.cards) }
-        let ranked = PhomEvaluator.rankPlayers(players: inputList)
-        
-        for item in ranked {
-            let idx = item.index
-            players[idx].rankOrder = item.rank
-            players[idx].score = item.scoreDelta
-            if item.result.isUTron {
-                players[idx].resultTitle = "🎉 Ù Tròn (0 điểm)"
-            } else if item.result.isUKhan {
-                players[idx].resultTitle = "🎉 Ù Khan (Không cạ)"
-            } else if item.result.isU {
-                players[idx].resultTitle = "🎉 Ù (0 điểm)"
-            } else if item.result.isMom {
-                players[idx].resultTitle = "💀 Móm / Cháy (\(item.result.deadwoodScore)đ)"
+        var validPlayers = [(index: Int, name: String, cards: [Card])]()
+        for (i, p) in players.enumerated() {
+            if p.cards.contains(where: { $0.isHidden }) {
+                players[i].rankOrder = nil
+                players[i].score = -1
+                players[i].resultTitle = "???"
+                players[i].resultDetail = "Chưa rõ quân bài (Không thấy) • Loại khỏi BXH"
             } else {
-                players[idx].resultTitle = "\(item.result.deadwoodScore) điểm rác (\(item.result.phoms.count) phỏm)"
+                validPlayers.append((index: i, name: p.name, cards: p.cards))
             }
-            players[idx].resultDetail = item.result.summary
+        }
+        
+        if !validPlayers.isEmpty {
+            let ranked = PhomEvaluator.rankPlayers(players: validPlayers)
+            for item in ranked {
+                let idx = item.index
+                players[idx].rankOrder = item.rank
+                players[idx].score = item.scoreDelta
+                if item.result.isUTron {
+                    players[idx].resultTitle = "🎉 Ù Tròn (0 điểm)"
+                } else if item.result.isUKhan {
+                    players[idx].resultTitle = "🎉 Ù Khan (Không cạ)"
+                } else if item.result.isU {
+                    players[idx].resultTitle = "🎉 Ù (0 điểm)"
+                } else if item.result.isMom {
+                    players[idx].resultTitle = "💀 Móm / Cháy (\(item.result.deadwoodScore)đ)"
+                } else {
+                    players[idx].resultTitle = "\(item.result.deadwoodScore) điểm rác (\(item.result.phoms.count) phỏm)"
+                }
+                players[idx].resultDetail = item.result.summary
+            }
         }
         
         let rank1Players = players.filter { $0.rankOrder == 1 }
@@ -883,6 +963,8 @@ public class GameViewModel: ObservableObject {
             showdownSummary = "👑 Đồng Hạng 1: \(names) (Hòa ván Phỏm với \(rank1Players[0].resultTitle))!"
         } else if let winner = rank1Players.first {
             showdownSummary = "🏆 \(winner.name) Thắng ván Phỏm với \(winner.resultTitle)!"
+        } else {
+            showdownSummary = "⚠️ Không thể xác định người thắng (Có quân bài ẩn)"
         }
     }
     
@@ -890,10 +972,17 @@ public class GameViewModel: ObservableObject {
         let rule = isRankOnlyActive ? .international : suitPreset
         var scores = [(index: Int, score: LiengHandScore)]()
         for (i, p) in players.enumerated() {
-            let score = LiengEvaluator.evaluate(cards: p.cards, suitRule: rule)
-            scores.append((index: i, score: score))
-            players[i].resultTitle = score.descriptionVN
-            players[i].resultDetail = "Loại: \(score.handType.nameVN)"
+            if p.cards.contains(where: { $0.isHidden }) {
+                players[i].rankOrder = nil
+                players[i].score = -1
+                players[i].resultTitle = "???"
+                players[i].resultDetail = "Chưa rõ quân bài (Không thấy) • Loại khỏi BXH"
+            } else {
+                let score = LiengEvaluator.evaluate(cards: p.cards, suitRule: rule)
+                scores.append((index: i, score: score))
+                players[i].resultTitle = score.descriptionVN
+                players[i].resultDetail = "Loại: \(score.handType.nameVN)"
+            }
         }
         
         scores.sort { $0.score > $1.score }
@@ -912,16 +1001,25 @@ public class GameViewModel: ObservableObject {
             showdownSummary = "👑 Đồng Hạng 1: \(names) (Cùng \(rank1Players[0].resultTitle))!"
         } else if let winner = rank1Players.first {
             showdownSummary = "🏆 \(winner.name) Thắng cuộc với \(winner.resultTitle)!"
+        } else {
+            showdownSummary = "⚠️ Không thể xác định người thắng (Có quân bài ẩn)"
         }
     }
     
     private func calculateXiDach() {
         var scores = [(index: Int, score: XiDachScore)]()
         for (i, p) in players.enumerated() {
-            let score = XiDachEvaluator.evaluate(cards: p.cards)
-            scores.append((index: i, score: score))
-            players[i].resultTitle = score.title
-            players[i].resultDetail = score.detail
+            if p.cards.contains(where: { $0.isHidden }) {
+                players[i].rankOrder = nil
+                players[i].score = -1
+                players[i].resultTitle = "???"
+                players[i].resultDetail = "Chưa rõ quân bài (Không thấy) • Loại khỏi BXH"
+            } else {
+                let score = XiDachEvaluator.evaluate(cards: p.cards)
+                scores.append((index: i, score: score))
+                players[i].resultTitle = score.title
+                players[i].resultDetail = score.detail
+            }
         }
         
         scores.sort { $0.score > $1.score }
@@ -940,17 +1038,28 @@ public class GameViewModel: ObservableObject {
             showdownSummary = "👑 Đồng Hạng 1: \(names) (Cùng \(rank1Players[0].resultTitle))!"
         } else if let winner = rank1Players.first {
             showdownSummary = "🏆 \(winner.name) Thắng cuộc với \(winner.resultTitle)!"
+        } else {
+            showdownSummary = "⚠️ Không thể xác định người thắng (Có quân bài ẩn)"
         }
     }
     
     private func calculateTexasHoldem() {
         var scores = [(index: Int, score: PokerHandScore)]()
+        let commHasHidden = communityCards.contains(where: { $0.isHidden })
         for (i, p) in players.enumerated() {
-            let allCards = p.cards + communityCards
-            let score = PokerEvaluator.evaluate7Cards(allCards)
-            scores.append((index: i, score: score))
-            players[i].resultTitle = score.descriptionVN
-            players[i].resultDetail = "Bộ bài 5 lá tốt nhất: \(score.cards.map { $0.displayName }.joined(separator: " "))"
+            let playerHasHidden = p.cards.contains(where: { $0.isHidden })
+            if commHasHidden || playerHasHidden {
+                players[i].rankOrder = nil
+                players[i].score = -1
+                players[i].resultTitle = "???"
+                players[i].resultDetail = "Chưa rõ quân bài (Không thấy) • Loại khỏi BXH"
+            } else {
+                let allCards = p.cards + communityCards
+                let score = PokerEvaluator.evaluate7Cards(allCards)
+                scores.append((index: i, score: score))
+                players[i].resultTitle = score.descriptionVN
+                players[i].resultDetail = "Bộ bài 5 lá tốt nhất: \(score.cards.map { $0.displayName }.joined(separator: " "))"
+            }
         }
         
         scores.sort { $0.score > $1.score }
@@ -968,23 +1077,38 @@ public class GameViewModel: ObservableObject {
             showdownSummary = "👑 Đồng Hạng 1 (Split Pot): \(names) với \(rank1Players[0].resultTitle)!"
         } else if let winner = rank1Players.first {
             showdownSummary = "🏆 \(winner.name) Thắng Pot với \(winner.resultTitle)!"
+        } else {
+            showdownSummary = "⚠️ Không thể xác định người thắng (Có quân bài ẩn)"
         }
     }
     
     private func calculateBinh9() {
-        var arrangements = [Binh9Arrangement]()
+        var validIndices = [Int]()
+        var arrangements = [Int: Binh9Arrangement]()
         for i in 0..<players.count {
-            let arr = Binh9Evaluator.autoArrange(cards: players[i].cards)
-            arrangements.append(arr)
-            players[i].cards = arr.chi1 + arr.chi2 + arr.chi3
-            players[i].isLung = arr.isLung
-            players[i].score = 0
+            if players[i].cards.contains(where: { $0.isHidden }) {
+                players[i].rankOrder = nil
+                players[i].score = -1
+                players[i].resultTitle = "???"
+                players[i].resultDetail = "Chưa rõ quân bài (Không thấy) • Loại khỏi BXH"
+            } else {
+                let arr = Binh9Evaluator.autoArrange(cards: players[i].cards)
+                arrangements[i] = arr
+                players[i].cards = arr.chi1 + arr.chi2 + arr.chi3
+                players[i].isLung = arr.isLung
+                players[i].score = 0
+                validIndices.append(i)
+            }
         }
         
-        // So chéo từng cặp: Thắng >= 2 chi là Thắng luôn ván đối đầu (+1 trận thắng)
-        for i in 0..<players.count {
-            for j in (i+1)..<players.count {
-                let res = Binh9Evaluator.compareMatch(a: arrangements[i], b: arrangements[j])
+        // So chéo giữa các nhà hợp lệ
+        for a in 0..<validIndices.count {
+            let i = validIndices[a]
+            guard let arrI = arrangements[i] else { continue }
+            for b in (a + 1)..<validIndices.count {
+                let j = validIndices[b]
+                guard let arrJ = arrangements[j] else { continue }
+                let res = Binh9Evaluator.compareMatch(a: arrI, b: arrJ)
                 if res.scoreA > 0 {
                     players[i].score += 1
                 } else if res.scoreA < 0 {
@@ -993,9 +1117,9 @@ public class GameViewModel: ObservableObject {
             }
         }
         
-        let totalOpponents = max(1, players.count - 1)
-        for i in 0..<players.count {
-            let arr = arrangements[i]
+        let totalOpponents = max(1, validIndices.count - 1)
+        for i in validIndices {
+            guard let arr = arrangements[i] else { continue }
             if let win = arr.instantWin {
                 players[i].resultTitle = win
                 players[i].resultDetail = "Thắng trắng toàn bàn!"
@@ -1004,7 +1128,10 @@ public class GameViewModel: ObservableObject {
                 players[i].resultDetail = "Chi trước yếu hơn chi sau (Xử thua)!"
             } else {
                 if totalOpponents == 1 {
-                    players[i].resultTitle = players[i].score > 0 ? "🏆 THẮNG ĐỐI ĐẦU" : (arrangements[0].score1 == arrangements[1].score1 && arrangements[0].score2 == arrangements[1].score2 && arrangements[0].score3 == arrangements[1].score3 ? "HÒA ĐỐI ĐẦU" : "THUA ĐỐI ĐẦU")
+                    let otherIdx = validIndices.first(where: { $0 != i }) ?? i
+                    let otherArr = arrangements[otherIdx]
+                    let isTie = otherArr != nil && arr.score1 == otherArr!.score1 && arr.score2 == otherArr!.score2 && arr.score3 == otherArr!.score3
+                    players[i].resultTitle = players[i].score > 0 ? "🏆 THẮNG ĐỐI ĐẦU" : (isTie ? "HÒA ĐỐI ĐẦU" : "THUA ĐỐI ĐẦU")
                 } else {
                     players[i].resultTitle = "Thắng \(players[i].score)/\(totalOpponents) nhà"
                 }
@@ -1012,7 +1139,7 @@ public class GameViewModel: ObservableObject {
             }
         }
         
-        var sortedIndices = Array(0..<players.count)
+        var sortedIndices = validIndices
         sortedIndices.sort { players[$0].score > players[$1].score }
         var currentRank = 1
         for i in 0..<sortedIndices.count {
@@ -1036,16 +1163,25 @@ public class GameViewModel: ObservableObject {
             } else {
                 showdownSummary = "🏆 \(winner.name) Về Nhất Binh 9 lá (Thắng \(winner.score)/\(totalOpponents) nhà)!"
             }
+        } else {
+            showdownSummary = "⚠️ Không thể xác định người thắng (Có quân bài ẩn)"
         }
     }
     
     private func calculateBinh6Poker() {
         var scores = [(index: Int, score: PokerHandScore)]()
         for (i, p) in players.enumerated() {
-            let s = Binh6Evaluator.evaluatePoker6(p.cards)
-            scores.append((index: i, score: s))
-            players[i].resultTitle = s.descriptionVN
-            players[i].resultDetail = "Bộ 5 lá tốt nhất từ 6 lá: \(s.cards.map { $0.displayName }.joined(separator: " "))"
+            if p.cards.contains(where: { $0.isHidden }) {
+                players[i].rankOrder = nil
+                players[i].score = -1
+                players[i].resultTitle = "???"
+                players[i].resultDetail = "Chưa rõ quân bài (Không thấy) • Loại khỏi BXH"
+            } else {
+                let s = Binh6Evaluator.evaluatePoker6(p.cards)
+                scores.append((index: i, score: s))
+                players[i].resultTitle = s.descriptionVN
+                players[i].resultDetail = "Bộ 5 lá tốt nhất từ 6 lá: \(s.cards.map { $0.displayName }.joined(separator: " "))"
+            }
         }
         scores.sort { $0.score > $1.score }
         var currentRank = 1
@@ -1062,6 +1198,8 @@ public class GameViewModel: ObservableObject {
             showdownSummary = "👑 Đồng Hạng 1: \(names) với \(rank1Players[0].resultTitle)!"
         } else if let winner = rank1Players.first {
             showdownSummary = "🏆 \(winner.name) Thắng Binh 6 lá với \(winner.resultTitle)!"
+        } else {
+            showdownSummary = "⚠️ Không thể xác định người thắng (Có quân bài ẩn)"
         }
     }
 }

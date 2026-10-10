@@ -67,7 +67,10 @@
       <div id="communitySection" class="community-compact" style="display: none;">
         <div class="comm-header">
           <span class="comm-title">🎴 Bài Chung (Board)</span>
-          <span id="txtCommunityCount" class="comm-badge">0/5</span>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span id="txtCommunityCount" class="comm-badge">0/5</span>
+            <button id="btnClearCommunity" type="button" title="Xóa bài chung" style="display:none;background:rgba(239,68,68,0.15);color:#ef4444;border:none;border-radius:6px;padding:2px 6px;font-size:11px;font-weight:bold;cursor:pointer;">✕ Xóa</button>
+          </div>
         </div>
         <div id="communityCardsContainer" class="comm-cards-row"></div>
       </div>

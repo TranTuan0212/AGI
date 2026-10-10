@@ -132,7 +132,7 @@ public class PokerEvaluator {
         // 2. Four of a Kind
         if grouped[0].count == 4 {
             let quadRank = grouped[0].rank
-            let kicker = grouped[1].rank
+            let kicker = grouped.count > 1 ? grouped[1].rank : quadRank
             return PokerHandScore(
                 handType: .fourOfAKind,
                 tieBreakers: [quadRank, kicker],
@@ -142,7 +142,7 @@ public class PokerEvaluator {
         }
         
         // 3. Full House
-        if grouped[0].count == 3 && grouped[1].count == 2 {
+        if grouped.count >= 2 && grouped[0].count == 3 && grouped[1].count == 2 {
             let triple = grouped[0].rank
             let pair = grouped[1].rank
             return PokerHandScore(
@@ -177,37 +177,42 @@ public class PokerEvaluator {
         // 6. Three of a kind
         if grouped[0].count == 3 {
             let triple = grouped[0].rank
-            let kickers = [grouped[1].rank, grouped[2].rank]
+            let kicker1 = grouped.count > 1 ? grouped[1].rank : 0
+            let kicker2 = grouped.count > 2 ? grouped[2].rank : 0
+            let kickers = [kicker1, kicker2].filter { $0 > 0 }
             return PokerHandScore(
                 handType: .threeOfAKind,
                 tieBreakers: [triple] + kickers,
                 cards: sortedCards,
-                descriptionVN: "Sám cô \(rankSymbol(triple)) (Kicker \(rankSymbol(kickers[0])), \(rankSymbol(kickers[1])))"
+                descriptionVN: "Sám cô \(rankSymbol(triple))" + (kickers.isEmpty ? "" : " (Kicker \(kickers.map(rankSymbol).joined(separator: ", ")))")
             )
         }
         
         // 7. Two Pair
-        if grouped[0].count == 2 && grouped[1].count == 2 {
+        if grouped.count >= 2 && grouped[0].count == 2 && grouped[1].count == 2 {
             let highPair = max(grouped[0].rank, grouped[1].rank)
             let lowPair = min(grouped[0].rank, grouped[1].rank)
-            let kicker = grouped[2].rank
+            let kicker = grouped.count > 2 ? grouped[2].rank : 0
             return PokerHandScore(
                 handType: .twoPair,
                 tieBreakers: [highPair, lowPair, kicker],
                 cards: sortedCards,
-                descriptionVN: "Hai đôi (\(rankSymbol(highPair)) & \(rankSymbol(lowPair))) - Kicker \(rankSymbol(kicker))"
+                descriptionVN: "Hai đôi (\(rankSymbol(highPair)) & \(rankSymbol(lowPair)))" + (kicker > 0 ? " - Kicker \(rankSymbol(kicker))" : "")
             )
         }
         
         // 8. One Pair
         if grouped[0].count == 2 {
             let pair = grouped[0].rank
-            let kickers = [grouped[1].rank, grouped[2].rank, grouped[3].rank]
+            var kickers = [Int]()
+            for k in 1..<grouped.count {
+                if kickers.count < 3 { kickers.append(grouped[k].rank) }
+            }
             return PokerHandScore(
                 handType: .onePair,
                 tieBreakers: [pair] + kickers,
                 cards: sortedCards,
-                descriptionVN: "Một đôi \(rankSymbol(pair)) (Kickers: \(kickers.map(rankSymbol).joined(separator: ", ")))"
+                descriptionVN: "Một đôi \(rankSymbol(pair))" + (kickers.isEmpty ? "" : " (Kickers: \(kickers.map(rankSymbol).joined(separator: ", ")))")
             )
         }
         

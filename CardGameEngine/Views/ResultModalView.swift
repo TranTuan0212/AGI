@@ -41,20 +41,37 @@ public struct ResultModalView: View {
                                     .font(.headline)
                                     .padding(.horizontal)
                                 
-                                let sortedPlayers = viewModel.players.sorted { ($0.rankOrder ?? 99) < ($1.rankOrder ?? 99) }
+                                let sortedPlayers = viewModel.players.sorted {
+                                    let r1 = $0.rankOrder ?? 999
+                                    let r2 = $1.rankOrder ?? 999
+                                    return r1 < r2
+                                }
                                 
                                 ForEach(sortedPlayers) { player in
+                                    let isUnknown = player.rankOrder == nil || player.resultTitle == "???" || player.cards.contains(where: { $0.isHidden })
                                     HStack(alignment: .top, spacing: 12) {
                                         // Medal / Rank badge
-                                        ZStack {
-                                            Circle()
-                                                .fill(rankBadgeColor(player.rankOrder ?? 0))
-                                                .frame(width: 36, height: 36)
-                                            
-                                            Text("\(player.rankOrder ?? 0)")
-                                                .font(.headline)
-                                                .fontWeight(.bold)
-                                                .foregroundColor(.white)
+                                        if isUnknown {
+                                            ZStack {
+                                                Circle()
+                                                    .fill(Color.red)
+                                                    .frame(width: 36, height: 36)
+                                                Text("?")
+                                                    .font(.headline)
+                                                    .fontWeight(.black)
+                                                    .foregroundColor(.white)
+                                            }
+                                        } else {
+                                            ZStack {
+                                                Circle()
+                                                    .fill(rankBadgeColor(player.rankOrder ?? 0))
+                                                    .frame(width: 36, height: 36)
+                                                
+                                                Text("\(player.rankOrder ?? 0)")
+                                                    .font(.headline)
+                                                    .fontWeight(.bold)
+                                                    .foregroundColor(.white)
+                                            }
                                         }
                                         
                                         VStack(alignment: .leading, spacing: 4) {
@@ -62,16 +79,27 @@ public struct ResultModalView: View {
                                                 Text(player.name)
                                                     .font(.headline)
                                                 
-                                                let isTie = viewModel.players.filter({ $0.rankOrder == player.rankOrder }).count > 1
-                                                if isTie {
-                                                    Text("ĐỒNG HẠNG")
+                                                if isUnknown {
+                                                    Text("LOẠI KHỎI BXH")
                                                         .font(.caption2)
-                                                        .fontWeight(.bold)
-                                                        .foregroundColor(.orange)
+                                                        .fontWeight(.black)
+                                                        .foregroundColor(.white)
                                                         .padding(.horizontal, 6)
                                                         .padding(.vertical, 2)
-                                                        .background(Color.orange.opacity(0.15))
+                                                        .background(Color.red)
                                                         .cornerRadius(4)
+                                                } else {
+                                                    let isTie = viewModel.players.filter({ $0.rankOrder == player.rankOrder }).count > 1
+                                                    if isTie {
+                                                        Text("ĐỒNG HẠNG")
+                                                            .font(.caption2)
+                                                            .fontWeight(.bold)
+                                                            .foregroundColor(.orange)
+                                                            .padding(.horizontal, 6)
+                                                            .padding(.vertical, 2)
+                                                            .background(Color.orange.opacity(0.15))
+                                                            .cornerRadius(4)
+                                                    }
                                                 }
                                                 
                                                 if player.isLung {
@@ -90,8 +118,8 @@ public struct ResultModalView: View {
                                             
                                             Text(player.resultTitle)
                                                 .font(.subheadline)
-                                                .fontWeight(.semibold)
-                                                .foregroundColor(.blue)
+                                                .fontWeight(.bold)
+                                                .foregroundColor(isUnknown ? .red : .blue)
                                             
                                             Text(player.resultDetail)
                                                 .font(.caption)
@@ -157,11 +185,19 @@ public struct ResultModalView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Đóng") {
+                    Button(action: {
                         viewModel.isShowResultModal = false
                         if viewModel.isVoiceMode {
                             viewModel.resetTable()
                         }
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 20, weight: .bold))
+                            Text("Đóng")
+                                .font(.system(size: 14, weight: .bold))
+                        }
+                        .foregroundColor(.red)
                     }
                 }
             }

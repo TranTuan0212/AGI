@@ -33,6 +33,25 @@ public struct PlayerCardsView: View {
                         
                         Spacer()
                         
+                        if !viewModel.communityCards.isEmpty {
+                            Button(action: {
+                                viewModel.clearCommunityCards()
+                            }) {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .font(.system(size: 11, weight: .bold))
+                                    Text("Xóa hết")
+                                        .font(.system(size: 10, weight: .bold))
+                                }
+                                .foregroundColor(.red)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(Color.red.opacity(0.12))
+                                .cornerRadius(5)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                        
                         Text("\(viewModel.communityCards.count)/\(viewModel.gameType.communityCardsCount) lá")
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.secondary)
@@ -118,7 +137,22 @@ public struct PlayerCardsView: View {
                                     .cornerRadius(4)
                             }
 
-                            if let rank = player.rankOrder {
+                            if player.cards.contains(where: { $0.isHidden }) || player.resultTitle == "???" {
+                                HStack(spacing: 5) {
+                                    Text("???")
+                                        .font(.system(size: 11, weight: .black))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 7)
+                                        .padding(.vertical, 2.5)
+                                        .background(Color.red)
+                                        .cornerRadius(5)
+                                        .shadow(color: Color.red.opacity(0.4), radius: 2, x: 0, y: 1)
+                                    
+                                    Text("Không thấy")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundColor(.red)
+                                }
+                            } else if let rank = player.rankOrder {
                                 let isTie = viewModel.players.filter({ $0.rankOrder == rank }).count > 1
                                 let badgeText = rank == 1 ? (isTie ? "👑 Đ.Hạng 1" : "👑 Nhất") :
                                                 (rank == 2 ? (isTie ? "🥈 Đ.Hạng 2" : "🥈 Nhì") :

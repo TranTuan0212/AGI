@@ -1978,6 +1978,8 @@ class AppController {
     document.getElementById('btnSaveSettings').addEventListener('click', () => this.saveSettings());
 
     document.getElementById('btnCloseModal').addEventListener('click', () => this.closeResultModal());
+    const btnClearComm = document.getElementById('btnClearCommunity');
+    if (btnClearComm) btnClearComm.addEventListener('click', () => this.clearCommunityCards());
     document.getElementById('btnCloseModalBottom').addEventListener('click', () => this.closeResultModal());
 
     this.setupVoiceTrainerEvents();
@@ -2488,33 +2490,73 @@ class AppController {
       isRankOnly: true
     };
 
+    const cfg = GAME_CONFIGS[this.currentGameType];
+    const commTarget = cfg ? (cfg.community || 0) : 0;
     if (this.inputMode === 'roundRobin') {
+      let found = false;
       for (let i = 0; i < this.players.length; i++) {
         const pIdx = (this.roundRobinPointer + i) % this.players.length;
         const targetCards = this.targetCards(pIdx);
         if (this.players[pIdx].cards.length < targetCards) {
           this.players[pIdx].cards.push(card);
           this.actionHistory.push({ cardId: card.id, target: pIdx });
-          this.roundRobinPointer = (pIdx + 1) % this.players.length;
-          this.selectedPlayerIndex = this.roundRobinPointer;
-          break;
-        }
-      }
-    } else {
-      const curP = this.players[this.selectedPlayerIndex];
-      const targetCards = this.targetCards(this.selectedPlayerIndex);
-      if (curP && curP.cards.length < targetCards) {
-        curP.cards.push(card);
-        this.actionHistory.push({ cardId: card.id, target: this.selectedPlayerIndex });
-        if (curP.cards.length === targetCards) {
-          let nextIdx = null;
-          for (let i = 0; i < this.players.length; i++) {
-            if (this.players[i].cards.length < this.targetCards(i)) {
-              nextIdx = i;
+
+          let nextNeedingIdx = null;
+          for (let offset = 1; offset <= this.players.length; offset++) {
+            const checkIdx = (pIdx + offset) % this.players.length;
+            if (this.players[checkIdx].cards.length < this.targetCards(checkIdx)) {
+              nextNeedingIdx = checkIdx;
               break;
             }
           }
-          if (nextIdx !== null) this.selectedPlayerIndex = nextIdx;
+          if (nextNeedingIdx !== null) {
+            this.roundRobinPointer = nextNeedingIdx;
+            this.isSelectingCommunity = false;
+          } else if (commTarget > 0 && this.communityCards.length < commTarget) {
+            this.isSelectingCommunity = true;
+          }
+          found = true;
+          break;
+        }
+      }
+      if (!found && this.communityCards.length < commTarget) {
+        this.communityCards.push(card);
+        this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
+        if (this.communityCards.length < commTarget) {
+          this.isSelectingCommunity = true;
+        }
+      }
+    } else {
+      if (this.isSelectingCommunity) {
+        if (this.communityCards.length < commTarget) {
+          this.communityCards.push(card);
+          this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
+        }
+      } else {
+        const curP = this.players[this.selectedPlayerIndex];
+        const targetCards = this.targetCards(this.selectedPlayerIndex);
+        if (curP && curP.cards.length < targetCards) {
+          curP.cards.push(card);
+          this.actionHistory.push({ cardId: card.id, target: this.selectedPlayerIndex });
+          if (curP.cards.length === targetCards) {
+            let nextNeedingIdx = null;
+            for (let offset = 1; offset < this.players.length; offset++) {
+              const checkIdx = (this.selectedPlayerIndex + offset) % this.players.length;
+              if (this.players[checkIdx].cards.length < this.targetCards(checkIdx)) {
+                nextNeedingIdx = checkIdx;
+                break;
+              }
+            }
+            if (nextNeedingIdx !== null) {
+              this.selectedPlayerIndex = nextNeedingIdx;
+            } else if (commTarget > 0 && this.communityCards.length < commTarget) {
+              this.isSelectingCommunity = true;
+            }
+          }
+        } else if (commTarget > 0 && this.communityCards.length < commTarget) {
+          this.communityCards.push(card);
+          this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
+          this.isSelectingCommunity = true;
         }
       }
     }
@@ -2540,33 +2582,73 @@ class AppController {
       isHidden: true
     };
 
+    const cfg = GAME_CONFIGS[this.currentGameType];
+    const commTarget = cfg ? (cfg.community || 0) : 0;
     if (this.inputMode === 'roundRobin') {
+      let found = false;
       for (let i = 0; i < this.players.length; i++) {
         const pIdx = (this.roundRobinPointer + i) % this.players.length;
         const targetCards = this.targetCards(pIdx);
         if (this.players[pIdx].cards.length < targetCards) {
           this.players[pIdx].cards.push(card);
           this.actionHistory.push({ cardId: card.id, target: pIdx });
-          this.roundRobinPointer = (pIdx + 1) % this.players.length;
-          this.selectedPlayerIndex = this.roundRobinPointer;
-          break;
-        }
-      }
-    } else {
-      const curP = this.players[this.selectedPlayerIndex];
-      const targetCards = this.targetCards(this.selectedPlayerIndex);
-      if (curP && curP.cards.length < targetCards) {
-        curP.cards.push(card);
-        this.actionHistory.push({ cardId: card.id, target: this.selectedPlayerIndex });
-        if (curP.cards.length === targetCards) {
-          let nextIdx = null;
-          for (let i = 0; i < this.players.length; i++) {
-            if (this.players[i].cards.length < this.targetCards(i)) {
-              nextIdx = i;
+
+          let nextNeedingIdx = null;
+          for (let offset = 1; offset <= this.players.length; offset++) {
+            const checkIdx = (pIdx + offset) % this.players.length;
+            if (this.players[checkIdx].cards.length < this.targetCards(checkIdx)) {
+              nextNeedingIdx = checkIdx;
               break;
             }
           }
-          if (nextIdx !== null) this.selectedPlayerIndex = nextIdx;
+          if (nextNeedingIdx !== null) {
+            this.roundRobinPointer = nextNeedingIdx;
+            this.isSelectingCommunity = false;
+          } else if (commTarget > 0 && this.communityCards.length < commTarget) {
+            this.isSelectingCommunity = true;
+          }
+          found = true;
+          break;
+        }
+      }
+      if (!found && this.communityCards.length < commTarget) {
+        this.communityCards.push(card);
+        this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
+        if (this.communityCards.length < commTarget) {
+          this.isSelectingCommunity = true;
+        }
+      }
+    } else {
+      if (this.isSelectingCommunity) {
+        if (this.communityCards.length < commTarget) {
+          this.communityCards.push(card);
+          this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
+        }
+      } else {
+        const curP = this.players[this.selectedPlayerIndex];
+        const targetCards = this.targetCards(this.selectedPlayerIndex);
+        if (curP && curP.cards.length < targetCards) {
+          curP.cards.push(card);
+          this.actionHistory.push({ cardId: card.id, target: this.selectedPlayerIndex });
+          if (curP.cards.length === targetCards) {
+            let nextNeedingIdx = null;
+            for (let offset = 1; offset < this.players.length; offset++) {
+              const checkIdx = (this.selectedPlayerIndex + offset) % this.players.length;
+              if (this.players[checkIdx].cards.length < this.targetCards(checkIdx)) {
+                nextNeedingIdx = checkIdx;
+                break;
+              }
+            }
+            if (nextNeedingIdx !== null) {
+              this.selectedPlayerIndex = nextNeedingIdx;
+            } else if (commTarget > 0 && this.communityCards.length < commTarget) {
+              this.isSelectingCommunity = true;
+            }
+          }
+        } else if (commTarget > 0 && this.communityCards.length < commTarget) {
+          this.communityCards.push(card);
+          this.actionHistory.push({ cardId: card.id, target: 'COMMUNITY' });
+          this.isSelectingCommunity = true;
         }
       }
     }
@@ -2727,6 +2809,15 @@ class AppController {
     }
   }
 
+  clearCommunityCards() {
+    this.communityCards = [];
+    this.actionHistory = this.actionHistory.filter(a => a.target !== 'COMMUNITY');
+    this.clearResultsState();
+    this.renderDeck();
+    this.renderPlayers();
+    this.updateUI();
+  }
+
   resetTable() {
     this.players.forEach(p => {
       p.cards = [];
@@ -2803,6 +2894,10 @@ class AppController {
       }
 
       txtCommCount.innerHTML = `${isCommSelected ? '<span class="comm-active-tag">▶ Đang chọn</span> ' : ''}${this.communityCards.length}/${cfg.community}`;
+      const btnClearComm = document.getElementById('btnClearCommunity');
+      if (btnClearComm) {
+        btnClearComm.style.display = this.communityCards.length > 0 ? 'inline-block' : 'none';
+      }
       commContainer.innerHTML = '';
       this.communityCards.forEach(c => {
         const mini = this.createMiniCard(c);
@@ -2851,14 +2946,18 @@ class AppController {
 
       let rankBadgeHtml = '';
       if (hasResult) {
-        const isTie = this.players.filter(other => other.rankOrder === p.rankOrder).length > 1;
-        const rankText = p.rankOrder === 1 ? (isTie ? '👑 Đ.Hạng 1' : '👑 Nhất') :
-                         (p.rankOrder === 2 ? (isTie ? '🥈 Đ.Hạng 2' : '🥈 Nhì') :
-                         (p.rankOrder === 3 ? (isTie ? '🥉 Đ.Hạng 3' : '🥉 Ba') :
-                         (isTie ? `Đ.Hạng ${p.rankOrder}` : `Hạng ${p.rankOrder}`)));
-        const badgeClass = p.rankOrder === 1 ? 'rank-1' : (p.rankOrder === 2 ? 'rank-2' : 'rank-other');
-        const titleHtml = p.resultTitle ? `<span class="p-hand-title-inline">${p.resultTitle}</span>` : '';
-        rankBadgeHtml = `<span class="p-rank-badge ${badgeClass}">${rankText}</span> ${titleHtml}`;
+        if (p.cards.some(c => c.isHidden) || p.resultTitle === '???') {
+          rankBadgeHtml = `<span class="p-rank-badge" style="background:#ef4444;color:#fff;font-weight:900;">???</span> <span style="color:#ef4444;font-size:11px;font-weight:bold;">Không thấy</span>`;
+        } else if (p.rankOrder) {
+          const isTie = this.players.filter(other => other.rankOrder === p.rankOrder).length > 1;
+          const rankText = p.rankOrder === 1 ? (isTie ? '👑 Đ.Hạng 1' : '👑 Nhất') :
+                           (p.rankOrder === 2 ? (isTie ? '🥈 Đ.Hạng 2' : '🥈 Nhì') :
+                           (p.rankOrder === 3 ? (isTie ? '🥉 Đ.Hạng 3' : '🥉 Ba') :
+                           (isTie ? `Đ.Hạng ${p.rankOrder}` : `Hạng ${p.rankOrder}`)));
+          const badgeClass = p.rankOrder === 1 ? 'rank-1' : (p.rankOrder === 2 ? 'rank-2' : 'rank-other');
+          const titleHtml = p.resultTitle ? `<span class="p-hand-title-inline">${p.resultTitle}</span>` : '';
+          rankBadgeHtml = `<span class="p-rank-badge ${badgeClass}">${rankText}</span> ${titleHtml}`;
+        }
       }
 
 
@@ -3109,13 +3208,28 @@ class AppController {
   }
 
   calcChan19() {
+    let currentRank = 1;
     this.players.forEach((p, idx) => {
       p.cards.sort((a, b) => a.rank - b.rank);
-      p.score = 0;
-      p.resultTitle = `${p.cards.length} lá`;
-      p.resultDetail = "Chắn Trung Quốc (19 lá)";
-      p.rankOrder = idx + 1;
+      if (p.cards.some(c => c.isHidden)) {
+        p.rankOrder = null;
+        p.score = -1;
+        p.resultTitle = "???";
+        p.resultDetail = "Chưa rõ quân bài (Không thấy) • Loại khỏi BXH";
+      } else {
+        p.rankOrder = currentRank++;
+        p.score = 0;
+        p.resultTitle = `${p.cards.length} lá`;
+        p.resultDetail = "Chắn Trung Quốc (19 lá)";
+      }
     });
+
+    const winners = this.players.filter(p => p.rankOrder === 1);
+    if (winners.length > 0) {
+      this.showdownSummary = `🏆 ${winners[0].name} Thắng Chắn với ${winners[0].resultTitle}!`;
+    } else {
+      this.showdownSummary = `⚠️ Không thể xác định người thắng (Có quân bài ẩn)`;
+    }
   }
 
   recordMatchResult() {
@@ -3213,26 +3327,38 @@ class AppController {
 
 
   calcSamLoc() {
-    const inputList = this.players.map((p, idx) => ({
-      index: idx,
-      name: p.name,
-      cards: p.cards
-    }));
-    const ranked = SamLocEvaluator.rankPlayers(inputList);
-
-    ranked.forEach(item => {
-      const p = this.players[item.index];
-      p.rankOrder = item.rank;
-      p.score = item.scoreDelta;
-      if (item.result.instantWin) {
-        p.resultTitle = item.result.instantWin;
-      } else if (item.result.trashCount === 0) {
-        p.resultTitle = '🎉 Hết Rác (Bài Vào Bộ Hết)';
+    const validPlayers = [];
+    this.players.forEach((p, idx) => {
+      if (p.cards.some(c => c.isHidden)) {
+        p.rankOrder = null;
+        p.score = -1;
+        p.resultTitle = "???";
+        p.resultDetail = "Chưa rõ quân bài (Không thấy) • Loại khỏi BXH";
       } else {
-        p.resultTitle = `Còn ${item.result.trashCount} lá rác`;
+        validPlayers.push({
+          index: idx,
+          name: p.name,
+          cards: p.cards
+        });
       }
-      p.resultDetail = item.result.summary;
     });
+
+    if (validPlayers.length > 0) {
+      const ranked = SamLocEvaluator.rankPlayers(validPlayers);
+      ranked.forEach(item => {
+        const p = this.players[item.index];
+        p.rankOrder = item.rank;
+        p.score = item.scoreDelta;
+        if (item.result.instantWin) {
+          p.resultTitle = item.result.instantWin;
+        } else if (item.result.trashCount === 0) {
+          p.resultTitle = '🎉 Hết Rác (Bài Vào Bộ Hết)';
+        } else {
+          p.resultTitle = `Còn ${item.result.trashCount} lá rác`;
+        }
+        p.resultDetail = item.result.summary;
+      });
+    }
 
     const winners = this.players.filter(p => p.rankOrder === 1);
     if (winners.length > 1) {
@@ -3240,34 +3366,48 @@ class AppController {
       this.showdownSummary = `👑 Đồng Hạng 1: ${names} (Hòa ván Sâm với ${winners[0].resultTitle})!`;
     } else if (winners.length === 1) {
       this.showdownSummary = `🏆 ${winners[0].name} Thắng ván Sâm với ${winners[0].resultTitle}!`;
+    } else {
+      this.showdownSummary = `⚠️ Không thể xác định người thắng (Có quân bài ẩn)`;
     }
   }
 
   calcPhom() {
-    const inputList = this.players.map((p, idx) => ({
-      index: idx,
-      name: p.name,
-      cards: p.cards
-    }));
-    const ranked = PhomEvaluator.rankPlayers(inputList);
-
-    ranked.forEach(item => {
-      const p = this.players[item.index];
-      p.rankOrder = item.rank;
-      p.score = item.scoreDelta;
-      if (item.result.isUTron) {
-        p.resultTitle = `🎉 Ù Tròn (0 điểm)`;
-      } else if (item.result.isUKhan) {
-        p.resultTitle = `🎉 Ù Khan (Không cạ)`;
-      } else if (item.result.isU) {
-        p.resultTitle = `🎉 Ù (0 điểm)`;
-      } else if (item.result.isMom) {
-        p.resultTitle = `💀 Móm / Cháy (${item.result.deadwoodScore}đ)`;
+    const validPlayers = [];
+    this.players.forEach((p, idx) => {
+      if (p.cards.some(c => c.isHidden)) {
+        p.rankOrder = null;
+        p.score = -1;
+        p.resultTitle = "???";
+        p.resultDetail = "Chưa rõ quân bài (Không thấy) • Loại khỏi BXH";
       } else {
-        p.resultTitle = `${item.result.deadwoodScore} điểm rác (${item.result.phoms.length} phỏm)`;
+        validPlayers.push({
+          index: idx,
+          name: p.name,
+          cards: p.cards
+        });
       }
-      p.resultDetail = item.result.summary;
     });
+
+    if (validPlayers.length > 0) {
+      const ranked = PhomEvaluator.rankPlayers(validPlayers);
+      ranked.forEach(item => {
+        const p = this.players[item.index];
+        p.rankOrder = item.rank;
+        p.score = item.scoreDelta;
+        if (item.result.isUTron) {
+          p.resultTitle = `🎉 Ù Tròn (0 điểm)`;
+        } else if (item.result.isUKhan) {
+          p.resultTitle = `🎉 Ù Khan (Không cạ)`;
+        } else if (item.result.isU) {
+          p.resultTitle = `🎉 Ù (0 điểm)`;
+        } else if (item.result.isMom) {
+          p.resultTitle = `💀 Móm / Cháy (${item.result.deadwoodScore}đ)`;
+        } else {
+          p.resultTitle = `${item.result.deadwoodScore} điểm rác (${item.result.phoms.length} phỏm)`;
+        }
+        p.resultDetail = item.result.summary;
+      });
+    }
 
     const winners = this.players.filter(p => p.rankOrder === 1);
     if (winners.length > 1) {
@@ -3275,16 +3415,26 @@ class AppController {
       this.showdownSummary = `👑 Đồng Hạng 1: ${names} (Hòa ván Phỏm với ${winners[0].resultTitle})!`;
     } else if (winners.length === 1) {
       this.showdownSummary = `🏆 ${winners[0].name} Thắng ván Phỏm với ${winners[0].resultTitle}!`;
+    } else {
+      this.showdownSummary = `⚠️ Không thể xác định người thắng (Có quân bài ẩn)`;
     }
   }
 
   calcLieng() {
     const preset = this.isRankOnlyActive() ? 'international' : this.suitPreset;
-    const evaluated = this.players.map((p, idx) => {
-      const score = LiengEvaluator.evaluate(p.cards, preset);
-      p.resultTitle = score.desc;
-      p.resultDetail = `Loại: ${score.typeName}`;
-      return { idx, score };
+    const evaluated = [];
+    this.players.forEach((p, idx) => {
+      if (p.cards.some(c => c.isHidden)) {
+        p.rankOrder = null;
+        p.score = -1;
+        p.resultTitle = "???";
+        p.resultDetail = "Chưa rõ quân bài (Không thấy) • Loại khỏi BXH";
+      } else {
+        const score = LiengEvaluator.evaluate(p.cards, preset);
+        p.resultTitle = score.desc;
+        p.resultDetail = `Loại: ${score.typeName}`;
+        evaluated.push({ idx, score });
+      }
     });
 
     evaluated.sort((a, b) => LiengEvaluator.compare(b.score, a.score));
@@ -3298,24 +3448,39 @@ class AppController {
 
     const winners = this.players.filter(p => p.rankOrder === 1);
     if (winners.length > 1) {
+      this.showdownSummary = `👑 Đồng Hạng 1: ${winners.map(w => w.name).join(', ')} (Cùng ${winners[0].resultTitle})!`;
       document.getElementById('bannerWinner').innerHTML = `
         👑 <strong>Đồng Hạng 1</strong>: ${winners.map(w => w.name).join(', ')} (Cùng ${winners[0].resultTitle})!
       `;
-    } else {
+    } else if (winners.length === 1) {
       const winner = winners[0];
+      this.showdownSummary = `🏆 ${winner.name} Thắng Cuộc với ${winner.resultTitle}!`;
       document.getElementById('bannerWinner').innerHTML = `
-        🏆 <strong>${winner ? winner.name : '—'}</strong> Thắng Cuộc với ${winner ? winner.resultTitle : ''}!
+        🏆 <strong>${winner.name}</strong> Thắng Cuộc với ${winner.resultTitle}!
+      `;
+    } else {
+      this.showdownSummary = `⚠️ Không thể xác định người thắng (Có quân bài ẩn)`;
+      document.getElementById('bannerWinner').innerHTML = `
+        ⚠️ <strong>Không thể xác định người thắng</strong> (Có quân bài ẩn)
       `;
     }
     document.getElementById('matrixSection').style.display = 'none';
   }
 
   calcXiDach() {
-    const evaluated = this.players.map((p, idx) => {
-      const score = XiDachEvaluator.evaluate(p.cards);
-      p.resultTitle = score.title;
-      p.resultDetail = score.detail;
-      return { idx, score };
+    const evaluated = [];
+    this.players.forEach((p, idx) => {
+      if (p.cards.some(c => c.isHidden)) {
+        p.rankOrder = null;
+        p.score = -1;
+        p.resultTitle = "???";
+        p.resultDetail = "Chưa rõ quân bài (Không thấy) • Loại khỏi BXH";
+      } else {
+        const score = XiDachEvaluator.evaluate(p.cards);
+        p.resultTitle = score.title;
+        p.resultDetail = score.detail;
+        evaluated.push({ idx, score });
+      }
     });
 
     evaluated.sort((a, b) => XiDachEvaluator.compare(b.score, a.score));
@@ -3329,25 +3494,42 @@ class AppController {
 
     const winners = this.players.filter(p => p.rankOrder === 1);
     if (winners.length > 1) {
+      this.showdownSummary = `👑 Đồng Hạng 1: ${winners.map(w => w.name).join(', ')} (Cùng ${winners[0].resultTitle})!`;
       document.getElementById('bannerWinner').innerHTML = `
         👑 <strong>Đồng Hạng 1</strong>: ${winners.map(w => w.name).join(', ')} (Cùng ${winners[0].resultTitle})!
       `;
-    } else {
+    } else if (winners.length === 1) {
       const winner = winners[0];
+      this.showdownSummary = `🏆 ${winner.name} Thắng Xì Dách với ${winner.resultTitle}!`;
       document.getElementById('bannerWinner').innerHTML = `
-        🏆 <strong>${winner ? winner.name : '—'}</strong> Thắng Xì Dách với ${winner ? winner.resultTitle : ''}!
+        🏆 <strong>${winner.name}</strong> Thắng Xì Dách với ${winner.resultTitle}!
+      `;
+    } else {
+      this.showdownSummary = `⚠️ Không thể xác định người thắng (Có quân bài ẩn)`;
+      document.getElementById('bannerWinner').innerHTML = `
+        ⚠️ <strong>Không thể xác định người thắng</strong> (Có quân bài ẩn)
       `;
     }
     document.getElementById('matrixSection').style.display = 'none';
   }
 
   calcHoldem() {
-    const evaluated = this.players.map((p, idx) => {
-      const all7 = [...p.cards, ...this.communityCards];
-      const best5 = PokerEvaluator.evaluateBestOfMany(all7);
-      p.resultTitle = best5.desc;
-      p.resultDetail = `5 lá tạo bộ: ${best5.cards.map(c => c.sym + c.suitIcon).join(' ')}`;
-      return { idx, score: best5 };
+    const commHasHidden = this.communityCards.some(c => c.isHidden);
+    const evaluated = [];
+    this.players.forEach((p, idx) => {
+      const playerHasHidden = p.cards.some(c => c.isHidden);
+      if (commHasHidden || playerHasHidden) {
+        p.rankOrder = null;
+        p.score = -1;
+        p.resultTitle = "???";
+        p.resultDetail = "Chưa rõ quân bài (Không thấy) • Loại khỏi BXH";
+      } else {
+        const all7 = [...p.cards, ...this.communityCards];
+        const best5 = PokerEvaluator.evaluateBestOfMany(all7);
+        p.resultTitle = best5.desc;
+        p.resultDetail = `5 lá tạo bộ: ${best5.cards.map(c => c.sym + c.suitIcon).join(' ')}`;
+        evaluated.push({ idx, score: best5 });
+      }
     });
 
     evaluated.sort((a, b) => PokerEvaluator.compareScores(b.score, a.score));
@@ -3361,33 +3543,57 @@ class AppController {
 
     const winners = this.players.filter(p => p.rankOrder === 1);
     if (winners.length > 1) {
+      this.showdownSummary = `👑 Đồng Hạng 1 (Split Pot): ${winners.map(w => w.name).join(', ')} với ${winners[0].resultTitle}!`;
       document.getElementById('bannerWinner').innerHTML = `
         👑 <strong>Đồng Hạng 1 (Split Pot)</strong>: ${winners.map(w => w.name).join(', ')} với ${winners[0].resultTitle}!
       `;
-    } else {
+    } else if (winners.length === 1) {
       const winner = winners[0];
+      this.showdownSummary = `🏆 ${winner.name} Thắng Pot với ${winner.resultTitle}!`;
       document.getElementById('bannerWinner').innerHTML = `
-        🏆 <strong>${winner ? winner.name : '—'}</strong> Thắng Pot với ${winner ? winner.resultTitle : ''}!
+        🏆 <strong>${winner.name}</strong> Thắng Pot với ${winner.resultTitle}!
+      `;
+    } else {
+      this.showdownSummary = `⚠️ Không thể xác định người thắng (Có quân bài ẩn)`;
+      document.getElementById('bannerWinner').innerHTML = `
+        ⚠️ <strong>Không thể xác định người thắng</strong> (Có quân bài ẩn)
       `;
     }
     document.getElementById('matrixSection').style.display = 'none';
   }
 
   calcBinh9() {
-    const arrangements = this.players.map(p => {
-      const arr = Binh9Evaluator.autoArrange(p.cards);
-      p.cards = [...arr.chi1, ...arr.chi2, ...arr.chi3];
-      p.isLung = arr.isLung;
-      p.score = 0;
-      return arr;
+    const validIndices = [];
+    const arrangements = {};
+
+    this.players.forEach((p, i) => {
+      if (p.cards.some(c => c.isHidden)) {
+        p.rankOrder = null;
+        p.score = -1;
+        p.resultTitle = "???";
+        p.resultDetail = "Chưa rõ quân bài (Không thấy) • Loại khỏi BXH";
+      } else {
+        const arr = Binh9Evaluator.autoArrange(p.cards);
+        arrangements[i] = arr;
+        p.cards = [...arr.chi1, ...arr.chi2, ...arr.chi3];
+        p.isLung = arr.isLung;
+        p.score = 0;
+        validIndices.push(i);
+      }
     });
 
     const N = this.players.length;
     const matrix = Array.from({ length: N }, () => Array(N).fill('—'));
 
-    for (let i = 0; i < N; i++) {
-      for (let j = i + 1; j < N; j++) {
-        const match = Binh9Evaluator.compareMatch(arrangements[i], arrangements[j]);
+    for (let a = 0; a < validIndices.length; a++) {
+      const i = validIndices[a];
+      const arrI = arrangements[i];
+      if (!arrI) continue;
+      for (let b = a + 1; b < validIndices.length; b++) {
+        const j = validIndices[b];
+        const arrJ = arrangements[j];
+        if (!arrJ) continue;
+        const match = Binh9Evaluator.compareMatch(arrI, arrJ);
         if (match.scoreA > 0) {
           this.players[i].score += 1;
           matrix[i][j] = "Thắng";
@@ -3403,8 +3609,9 @@ class AppController {
       }
     }
 
-    const totalOpponents = Math.max(1, N - 1);
-    this.players.forEach((p, idx) => {
+    const totalOpponents = Math.max(1, validIndices.length - 1);
+    validIndices.forEach(idx => {
+      const p = this.players[idx];
       const arr = arrangements[idx];
       if (arr.instantWin) {
         p.resultTitle = arr.instantWin;
@@ -3414,7 +3621,7 @@ class AppController {
         p.resultDetail = "Chi trước yếu hơn chi sau (Xử thua)!";
       } else {
         if (totalOpponents === 1) {
-          p.resultTitle = p.score > 0 ? "🏆 THẮNG ĐỐI ĐẦU" : (matrix[0][1] === "Hòa" ? "HÒA ĐỐI ĐẦU" : "THUA ĐỐI ĐẦU");
+          p.resultTitle = p.score > 0 ? "🏆 THẮNG ĐỐI ĐẦU" : (matrix[validIndices[0]][validIndices[1]] === "Hòa" ? "HÒA ĐỐI ĐẦU" : "THUA ĐỐI ĐẦU");
         } else {
           p.resultTitle = `Thắng ${p.score}/${totalOpponents} nhà`;
         }
@@ -3422,7 +3629,7 @@ class AppController {
       }
     });
 
-    const sortedIdx = Array.from({ length: N }, (_, i) => i).sort((a, b) => this.players[b].score - this.players[a].score);
+    const sortedIdx = [...validIndices].sort((a, b) => this.players[b].score - this.players[a].score);
     let currentRank = 1;
     sortedIdx.forEach((idx, r) => {
       if (r > 0 && this.players[idx].score < this.players[sortedIdx[r - 1]].score) {
@@ -3433,20 +3640,28 @@ class AppController {
 
     const winners = this.players.filter(p => p.rankOrder === 1);
     if (winners.length > 1) {
+      this.showdownSummary = `👑 Đồng Hạng 1: ${winners.map(w => w.name).join(', ')} (Cùng thắng ${winners[0].score} nhà)!`;
       document.getElementById('bannerWinner').innerHTML = `
         👑 <strong>Đồng Hạng 1</strong>: ${winners.map(w => w.name).join(', ')} (Cùng thắng <strong>${winners[0].score} nhà</strong>)!
       `;
-    } else {
+    } else if (winners.length === 1) {
       const winner = winners[0];
       if (totalOpponents === 1) {
+        this.showdownSummary = `🏆 ${winner.name} Thắng ván đối đầu (Ăn ít nhất 2 chi)!`;
         document.getElementById('bannerWinner').innerHTML = `
           🏆 <strong>${winner ? winner.name : '—'}</strong> Thắng ván đối đầu (Ăn ít nhất 2 chi)!
         `;
       } else {
+        this.showdownSummary = `🏆 ${winner.name} Về Nhất Binh 9 lá (Thắng ${winner ? winner.score : 0}/${totalOpponents} nhà)!`;
         document.getElementById('bannerWinner').innerHTML = `
           🏆 <strong>${winner ? winner.name : '—'}</strong> Về Nhất Binh 9 lá (Thắng <strong>${winner ? winner.score : 0}/${totalOpponents} nhà</strong>)!
         `;
       }
+    } else {
+      this.showdownSummary = `⚠️ Không thể xác định người thắng (Có quân bài ẩn)`;
+      document.getElementById('bannerWinner').innerHTML = `
+        ⚠️ <strong>Không thể xác định người thắng</strong> (Có quân bài ẩn)
+      `;
     }
 
     const matSection = document.getElementById('matrixSection');
@@ -3472,11 +3687,19 @@ class AppController {
   }
 
   calcBinh6Poker() {
-    const evaluated = this.players.map((p, idx) => {
-      const best5 = PokerEvaluator.evaluateBestOfMany(p.cards);
-      p.resultTitle = best5.desc;
-      p.resultDetail = `5 lá tốt nhất từ 6 lá: ${best5.cards.map(c => c.sym + c.suitIcon).join(' ')}`;
-      return { idx, score: best5 };
+    const evaluated = [];
+    this.players.forEach((p, idx) => {
+      if (p.cards.some(c => c.isHidden)) {
+        p.rankOrder = null;
+        p.score = -1;
+        p.resultTitle = "???";
+        p.resultDetail = "Chưa rõ quân bài (Không thấy) • Loại khỏi BXH";
+      } else {
+        const best5 = PokerEvaluator.evaluateBestOfMany(p.cards);
+        p.resultTitle = best5.desc;
+        p.resultDetail = `5 lá tốt nhất từ 6 lá: ${best5.cards.map(c => c.sym + c.suitIcon).join(' ')}`;
+        evaluated.push({ idx, score: best5 });
+      }
     });
 
     evaluated.sort((a, b) => PokerEvaluator.compareScores(b.score, a.score));
@@ -3490,13 +3713,20 @@ class AppController {
 
     const winners = this.players.filter(p => p.rankOrder === 1);
     if (winners.length > 1) {
+      this.showdownSummary = `👑 Đồng Hạng 1: ${winners.map(w => w.name).join(', ')} với ${winners[0].resultTitle}!`;
       document.getElementById('bannerWinner').innerHTML = `
         👑 <strong>Đồng Hạng 1</strong>: ${winners.map(w => w.name).join(', ')} với ${winners[0].resultTitle}!
       `;
-    } else {
+    } else if (winners.length === 1) {
       const winner = winners[0];
+      this.showdownSummary = `🏆 ${winner.name} Thắng Binh 6 lá với ${winner.resultTitle}!`;
       document.getElementById('bannerWinner').innerHTML = `
         🏆 <strong>${winner ? winner.name : '—'}</strong> Thắng Binh 6 lá với ${winner ? winner.resultTitle : ''}!
+      `;
+    } else {
+      this.showdownSummary = `⚠️ Không thể xác định người thắng (Có quân bài ẩn)`;
+      document.getElementById('bannerWinner').innerHTML = `
+        ⚠️ <strong>Không thể xác định người thắng</strong> (Có quân bài ẩn)
       `;
     }
     document.getElementById('matrixSection').style.display = 'none';
@@ -3506,25 +3736,38 @@ class AppController {
     const container = document.getElementById('rankingsContainer');
     container.innerHTML = '';
 
-    const sorted = [...this.players].sort((a, b) => (a.rankOrder || 99) - (b.rankOrder || 99));
+    const sorted = [...this.players].sort((a, b) => {
+      if (a.rankOrder == null && b.rankOrder == null) return 0;
+      if (a.rankOrder == null) return 1;
+      if (b.rankOrder == null) return -1;
+      return a.rankOrder - b.rankOrder;
+    });
 
     sorted.forEach(p => {
       const item = document.createElement('div');
       item.className = 'rank-item';
-      const rankCls = p.rankOrder === 1 ? 'rank-1' : (p.rankOrder === 2 ? 'rank-2' : (p.rankOrder === 3 ? 'rank-3' : 'rank-other'));
-      const isTie = this.players.filter(other => other.rankOrder === p.rankOrder).length > 1;
+      const hasHidden = p.cards.some(c => c.isHidden) || p.rankOrder == null;
+      let badgeHtml = '';
+      if (hasHidden) {
+        badgeHtml = `<div class="rank-badge" style="background:#ef4444;color:#fff;font-weight:900;">?</div>`;
+      } else {
+        const rankCls = p.rankOrder === 1 ? 'rank-1' : (p.rankOrder === 2 ? 'rank-2' : (p.rankOrder === 3 ? 'rank-3' : 'rank-other'));
+        badgeHtml = `<div class="rank-badge ${rankCls}">${p.rankOrder}</div>`;
+      }
+      const isTie = p.rankOrder != null && this.players.filter(other => other.rankOrder === p.rankOrder).length > 1;
 
       item.innerHTML = `
-        <div class="rank-badge ${rankCls}">${p.rankOrder}</div>
+        ${badgeHtml}
         <div class="rank-info">
           <div class="rank-title-row">
             <div>
               <span class="rank-player-name">${p.name}</span>
               ${isTie ? '<span class="tie-tag" style="font-size:10px;font-weight:700;color:#f59e0b;background:rgba(245,158,11,0.15);padding:2px 5px;border-radius:4px;margin-left:4px;">ĐỒNG HẠNG</span>' : ''}
+              ${hasHidden ? '<span class="hidden-excluded-tag" style="font-size:10px;font-weight:700;color:#ef4444;background:rgba(239,68,68,0.15);padding:2px 5px;border-radius:4px;margin-left:4px;">LOẠI KHỎI BXH</span>' : ''}
               ${p.isLung ? '<span class="lung-tag">LỦNG</span>' : ''}
             </div>
           </div>
-          <div class="rank-hand-title">${p.resultTitle}</div>
+          <div class="rank-hand-title" style="${hasHidden ? 'color:#ef4444;' : ''}">${p.resultTitle}</div>
           <div class="rank-hand-detail">${p.resultDetail}</div>
         </div>
       `;

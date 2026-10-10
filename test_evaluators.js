@@ -1494,6 +1494,78 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(app.voiceLogs.length === 0, 'Voice Log: Xóa nhật ký thành công');
 }
 
+// 26: Test Logic Quân Bài Ẩn (Không Thấy - isHidden) đồng bộ 100% với Web
+{
+  const appCodeFull = fs.readFileSync('preview/app.js', 'utf8');
+  const sandbox = {
+    window: { addEventListener: () => {} },
+    document: {
+      getElementById: () => ({ style: {}, innerHTML: '', textContent: '', appendChild: () => {}, classList: { add: () => {}, remove: () => {} }, querySelector: () => ({ addEventListener: () => {} }), addEventListener: () => {} }),
+      querySelectorAll: () => [],
+      createElement: () => ({ style: {}, dataset: {}, appendChild: () => {}, addEventListener: () => {}, querySelector: () => ({ addEventListener: () => {} }), setAttribute: () => {} })
+    },
+    localStorage: {
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: () => {}
+    },
+    console: console,
+    setTimeout: (fn) => fn(),
+    clearTimeout: () => {},
+    Date: Date,
+    Math: Math
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(appCodeFull, sandbox);
+  const AppCtrl = vm.runInContext('AppController', sandbox);
+  const app = new AppCtrl();
+
+  // Test Liêng: Tụ 1 có lá ẩn -> resultTitle = '???', rankOrder = null
+  app.currentGameType = 'lieng3';
+  app.playerCount = 3;
+  app.startNewRound();
+  app.initPlayers();
+  app.players[0].cards = [{ rank: 9, sym: '9', isRankOnly: true }, { isHidden: true, rank: 2, sym: '?' }, { rank: 9, sym: '9', isRankOnly: true }];
+  app.players[1].cards = [{ rank: 9, sym: '9', isRankOnly: true }, { rank: 9, sym: '9', isRankOnly: true }, { rank: 9, sym: '9', isRankOnly: true }]; // Sáp 9
+  app.players[2].cards = [{ rank: 8, sym: '8', isRankOnly: true }, { rank: 8, sym: '8', isRankOnly: true }, { rank: 8, sym: '8', isRankOnly: true }]; // Sáp 8
+  app.calcLieng();
+
+  assert(app.players[0].resultTitle === '???', 'Liêng Ẩn: Tụ 1 có lá ẩn có resultTitle = "???"');
+  assert(app.players[0].rankOrder === null, 'Liêng Ẩn: Tụ 1 có lá ẩn bị loại khỏi BXH (rankOrder = null)');
+  assert(app.players[1].rankOrder === 1, 'Liêng Ẩn: Tụ 2 bài rõ đạt Hạng 1 (Sáp 9)');
+  assert(app.players[2].rankOrder === 2, 'Liêng Ẩn: Tụ 3 bài rõ đạt Hạng 2 (Sáp 8)');
+
+  // Test Texas Hold'em: Bài chung có lá ẩn -> tất cả tụ hiển thị '???' và không ai đạt Hạng 1
+  app.currentGameType = 'texasHoldem';
+  app.playerCount = 2;
+  app.startNewRound();
+  app.initPlayers();
+  app.players[0].cards = [{ rank: 14, sym: 'A', suit: 'spades', isRed: true }, { rank: 14, sym: 'A', suit: 'hearts', isRed: true }];
+  app.players[1].cards = [{ rank: 13, sym: 'K', suit: 'spades', isRed: false }, { rank: 13, sym: 'K', suit: 'hearts', isRed: true }];
+  app.communityCards = [
+    { rank: 14, sym: 'A', suit: 'clubs', isRed: false },
+    { rank: 10, sym: '10', suit: 'diamonds', isRed: true },
+    { rank: 2, sym: '2', suit: 'spades', isRed: false },
+    { rank: 5, sym: '5', suit: 'clubs', isRed: false },
+    { isHidden: true, rank: 2, sym: '?' }
+  ];
+  app.calcHoldem();
+
+  assert(app.players[0].resultTitle === '???', 'Holdem Bài Chung Ẩn: Tụ 1 có resultTitle = "???"');
+  assert(app.players[0].rankOrder === null, 'Holdem Bài Chung Ẩn: Tụ 1 rankOrder = null');
+  assert(app.players[1].resultTitle === '???', 'Holdem Bài Chung Ẩn: Tụ 2 có resultTitle = "???"');
+  assert(app.players[1].rankOrder === null, 'Holdem Bài Chung Ẩn: Tụ 2 rankOrder = null');
+  assert(app.showdownSummary.includes('Không thể xác định người thắng'), 'Holdem Bài Chung Ẩn: showdownSummary thông báo có quân bài ẩn');
+
+  // Test Texas Hold'em: Chỉ 1 tụ có bài ẩn -> tụ còn lại thắng pot
+  app.communityCards[4] = { rank: 6, sym: '6', suit: 'spades', isRed: false };
+  app.players[0].cards = [{ isHidden: true, rank: 2, sym: '?' }, { rank: 14, sym: 'A', suit: 'hearts', isRed: true }];
+  app.calcHoldem();
+  assert(app.players[0].resultTitle === '???', 'Holdem Tụ 1 Ẩn: Tụ 1 resultTitle = "???"');
+  assert(app.players[0].rankOrder === null, 'Holdem Tụ 1 Ẩn: Tụ 1 rankOrder = null');
+  assert(app.players[1].rankOrder === 1, 'Holdem Tụ 1 Ẩn: Tụ 2 bài rõ thắng pot (rankOrder = 1)');
+}
+
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);
 
 
