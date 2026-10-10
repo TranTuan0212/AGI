@@ -146,6 +146,7 @@ public class GameViewModel: ObservableObject {
         self.isRankOnlyMode = UserDefaults.standard.bool(forKey: "isRankOnlyMode")
         LicenseService.shared.checkLicenseOffline()
         let savedVoice = UserDefaults.standard.bool(forKey: "isVoiceMode")
+        self.isVoiceMode = LicenseService.shared.isVoiceUnlocked && savedVoice
         if UserDefaults.standard.object(forKey: "isFloatingCloseButtonEnabled") != nil {
             self.isFloatingCloseButtonEnabled = UserDefaults.standard.bool(forKey: "isFloatingCloseButtonEnabled")
         } else {
