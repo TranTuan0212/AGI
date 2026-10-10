@@ -184,7 +184,7 @@ public class PokerEvaluator {
                 handType: .threeOfAKind,
                 tieBreakers: [triple] + kickers,
                 cards: sortedCards,
-                descriptionVN: "Sám cô \(rankSymbol(triple))" + (kickers.isEmpty ? "" : " (Kicker \(kickers.map(rankSymbol).joined(separator: ", ")))")
+                descriptionVN: "Sám cô \(rankSymbol(triple))" + (kickers.isEmpty ? "" : " (Kicker \(kickers.map { rankSymbol($0) }.joined(separator: ", ")))")
             )
         }
         
@@ -212,7 +212,7 @@ public class PokerEvaluator {
                 handType: .onePair,
                 tieBreakers: [pair] + kickers,
                 cards: sortedCards,
-                descriptionVN: "Một đôi \(rankSymbol(pair))" + (kickers.isEmpty ? "" : " (Kickers: \(kickers.map(rankSymbol).joined(separator: ", ")))")
+                descriptionVN: "Một đôi \(rankSymbol(pair))" + (kickers.isEmpty ? "" : " (Kickers: \(kickers.map { rankSymbol($0) }.joined(separator: ", ")))")
             )
         }
         

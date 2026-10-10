@@ -153,36 +153,7 @@ public struct PlayerCardsView: View {
                                         .foregroundColor(.red)
                                 }
                             } else if let rank = player.rankOrder {
-                                let isTie = viewModel.players.filter({ $0.rankOrder == rank }).count > 1
-                                let badgeText = rank == 1 ? (isTie ? "👑 Đ.Hạng 1" : "👑 Nhất") :
-                                                (rank == 2 ? (isTie ? "🥈 Đ.Hạng 2" : "🥈 Nhì") :
-                                                (rank == 3 ? (isTie ? "🥉 Đ.Hạng 3" : "🥉 Ba") :
-                                                (isTie ? "Đ.Hạng \(rank)" : "Hạng \(rank)")))
-                                let badgeBgColor: Color = {
-                                    switch rank {
-                                    case 1: return Color(red: 0.95, green: 0.2, blue: 0.2) // Đỏ tươi nổi bật
-                                    case 2: return Color(red: 0.0, green: 0.48, blue: 1.0) // Xanh dương đậm
-                                    case 3: return Color(red: 1.0, green: 0.58, blue: 0.0) // Cam hổ phách
-                                    default: return Color(white: 0.35) // Xám đen đậm
-                                    }
-                                }()
-                                HStack(spacing: 5) {
-                                    Text(badgeText)
-                                        .font(.system(size: 11, weight: .bold))
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 7)
-                                        .padding(.vertical, 2.5)
-                                        .background(badgeBgColor)
-                                        .cornerRadius(5)
-                                        .shadow(color: Color.black.opacity(0.18), radius: 1.5, x: 0, y: 1)
-                                    
-                                    if !player.resultTitle.isEmpty {
-                                        Text(player.resultTitle)
-                                            .font(.system(size: 11, weight: .bold))
-                                            .foregroundColor(isWinner ? .orange : .primary)
-                                            .lineLimit(1)
-                                    }
-                                }
+                                playerRankBadgeView(for: player, rank: rank, isWinner: isWinner)
                             } else if isHighlight {
                                 Text(viewModel.inputMode == .roundRobin ? "▶ Lượt" : "▶ Đang chọn")
                                     .font(.system(size: 9, weight: .bold))
@@ -344,6 +315,41 @@ public struct PlayerCardsView: View {
         case .straight: return .green
         case .threeOfAKind: return .purple
         case .fourOfAKind: return .orange
+        }
+    }
+    
+    @ViewBuilder
+    private func playerRankBadgeView(for player: Player, rank: Int, isWinner: Bool) -> some View {
+        let isTie = viewModel.players.filter({ $0.rankOrder == rank }).count > 1
+        let badgeText = rank == 1 ? (isTie ? "👑 Đ.Hạng 1" : "👑 Nhất") :
+                        (rank == 2 ? (isTie ? "🥈 Đ.Hạng 2" : "🥈 Nhì") :
+                        (rank == 3 ? (isTie ? "🥉 Đ.Hạng 3" : "🥉 Ba") :
+                        (isTie ? "Đ.Hạng \(rank)" : "Hạng \(rank)")))
+        let badgeBgColor: Color = {
+            switch rank {
+            case 1: return Color(red: 0.95, green: 0.2, blue: 0.2) // Đỏ tươi nổi bật
+            case 2: return Color(red: 0.0, green: 0.48, blue: 1.0) // Xanh dương đậm
+            case 3: return Color(red: 1.0, green: 0.58, blue: 0.0) // Cam hổ phách
+            default: return Color(white: 0.35) // Xám đen đậm
+            }
+        }()
+        
+        HStack(spacing: 5) {
+            Text(badgeText)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 7)
+                .padding(.vertical, 2.5)
+                .background(badgeBgColor)
+                .cornerRadius(5)
+                .shadow(color: Color.black.opacity(0.18), radius: 1.5, x: 0, y: 1)
+            
+            if !player.resultTitle.isEmpty {
+                Text(player.resultTitle)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(isWinner ? .orange : .primary)
+                    .lineLimit(1)
+            }
         }
     }
 }

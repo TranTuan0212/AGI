@@ -41,14 +41,10 @@ public struct ResultModalView: View {
                                     .font(.headline)
                                     .padding(.horizontal)
                                 
-                                let sortedPlayers = viewModel.players.sorted {
-                                    let r1 = $0.rankOrder ?? 999
-                                    let r2 = $1.rankOrder ?? 999
-                                    return r1 < r2
-                                }
-                                
                                 ForEach(sortedPlayers) { player in
                                     let isUnknown = player.rankOrder == nil || player.resultTitle == "???" || player.cards.contains(where: { $0.isHidden })
+                                    let isTie = !isUnknown && player.rankOrder != nil && viewModel.players.filter({ $0.rankOrder == player.rankOrder }).count > 1
+                                    
                                     HStack(alignment: .top, spacing: 12) {
                                         // Medal / Rank badge
                                         if isUnknown {
@@ -88,18 +84,15 @@ public struct ResultModalView: View {
                                                         .padding(.vertical, 2)
                                                         .background(Color.red)
                                                         .cornerRadius(4)
-                                                } else {
-                                                    let isTie = viewModel.players.filter({ $0.rankOrder == player.rankOrder }).count > 1
-                                                    if isTie {
-                                                        Text("ĐỒNG HẠNG")
-                                                            .font(.caption2)
-                                                            .fontWeight(.bold)
-                                                            .foregroundColor(.orange)
-                                                            .padding(.horizontal, 6)
-                                                            .padding(.vertical, 2)
-                                                            .background(Color.orange.opacity(0.15))
-                                                            .cornerRadius(4)
-                                                    }
+                                                } else if isTie {
+                                                    Text("ĐỒNG HẠNG")
+                                                        .font(.caption2)
+                                                        .fontWeight(.bold)
+                                                        .foregroundColor(.orange)
+                                                        .padding(.horizontal, 6)
+                                                        .padding(.vertical, 2)
+                                                        .background(Color.orange.opacity(0.15))
+                                                        .cornerRadius(4)
                                                 }
                                                 
                                                 if player.isLung {
@@ -204,6 +197,10 @@ public struct ResultModalView: View {
         }
     }
     
+    private var sortedPlayers: [Player] {
+        viewModel.players.sorted { ($0.rankOrder ?? 999) < ($1.rankOrder ?? 999) }
+    }
+
     private func rankBadgeColor(_ rank: Int) -> Color {
         switch rank {
         case 1: return Color.yellow
