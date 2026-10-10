@@ -317,7 +317,6 @@ public struct PlayerCardsView: View {
         case .fourOfAKind: return .orange
         }
     }
-    }
 }
 
 struct PlayerRankBadgeView: View {
