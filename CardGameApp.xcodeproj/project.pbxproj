@@ -38,6 +38,7 @@
 		AUTH0001F5A6012345678901 /* AppAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AUTH0001E5F6012345678901 /* AppAuthManager.swift */; };
 		AUTH0002F5A6012345678902 /* AppLoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AUTH0002E5F6012345678902 /* AppLoginView.swift */; };
 		FLT00001F5A6012345678901 /* FloatingCloseButtonConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FLT00001E5F6012345678901 /* FloatingCloseButtonConfigView.swift */; };
+		LIVE0001F5A6012345678901 /* LiveRemoteSocketService.swift in Sources */ = {isa = PBXBuildFile; fileRef = LIVE0001E5F6012345678901 /* LiveRemoteSocketService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -76,6 +77,7 @@
 		AUTH0001E5F6012345678901 /* AppAuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppAuthManager.swift; sourceTree = "<group>"; };
 		AUTH0002E5F6012345678902 /* AppLoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLoginView.swift; sourceTree = "<group>"; };
 		FLT00001E5F6012345678901 /* FloatingCloseButtonConfigView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingCloseButtonConfigView.swift; sourceTree = "<group>"; };
+		LIVE0001E5F6012345678901 /* LiveRemoteSocketService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveRemoteSocketService.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -166,6 +168,7 @@
 				LIC00001E5F6012345678901 /* KeychainManager.swift */,
 				LIC00002E5F6012345678902 /* DeviceIdentityService.swift */,
 				LIC00003E5F6012345678903 /* LicenseService.swift */,
+				LIVE0001E5F6012345678901 /* LiveRemoteSocketService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -284,6 +287,7 @@
 				AUTH0001F5A6012345678901 /* AppAuthManager.swift in Sources */,
 				AUTH0002F5A6012345678902 /* AppLoginView.swift in Sources */,
 				FLT00001F5A6012345678901 /* FloatingCloseButtonConfigView.swift in Sources */,
+				LIVE0001F5A6012345678901 /* LiveRemoteSocketService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
