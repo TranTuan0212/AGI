@@ -12,7 +12,7 @@ workflows:
           source: true
       cancel_previous_builds: true
     environment:
-      xcode: latest
+      xcode: 26.5
       cocoapods: default
       vars:
         XCODE_PROJECT: "CardGameApp.xcodeproj"
@@ -75,7 +75,7 @@ workflows:
       vars:
         XCODE_PROJECT: "CardGameApp.xcodeproj"
         XCODE_SCHEME: "CardGameApp"
-      xcode: latest
+      xcode: 26.5
       cocoapods: default
     scripts:
       - name: Set up code signing settings on Xcode project
