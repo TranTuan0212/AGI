@@ -11,6 +11,7 @@ public class AppAuthManager: ObservableObject {
 
     private let tokenKeychainKey = "app_input_auth_token"
     private let usernameDefaultsKey = "app_input_saved_username"
+    private let userIdDefaultsKey = "app_input_saved_user_id"
     private let expiresDefaultsKey = "app_input_saved_expires"
     private let serverUrlDefaultsKey = "app_input_server_url"
 
@@ -22,6 +23,7 @@ public class AppAuthManager: ObservableObject {
 
     @Published public var isAuthenticated: Bool = false
     @Published public var currentUsername: String? = nil
+    @Published public var currentUserId: String? = nil
     @Published public var userExpiresAt: String? = nil
     @Published public var authToken: String? = nil
     @Published public var errorMessage: String? = nil
@@ -48,6 +50,7 @@ public class AppAuthManager: ObservableObject {
         }
 
         let savedUser = UserDefaults.standard.string(forKey: usernameDefaultsKey)
+        let savedUserId = UserDefaults.standard.string(forKey: userIdDefaultsKey)
         let savedExpires = UserDefaults.standard.string(forKey: expiresDefaultsKey)
 
         // Kiểm tra xem hạn dùng đã quá hạn chưa nếu có thông tin
@@ -62,6 +65,7 @@ public class AppAuthManager: ObservableObject {
 
         self.authToken = savedToken
         self.currentUsername = savedUser
+        self.currentUserId = savedUserId
         self.userExpiresAt = savedExpires
         self.isAuthenticated = true
 
@@ -189,11 +193,13 @@ public class AppAuthManager: ObservableObject {
                 }
 
                 let username = user["username"] as? String ?? cleanUsername
+                let userId = user["id"] as? String
                 let expiresAt = user["expiresAt"] as? String
 
                 LicenseService.shared.clearLicenseIfOwnerMismatch(currentUser: username)
                 self.authToken = token
                 self.currentUsername = username
+                self.currentUserId = userId
                 self.userExpiresAt = expiresAt
                 self.isAuthenticated = true
                 self.errorMessage = nil
@@ -201,6 +207,9 @@ public class AppAuthManager: ObservableObject {
                 // Ghi nhớ phiên đăng nhập an toàn vào iOS Keychain & UserDefaults
                 KeychainManager.shared.save(key: self.tokenKeychainKey, value: token)
                 UserDefaults.standard.set(username, forKey: self.usernameDefaultsKey)
+                if let uid = userId {
+                    UserDefaults.standard.set(uid, forKey: self.userIdDefaultsKey)
+                }
                 if let exp = expiresAt {
                     UserDefaults.standard.set(exp, forKey: self.expiresDefaultsKey)
                 }
@@ -221,12 +230,14 @@ public class AppAuthManager: ObservableObject {
     public func logout() {
         self.authToken = nil
         self.currentUsername = nil
+        self.currentUserId = nil
         self.userExpiresAt = nil
         self.isAuthenticated = false
         self.errorMessage = nil
 
         KeychainManager.shared.delete(key: tokenKeychainKey)
         UserDefaults.standard.removeObject(forKey: usernameDefaultsKey)
+        UserDefaults.standard.removeObject(forKey: userIdDefaultsKey)
         UserDefaults.standard.removeObject(forKey: expiresDefaultsKey)
         LicenseService.shared.clearLicense()
     }

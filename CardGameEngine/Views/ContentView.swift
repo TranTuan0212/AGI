@@ -468,8 +468,8 @@ struct OnlineRemoteControlView: View {
                     Circle()
                         .fill(viewModel.isOnlineRemoteConnected ? Color.green : Color.orange)
                         .frame(width: 10, height: 10)
-                    Text(viewModel.isOnlineRemoteConnected ? "Live Online: Đang nhận số" : "Live Online: Đang kết nối...")
-                        .font(.system(size: 13, weight: .bold))
+                    Text(viewModel.isOnlineRemoteConnected ? "Live Online: [\(AppAuthManager.shared.currentUsername ?? "User")] Đang nhận số" : "Live Online: [\(AppAuthManager.shared.currentUsername ?? "User")] Đang kết nối...")
+                        .font(.system(size: 12, weight: .bold))
                         .foregroundColor(viewModel.isOnlineRemoteConnected ? .green : .orange)
                 }
                 

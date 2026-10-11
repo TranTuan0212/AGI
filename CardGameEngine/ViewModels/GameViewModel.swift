@@ -626,10 +626,11 @@ public class GameViewModel: ObservableObject {
                 self.processRemoteCardInput(cardVal)
             }
         }
+        let targetRoom = auth.currentUserId ?? auth.currentUsername
         LiveRemoteSocketService.shared.connect(
             serverURL: auth.serverURL,
             token: auth.authToken,
-            roomId: auth.currentUsername
+            roomId: targetRoom
         )
     }
 
