@@ -136,7 +136,8 @@ class PokerEvaluator {
     const sorted = [...cards].sort((a, b) => b.rank - a.rank);
     const ranks = sorted.map(c => c.rank);
     const suits = sorted.map(c => c.suit);
-    const isFlush = suits.every(s => s === suits[0]);
+    const isRankOnly = sorted.some(c => c.isRankOnly);
+    const isFlush = !isRankOnly && suits.every(s => s === suits[0]);
 
     // Straight checking (including wheel A-2-3-4-5)
     let isStraight = false;
@@ -1560,7 +1561,6 @@ class VietnameseCardVoiceParser {
     'với', 'voi',
     'nhập', 'nhap', 'thêm', 'them', 'lấy', 'lay',
     'nữa', 'nua', 'nhé', 'nhe', 'rồi', 'roi',
-    'không', 'khong',
     '__pause__'
   ]);
 
@@ -1696,7 +1696,38 @@ class VietnameseCardVoiceParser {
       .replace(/bỏ qua/g, '__hidden__')
       .replace(/bo qua/g, '__hidden__')
       .replace(/bài ẩn/g, '__hidden__')
-      .replace(/bai an/g, '__hidden__');
+      .replace(/bai an/g, '__hidden__')
+      .replace(/không thấy/g, '__hidden__')
+      .replace(/khong thay/g, '__hidden__')
+      .replace(/không bài/g, '__hidden__')
+      .replace(/khong bai/g, '__hidden__')
+      .replace(/lá không/g, '__hidden__')
+      .replace(/la khong/g, '__hidden__')
+      .replace(/con không/g, '__hidden__')
+      .replace(/con khong/g, '__hidden__')
+      .replace(/lá 0/g, '__hidden__')
+      .replace(/la 0/g, '__hidden__')
+      .replace(/con 0/g, '__hidden__')
+      .replace(/cây 0/g, '__hidden__')
+      .replace(/cay 0/g, '__hidden__')
+      .replace(/úp bài/g, '__hidden__')
+      .replace(/up bai/g, '__hidden__')
+      .replace(/lá úp/g, '__hidden__')
+      .replace(/la up/g, '__hidden__')
+      .replace(/cây úp/g, '__hidden__')
+      .replace(/cay up/g, '__hidden__')
+      .replace(/ấp bài/g, '__hidden__')
+      .replace(/ap bai/g, '__hidden__')
+      .replace(/lá ấp/g, '__hidden__')
+      .replace(/la ap/g, '__hidden__')
+      .replace(/cây ấp/g, '__hidden__')
+      .replace(/cay ap/g, '__hidden__')
+      .replace(/mù bài/g, '__hidden__')
+      .replace(/mu bai/g, '__hidden__')
+      .replace(/lá mù/g, '__hidden__')
+      .replace(/la mu/g, '__hidden__')
+      .replace(/cây mù/g, '__hidden__')
+      .replace(/cay mu/g, '__hidden__');
 
     const activeRankMap = { ...this.rankMap };
     this.getCustomKeywords(11).forEach(w => activeRankMap[w] = 11);
@@ -1709,6 +1740,12 @@ class VietnameseCardVoiceParser {
     let multiplier = 1;
     let hadPauseSinceLastCard = false;
 
+    const isHiddenToken = t => t === '__hidden__' || t === 'bỏ' || t === 'bo' ||
+                               t === 'úp' || t === 'up' ||
+                               t === 'ấp' || t === 'ap' ||
+                               t === 'mù' || t === 'mu' ||
+                               t === '0' || t === 'không' || t === 'khong';
+
     while (i < tokens.length) {
       const token = tokens[i];
 
@@ -1718,8 +1755,8 @@ class VietnameseCardVoiceParser {
         continue;
       }
 
-      // Check hidden card ("bỏ", "bỏ bài", "bỏ qua", "không thấy", "không")
-      if (token === '__hidden__' || token === 'bỏ' || token === 'bo') {
+      // Check hidden card ("bỏ", "úp", "ấp", "mù", "0", "không")
+      if (isHiddenToken(token)) {
         for (let k = 0; k < multiplier; k++) {
           result.push({ isHidden: true, tokenIndex: i });
         }
@@ -1749,7 +1786,7 @@ class VietnameseCardVoiceParser {
       }
 
       // If token is "cây" and next token is another rank or hidden, treat as classifier
-      if ((token === 'cây' || token === 'cay') && i + 1 < tokens.length && (activeRankMap[tokens[i + 1]] !== undefined || tokens[i + 1] === 'bỏ' || tokens[i + 1] === '__hidden__')) {
+      if ((token === 'cây' || token === 'cay') && i + 1 < tokens.length && (activeRankMap[tokens[i + 1]] !== undefined || isHiddenToken(tokens[i + 1]))) {
         i++;
         continue;
       }
@@ -1836,7 +1873,7 @@ class AppController {
   }
 
   isRankOnlyActive() {
-    return this.isRankOnlyMode && (this.currentGameType === 'lieng3' || this.currentGameType === 'xiDach2' || this.currentGameType === 'samLoc10' || this.currentGameType === 'chan19');
+    return this.isRankOnlyMode;
   }
 
   targetCards(playerIndex) {

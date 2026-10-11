@@ -72,11 +72,14 @@ public class SpeechRecognitionService: ObservableObject {
             "j", "bồi", "bồ", "bồn", "bùi", "bui", "ri", "gi", "di", "dê", "dây", "day", "chây", "giây", "duy",
             "Bồi cơ", "Bồi rô", "Bồi tép", "Bồi chuồn", "Bồi bích", "bồi cơ", "bồi rô", "bồi tép", "bồi chuồn", "bồi bích",
             "Đôi", "Sám", "Tứ quý", "đôi", "sám", "tứ quý",
-            "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
-            "Mười", "Chín", "Tám", "Bảy", "Sáu", "Năm", "Bốn", "Ba", "Hai", "Heo", "Một",
-            "mười", "chín", "tám", "bảy", "sáu", "năm", "bốn", "ba", "hai", "heo", "một",
+            "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10",
+            "Mười", "Chín", "Tám", "Bảy", "Sáu", "Năm", "Bốn", "Ba", "Hai", "Heo", "Một", "Không",
+            "mười", "chín", "tám", "bảy", "sáu", "năm", "bốn", "ba", "hai", "heo", "một", "không",
             "Cơ", "Rô", "Tép", "Chuồn", "Bích", "cơ", "rô", "tép", "chuồn", "bích",
-            "Bỏ", "Bỏ bài", "Bỏ qua", "Bài ẩn", "bỏ", "bỏ bài", "bỏ qua", "bài ẩn"
+            "Bỏ", "Bỏ bài", "Bỏ qua", "Bài ẩn", "Không thấy", "bỏ", "bỏ bài", "bỏ qua", "bài ẩn", "không thấy",
+            "Úp", "Úp bài", "Lá úp", "Cây úp", "úp", "úp bài", "lá úp", "cây úp",
+            "Ấp", "Ấp bài", "Lá ấp", "Cây ấp", "ấp", "ấp bài", "lá ấp", "cây ấp",
+            "Mù", "Mù bài", "Lá mù", "Cây mù", "mù", "mù bài", "lá mù", "cây mù"
         ]
         let customWords = VietnameseCardVoiceParser.getAllCustomKeywords()
         for word in customWords {

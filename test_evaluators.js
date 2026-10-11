@@ -76,6 +76,20 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE (6 TRÒ CHƠI) =
   assert(PokerEvaluator.compareScores(score1, score2) > 0, 'Poker: Hai đôi AA88K thắng AA88Q nhờ Kicker King > Queen');
 }
 
+// 2b. Test Poker Rank-Only Mode: KHÔNG nhận diện Thùng (Flush) khi bài là Rank-Only (tránh false-positive từ chất giả spades)
+{
+  const rankOnlyHand = [
+    { rank: 2, suit: 'spades', isRankOnly: true },
+    { rank: 4, suit: 'spades', isRankOnly: true },
+    { rank: 6, suit: 'spades', isRankOnly: true },
+    { rank: 8, suit: 'spades', isRankOnly: true },
+    { rank: 10, suit: 'spades', isRankOnly: true }
+  ];
+  const score = PokerEvaluator.evaluate5(rankOnlyHand);
+  assert(score.type === 1, 'Poker Rank-Only: 5 lá khác rank có chất giả spades KHÔNG bị nhận nhầm thành Thùng (Flush), chỉ là Mậu thầu (type=1)');
+  assert(score.typeName.includes('Mậu thầu'), 'Poker Rank-Only: Title hiển thị đúng Mậu thầu thay vì Thùng');
+}
+
 // 3. Test Liêng (Sáp > Liêng > Ba Tây > Điểm mod 10 & So sánh lá to nhất + Chất bài)
 {
   const sap = [{ rank: 7, suit: 'hearts' }, { rank: 7, suit: 'spades' }, { rank: 7, suit: 'diamonds' }];
@@ -431,9 +445,13 @@ console.log('=== BẮT ĐẦU KIỂM THỬ THUẬT TOÁN ENGINE (6 TRÒ CHƠI) =
   assert(app.isRankOnlyMode === true, 'Rank-Only: Tự động tải cài đặt đã lưu từ localStorage');
   assert(app.isRankOnlyActive() === true, 'Rank-Only: Hoạt động khi đang ở game Liêng (lieng3)');
 
-  // Kiểm tra khi đổi sang game khác (ví dụ binh9 hoặc texasHoldem)
+  // Kiểm tra khi đổi sang game khác (áp dụng TẤT CẢ trò chơi theo yêu cầu mới)
   app.currentGameType = 'binh9';
-  assert(app.isRankOnlyActive() === false, 'Rank-Only: Tự động vô hiệu hóa và chuyển về bàn phím 52 lá khi ở game Binh 9 lá');
+  assert(app.isRankOnlyActive() === true, 'Rank-Only: Kích hoạt cho game Binh 9 lá');
+  app.currentGameType = 'texasHoldem';
+  assert(app.isRankOnlyActive() === true, 'Rank-Only: Kích hoạt cho game Texas Holdem');
+  app.currentGameType = 'phom9';
+  assert(app.isRankOnlyActive() === true, 'Rank-Only: Kích hoạt cho game Phỏm 9 lá');
 
   // Chuyển lại game Liêng (3 Cây)
   app.currentGameType = 'lieng3';
@@ -815,12 +833,49 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   const resBon = VietnameseCardVoiceParser.parse('bon cơ');
   assert(resBon.length === 1 && resBon[0].rank === 4 && resBon[0].suit === 'hearts', 'Voice Parser: "bon cơ" vẫn chuẩn là lá 4 cơ (không bị nhầm lẫn với "bo")');
 
-  // Test "không", "không thấy" -> Đã bị loại bỏ (không sinh ra lá bài ẩn, đóng vai trò từ đệm)
+  // Test các từ khóa và biến thể bài ẩn mới: úp, ấp, mù, 0, không, không thấy
   const resKhongThay = VietnameseCardVoiceParser.parse('không thấy');
-  assert(resKhongThay.length === 0, 'Voice Parser: "không thấy" đã bị loại bỏ khỏi nhận diện bài ẩn');
+  assert(resKhongThay.length === 1 && resKhongThay[0].isHidden === true, 'Voice Parser: "không thấy" -> Lá bài ẩn (?)');
 
   const resKhong = VietnameseCardVoiceParser.parse('không');
-  assert(resKhong.length === 0, 'Voice Parser: "không" được coi là từ đệm, không biến thành bài ẩn (?)');
+  assert(resKhong.length === 1 && resKhong[0].isHidden === true, 'Voice Parser: "không" -> Lá bài ẩn (?)');
+
+  const resKhongRaw = VietnameseCardVoiceParser.parse('khong');
+  assert(resKhongRaw.length === 1 && resKhongRaw[0].isHidden === true, 'Voice Parser: "khong" -> Lá bài ẩn (?)');
+
+  const resUp = VietnameseCardVoiceParser.parse('úp');
+  assert(resUp.length === 1 && resUp[0].isHidden === true, 'Voice Parser: "úp" -> Lá bài ẩn (?) (âm p dứt khoát 0ms)');
+
+  const resUpRaw = VietnameseCardVoiceParser.parse('up');
+  assert(resUpRaw.length === 1 && resUpRaw[0].isHidden === true, 'Voice Parser: "up" -> Lá bài ẩn (?)');
+
+  const resAp = VietnameseCardVoiceParser.parse('ấp');
+  assert(resAp.length === 1 && resAp[0].isHidden === true, 'Voice Parser: "ấp" -> Lá bài ẩn (?)');
+
+  const resMu = VietnameseCardVoiceParser.parse('mù');
+  assert(resMu.length === 1 && resMu[0].isHidden === true, 'Voice Parser: "mù" -> Lá bài ẩn (?)');
+
+  const resMuRaw = VietnameseCardVoiceParser.parse('mu');
+  assert(resMuRaw.length === 1 && resMuRaw[0].isHidden === true, 'Voice Parser: "mu" -> Lá bài ẩn (?)');
+
+  const resZero = VietnameseCardVoiceParser.parse('0');
+  assert(resZero.length === 1 && resZero[0].isHidden === true, 'Voice Parser: "0" -> Lá bài ẩn (?)');
+
+  const resLaZero = VietnameseCardVoiceParser.parse('lá 0');
+  assert(resLaZero.length === 1 && resLaZero[0].isHidden === true, 'Voice Parser: "lá 0" -> Lá bài ẩn (?)');
+
+  const resUpBai = VietnameseCardVoiceParser.parse('úp bài');
+  assert(resUpBai.length === 1 && resUpBai[0].isHidden === true, 'Voice Parser: "úp bài" -> Lá bài ẩn (?)');
+
+  const resMuBai = VietnameseCardVoiceParser.parse('mù bài');
+  assert(resMuBai.length === 1 && resMuBai[0].isHidden === true, 'Voice Parser: "mù bài" -> Lá bài ẩn (?)');
+
+  const resApBai = VietnameseCardVoiceParser.parse('ấp bài');
+  assert(resApBai.length === 1 && resApBai[0].isHidden === true, 'Voice Parser: "ấp bài" -> Lá bài ẩn (?)');
+
+  // Đảm bảo số 10 KHÔNG bị biến thành lá ẩn 0
+  const resMuoi = VietnameseCardVoiceParser.parse('10');
+  assert(resMuoi.length === 1 && resMuoi[0].rank === 10 && !resMuoi[0].isHidden, 'Voice Parser: "10" vẫn là lá 10 chuẩn, KHÔNG bị nhận nhầm thành lá ẩn 0');
 
   // Test "bồi" và biến thể -> J / Jack
   const resBoiCo = VietnameseCardVoiceParser.parse('bồi cơ');

@@ -278,10 +278,10 @@ public struct SettingsView: View {
                     .padding(.vertical, 4)
                 }
                 
-                Section(header: Text("Tùy Chọn Bàn Phím Số A➔K (Liêng / Xì Dách / Sâm Lốc / Chắn TQ)")) {
+                Section(header: Text("Tùy Chọn Bàn Phím Số A➔K (Tất Cả Trò Chơi)")) {
                     Toggle("Chế độ không so chất (Bàn phím A➔K)", isOn: $viewModel.isRankOnlyMode)
                     
-                    Text("Khi bật, Liêng, Xì Dách, Sâm Lốc và Chắn TQ sẽ dùng bàn phím số A➔K to bản, một lá có thể chọn nhiều lần (không khóa phím), không phân biệt chất bài.")
+                    Text("Khi bật, tất cả các trò chơi sẽ dùng bàn phím số A➔K to bản, một lá có thể chọn nhiều lần (không khóa phím), không phân biệt chất bài.")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }

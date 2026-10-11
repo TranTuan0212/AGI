@@ -99,7 +99,6 @@ public struct VietnameseCardVoiceParser {
         "với", "voi",
         "nhập", "nhap", "thêm", "them", "lấy", "lay",
         "nữa", "nua", "nhé", "nhe", "rồi", "roi",
-        "không", "khong",
         "__pause__"
     ]
     
@@ -299,6 +298,37 @@ public struct VietnameseCardVoiceParser {
             .replacingOccurrences(of: "bo qua", with: "__hidden__")
             .replacingOccurrences(of: "bài ẩn", with: "__hidden__")
             .replacingOccurrences(of: "bai an", with: "__hidden__")
+            .replacingOccurrences(of: "không thấy", with: "__hidden__")
+            .replacingOccurrences(of: "khong thay", with: "__hidden__")
+            .replacingOccurrences(of: "không bài", with: "__hidden__")
+            .replacingOccurrences(of: "khong bai", with: "__hidden__")
+            .replacingOccurrences(of: "lá không", with: "__hidden__")
+            .replacingOccurrences(of: "la khong", with: "__hidden__")
+            .replacingOccurrences(of: "con không", with: "__hidden__")
+            .replacingOccurrences(of: "con khong", with: "__hidden__")
+            .replacingOccurrences(of: "lá 0", with: "__hidden__")
+            .replacingOccurrences(of: "la 0", with: "__hidden__")
+            .replacingOccurrences(of: "con 0", with: "__hidden__")
+            .replacingOccurrences(of: "cây 0", with: "__hidden__")
+            .replacingOccurrences(of: "cay 0", with: "__hidden__")
+            .replacingOccurrences(of: "úp bài", with: "__hidden__")
+            .replacingOccurrences(of: "up bai", with: "__hidden__")
+            .replacingOccurrences(of: "lá úp", with: "__hidden__")
+            .replacingOccurrences(of: "la up", with: "__hidden__")
+            .replacingOccurrences(of: "cây úp", with: "__hidden__")
+            .replacingOccurrences(of: "cay up", with: "__hidden__")
+            .replacingOccurrences(of: "ấp bài", with: "__hidden__")
+            .replacingOccurrences(of: "ap bai", with: "__hidden__")
+            .replacingOccurrences(of: "lá ấp", with: "__hidden__")
+            .replacingOccurrences(of: "la ap", with: "__hidden__")
+            .replacingOccurrences(of: "cây ấp", with: "__hidden__")
+            .replacingOccurrences(of: "cay ap", with: "__hidden__")
+            .replacingOccurrences(of: "mù bài", with: "__hidden__")
+            .replacingOccurrences(of: "mu bai", with: "__hidden__")
+            .replacingOccurrences(of: "lá mù", with: "__hidden__")
+            .replacingOccurrences(of: "la mu", with: "__hidden__")
+            .replacingOccurrences(of: "cây mù", with: "__hidden__")
+            .replacingOccurrences(of: "cay mu", with: "__hidden__")
 
         
         var activeRankMap = rankMap
@@ -312,6 +342,14 @@ public struct VietnameseCardVoiceParser {
         var multiplier = 1
         var hadPauseSinceLastCard = false
         
+        func isHiddenToken(_ t: String) -> Bool {
+            return t == "__hidden__" || t == "bỏ" || t == "bo" ||
+                   t == "úp" || t == "up" ||
+                   t == "ấp" || t == "ap" ||
+                   t == "mù" || t == "mu" ||
+                   t == "0" || t == "không" || t == "khong"
+        }
+        
         while i < tokens.count {
             let token = tokens[i]
             
@@ -321,8 +359,8 @@ public struct VietnameseCardVoiceParser {
                 continue
             }
             
-            // Check hidden card ("bỏ", "bỏ bài", "bỏ qua")
-            if token == "__hidden__" || token == "bỏ" || token == "bo" {
+            // Check hidden card ("bỏ", "úp", "ấp", "mù", "0", "không")
+            if isHiddenToken(token) {
                 let countToAppend = multiplier
                 multiplier = 1
                 hadPauseSinceLastCard = false
@@ -355,7 +393,7 @@ public struct VietnameseCardVoiceParser {
             }
             
             // If token is "cây" and the next token is another rank or hidden, treat "cây" as classifier
-            if (token == "cây" || token == "cay") && i + 1 < tokens.count && (activeRankMap[tokens[i + 1]] != nil || tokens[i + 1] == "bỏ" || tokens[i + 1] == "__hidden__") {
+            if (token == "cây" || token == "cay") && i + 1 < tokens.count && (activeRankMap[tokens[i + 1]] != nil || isHiddenToken(tokens[i + 1])) {
                 i += 1
                 continue
             }

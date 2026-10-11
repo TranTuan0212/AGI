@@ -122,7 +122,7 @@ public class GameViewModel: ObservableObject {
 
     
     public var isRankOnlyActive: Bool {
-        return isRankOnlyMode && (gameType == .lieng3 || gameType == .xiDach2 || gameType == .samLoc10 || gameType == .chan19)
+        return isRankOnlyMode
     }
     
     public func targetCards(for playerIndex: Int) -> Int {
