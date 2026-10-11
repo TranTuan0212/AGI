@@ -621,7 +621,7 @@ public class GameViewModel: ObservableObject {
             if action == "DELETE" {
                 self.undoLastAction()
             } else if action == "CLEAR" {
-                self.startNewRound()
+                self.resetTable()
             } else if let cardVal = cardValue {
                 self.processRemoteCardInput(cardVal)
             }
