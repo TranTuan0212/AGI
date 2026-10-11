@@ -56,6 +56,7 @@ public class GameViewModel: ObservableObject {
     
     // Action History for Undo
     private var actionHistory: [(card: Card, target: String)] = []
+    public var canUndo: Bool { !actionHistory.isEmpty }
     
     // Voice Recognition - Realtime Confirmed Cards Snapshot
     @Published public var voiceService = SpeechRecognitionService()
@@ -92,6 +93,17 @@ public class GameViewModel: ObservableObject {
                 return
             }
             UserDefaults.standard.set(isVoiceMode, forKey: "isVoiceMode")
+        }
+    }
+
+    // Online Remote Live Keypad Session (Nhập từ màn hình Live Web truyền về App)
+    @Published public var isOnlineRemoteMode: Bool = false {
+        didSet {
+            if isOnlineRemoteMode {
+                startOnlineRemoteSession()
+            } else {
+                stopOnlineRemoteSession()
+            }
         }
     }
 
@@ -597,6 +609,62 @@ public class GameViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Online Remote Live Keypad Session
+    public func toggleOnlineRemoteMode() {
+        isOnlineRemoteMode.toggle()
+    }
+
+    public func startOnlineRemoteSession() {
+        let auth = AppAuthManager.shared
+        LiveRemoteSocketService.shared.onRemoteCardReceived = { [weak self] cardValue, action in
+            guard let self = self, self.isOnlineRemoteMode else { return }
+            if action == "DELETE" {
+                self.undoLastAction()
+            } else if action == "CLEAR" {
+                self.startNewRound()
+            } else if let cardVal = cardValue {
+                self.processRemoteCardInput(cardVal)
+            }
+        }
+        LiveRemoteSocketService.shared.connect(
+            serverURL: auth.serverURL,
+            token: auth.authToken,
+            roomId: auth.currentUsername
+        )
+    }
+
+    public func stopOnlineRemoteSession() {
+        LiveRemoteSocketService.shared.disconnect()
+    }
+
+    public func processRemoteCardInput(_ rawValue: String) {
+        let clean = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        if clean == "0" || clean == "__hidden__" {
+            onHiddenCardTapped()
+        } else if let num = Int(clean) {
+            let rank: Rank?
+            switch num {
+            case 1: rank = .ace
+            case 2: rank = .two
+            case 3: rank = .three
+            case 4: rank = .four
+            case 5: rank = .five
+            case 6: rank = .six
+            case 7: rank = .seven
+            case 8: rank = .eight
+            case 9: rank = .nine
+            case 10: rank = .ten
+            case 11: rank = .jack
+            case 12: rank = .queen
+            case 13: rank = .king
+            default: rank = nil
+            }
+            if let r = rank {
+                onRankTapped(r)
+            }
+        }
+    }
+
     // MARK: - Voice Recognition Handling
     public func toggleVoiceRecognition() {
         if voiceService.isRecording {

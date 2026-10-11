@@ -49,6 +49,11 @@
           <button id="btnIncreasePlayer" class="step-btn">+</button>
         </div>
 
+        <button id="btnToggleOnlineRemote" class="btn-settings-compact" style="width: auto; padding: 0 8px; font-size: 11px; font-weight: 700; border-radius: 8px; gap: 4px; display: flex; align-items: center;" title="Bật/Tắt Nhập Online từ Web Live">
+          <span id="txtOnlineIcon">📡</span>
+          <span id="txtOnlineTitle">Online</span>
+        </button>
+
         <button id="btnOpenSettings" class="btn-settings-compact" title="Cài Đặt">⚙️</button>
       </div>
 
@@ -89,8 +94,24 @@
         <span id="voiceBannerText" class="voice-text">Đang nghe...</span>
       </div>
 
+      <!-- Online Remote Control Panel (chỉ hiện khi bật Nhập Online) -->
+      <div id="onlineRemotePanel" style="display: none; padding: 8px 10px; background: rgba(255,255,255,0.98); border-top: 1px solid var(--ios-border);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span id="onlineDot" style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #34C759; box-shadow: 0 0 6px #34C759;"></span>
+            <span id="onlineStatusText" style="font-size: 12px; font-weight: 700; color: #34C759;">Live Online: Đang nhận số</span>
+          </div>
+          <button id="btnExitOnlineRemote" style="background: rgba(142,142,147,0.15); border: none; border-radius: 6px; padding: 3px 8px; font-size: 11px; font-weight: 600; color: #8E8E93; cursor: pointer;">✕ Tắt Online</button>
+        </div>
+        <div style="display: flex; gap: 6px;">
+          <button id="btnRemoteUndo" class="btn-tool-side" style="flex: 1;">↩️ Hoàn tác</button>
+          <button id="btnRemoteCalculate" class="btn-showdown-main" style="flex: 2;">❓ KHÔNG THẤY</button>
+          <button id="btnRemoteReset" class="btn-tool-side danger" style="flex: 1;">🗑️ Làm mới</button>
+        </div>
+      </div>
+
       <!-- Action Toolbar right above 52 cards: 1 Balanced Row -->
-      <div class="deck-action-bar-row">
+      <div id="manualActionBar" class="deck-action-bar-row">
         <button id="btnUndo" class="btn-tool-side">↩️ Hoàn tác</button>
         <button id="btnVoice" class="btn-tool-side voice-btn" title="Nhập bài bằng giọng nói tiếng Việt">🎙️ Nói bài</button>
         <span id="voiceClarityBadge" class="voice-clarity-badge" style="display: none;">⚪ Sẵn sàng</span>
@@ -101,7 +122,7 @@
       </div>
 
       <!-- 52-Card Deck Grid (Fixed at the bottom like a card keyboard) -->
-      <div class="deck-grid-compact-wrap">
+      <div id="manualDeckGridWrap" class="deck-grid-compact-wrap">
         <div id="deckGrid" class="deck-grid-compact">
           <!-- 4 rows x 13 columns -->
         </div>

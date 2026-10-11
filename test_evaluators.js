@@ -1733,6 +1733,113 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   assert(app3.isReady() === true, 'Poker Voice Segment: Ván bài Poker hoàn tất 100%');
 }
 
+// 24. Test Live Remote Keypad Input (Nhập trực tiếp từ Bảng Nhập Nổi khi phóng to Màn hình Live)
+{
+  const appCodeFull = fs.readFileSync('preview/app.js', 'utf8');
+  const fakeEl = { style: {}, dataset: {}, classList: { add: () => {}, remove: () => {} }, appendChild: () => {}, querySelector: () => fakeEl, querySelectorAll: () => [], addEventListener: () => {}, setAttribute: () => {} };
+  const sandbox = {
+    window: { addEventListener: () => {} },
+    document: { getElementById: () => fakeEl, querySelectorAll: () => [], querySelector: () => fakeEl, createElement: () => fakeEl },
+    localStorage: { getItem: () => null, setItem: () => {} },
+    console: console,
+    setTimeout: (fn, ms) => setTimeout(fn, ms),
+    clearTimeout: (id) => clearTimeout(id),
+    Date: Date
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(appCodeFull, sandbox);
+  const AppCtrl = vm.runInContext('AppController', sandbox);
+  const remoteApp = new AppCtrl();
+
+  remoteApp.currentGameType = 'lieng3';
+  remoteApp.playerCount = 3;
+  remoteApp.initPlayers();
+  remoteApp.startNewRound();
+  remoteApp.renderDeck = () => {};
+  remoteApp.renderPlayerCards = () => {};
+  remoteApp.renderCommunityCards = () => {};
+  remoteApp.renderPlayers = () => {};
+  remoteApp.updateUI = () => {};
+
+  // 24.1: Test ánh xạ 1..13 từ Web Live bắn về
+  // Bấm số 1 (Át)
+  remoteApp.processRemoteCardInput('1', 'ADD');
+  assert(remoteApp.players[0].cards.length === 1 && remoteApp.players[0].cards[0].sym === 'A', 'Remote Keypad: Bấm 1 -> Tụ 1 nhận Át (A)');
+
+  // Bấm số 11 (J/Bồi)
+  remoteApp.processRemoteCardInput('11', 'ADD');
+  assert(remoteApp.players[1].cards.length === 1 && remoteApp.players[1].cards[0].sym === 'J', 'Remote Keypad: Bấm 11 -> Tụ 2 nhận Bồi (J)');
+
+  // Bấm số 12 (Q/Đầm)
+  remoteApp.processRemoteCardInput('12', 'ADD');
+  assert(remoteApp.players[2].cards.length === 1 && remoteApp.players[2].cards[0].sym === 'Q', 'Remote Keypad: Bấm 12 -> Tụ 3 nhận Đầm (Q)');
+
+  // Bấm số 13 (K/Già)
+  remoteApp.processRemoteCardInput('13', 'ADD');
+  assert(remoteApp.players[0].cards.length === 2 && remoteApp.players[0].cards[1].sym === 'K', 'Remote Keypad: Bấm 13 -> Vòng 2 quay về Tụ 1 nhận Già (K)');
+
+  // 24.2: Test số 0 hoặc __hidden__ (Lá ẩn)
+  remoteApp.processRemoteCardInput('0', 'ADD');
+  assert(remoteApp.players[1].cards.length === 2 && remoteApp.players[1].cards[1].isHidden === true, 'Remote Keypad: Bấm 0 -> Tụ 2 nhận lá ẩn (Không thấy)');
+
+  // 24.3: Test action DELETE (Nút Xóa trên Bảng nhập nổi)
+  remoteApp.processRemoteCardInput(null, 'DELETE');
+  assert(remoteApp.players[1].cards.length === 1, 'Remote Keypad: Nút Xóa -> Hoàn tác lá ẩn vừa nhập ở Tụ 2');
+
+  // Nhập lại số 9 thay thế
+  remoteApp.processRemoteCardInput('9', 'ADD');
+  assert(remoteApp.players[1].cards.length === 2 && remoteApp.players[1].cards[1].sym === '9', 'Remote Keypad: Nhập lại số 9 -> Tụ 2 nhận lá 9 chuẩn xác');
+
+  // Tiếp tục chia nốt cho đủ ván Liêng 3 tụ x 3 lá:
+  // Tụ 2 cần 1 lá, Tụ 3 cần 2 lá, Tụ 1 cần 1 lá
+  remoteApp.processRemoteCardInput('8', 'ADD'); // Tụ 3 lá 2
+  remoteApp.processRemoteCardInput('7', 'ADD'); // Tụ 1 lá 3 (Tụ 1 đủ 3 lá)
+  remoteApp.processRemoteCardInput('6', 'ADD'); // Tụ 2 lá 3 (Tụ 2 đủ 3 lá)
+  remoteApp.processRemoteCardInput('5', 'ADD'); // Tụ 3 lá 3 (Tụ 3 đủ 3 lá)
+
+  assert(remoteApp.players[0].cards.length === 3, 'Remote Keypad: Tụ 1 đủ 3 lá Liêng');
+  assert(remoteApp.players[1].cards.length === 3, 'Remote Keypad: Tụ 2 đủ 3 lá Liêng');
+  assert(remoteApp.players[2].cards.length === 3, 'Remote Keypad: Tụ 3 đủ 3 lá Liêng');
+  assert(remoteApp.isReady() === true, 'Remote Keypad: Ván bài Liêng đủ 9 lá, tự động tính kết quả');
+  assert(remoteApp.players[0].resultTitle !== '', 'Remote Keypad: Tụ 1 đã được tính kết quả');
+
+  // 24.4: Test action CLEAR (Làm mới ván)
+  remoteApp.processRemoteCardInput(null, 'CLEAR');
+  assert(remoteApp.players[0].cards.length === 0, 'Remote Keypad: Action CLEAR -> Xóa sạch bài ván cũ');
+  assert(remoteApp.players[1].cards.length === 0, 'Remote Keypad: Tụ 2 rỗng');
+  assert(remoteApp.players[2].cards.length === 0, 'Remote Keypad: Tụ 3 rỗng');
+
+  // 24.5: Test Texas Hold'em qua Remote Keypad: Tự động tràn vào Bài Chung khi các tụ đầy bài tẩy
+  remoteApp.currentGameType = 'texasHoldem';
+  remoteApp.playerCount = 2;
+  remoteApp.initPlayers();
+  remoteApp.startNewRound();
+
+  // Bấm 4 lá bài tẩy cho 2 tụ (A, 2 cho Tụ 1, 3, 4 cho Tụ 2)
+  remoteApp.processRemoteCardInput('1', 'ADD');  // Tụ 1
+  remoteApp.processRemoteCardInput('3', 'ADD');  // Tụ 2
+  remoteApp.processRemoteCardInput('2', 'ADD');  // Tụ 1
+  remoteApp.processRemoteCardInput('4', 'ADD');  // Tụ 2
+
+  assert(remoteApp.players[0].cards.length === 2, 'Remote Poker: Tụ 1 đủ 2 lá bài tẩy');
+  assert(remoteApp.players[1].cards.length === 2, 'Remote Poker: Tụ 2 đủ 2 lá bài tẩy');
+
+  // Bấm tiếp 5 lá bài chung: 10, 11 (J), 12 (Q), 13 (K), 1 (A)
+  remoteApp.processRemoteCardInput('10', 'ADD');
+  remoteApp.processRemoteCardInput('11', 'ADD');
+  remoteApp.processRemoteCardInput('12', 'ADD');
+  remoteApp.processRemoteCardInput('13', 'ADD');
+  remoteApp.processRemoteCardInput('1', 'ADD');
+
+  assert(remoteApp.communityCards.length === 5, 'Remote Poker: 5 lá sau tự động tràn vào Bài Chung');
+  assert(remoteApp.communityCards[0].sym === '10', 'Remote Poker: Lá Flop 1 là 10');
+  assert(remoteApp.communityCards[1].sym === 'J', 'Remote Poker: Lá Flop 2 là J');
+  assert(remoteApp.communityCards[2].sym === 'Q', 'Remote Poker: Lá Flop 3 là Q');
+  assert(remoteApp.communityCards[3].sym === 'K', 'Remote Poker: Lá Turn là K');
+  assert(remoteApp.communityCards[4].sym === 'A', 'Remote Poker: Lá River là A');
+  assert(remoteApp.isReady() === true, 'Remote Poker: Ván Poker hoàn tất 100% qua Remote Keypad');
+}
+
 console.log(`\n=== TỔNG KẾT: ${passed}/${total} TESTS ĐẠT CHUẨN 100% ===`);
 
 

@@ -1859,6 +1859,9 @@ class AppController {
     this.voiceLogs = [];
     this.lastSpokenText = '';
     this.packetIndex = 0;
+    this.isOnlineRemoteMode = false;
+    this.remoteSocket = null;
+    this.isOnlineConnected = false;
     try {
       this.history = JSON.parse(localStorage.getItem('card_game_history') || '[]');
     } catch (e) {
@@ -2019,7 +2022,165 @@ class AppController {
     if (btnClearComm) btnClearComm.addEventListener('click', () => this.clearCommunityCards());
     document.getElementById('btnCloseModalBottom').addEventListener('click', () => this.closeResultModal());
 
+    // Online Remote Live Mode Events
+    const btnToggleOnline = document.getElementById('btnToggleOnlineRemote');
+    if (btnToggleOnline) btnToggleOnline.addEventListener('click', () => this.toggleOnlineRemoteMode());
+
+    const btnExitOnline = document.getElementById('btnExitOnlineRemote');
+    if (btnExitOnline) btnExitOnline.addEventListener('click', () => this.toggleOnlineRemoteMode(false));
+
+    const btnRemoteUndo = document.getElementById('btnRemoteUndo');
+    if (btnRemoteUndo) btnRemoteUndo.addEventListener('click', () => this.undo());
+
+    const btnRemoteCalc = document.getElementById('btnRemoteCalculate');
+    if (btnRemoteCalc) btnRemoteCalc.addEventListener('click', () => {
+      if (this.isReady()) {
+        this.startNewRound();
+      } else {
+        this.onHiddenCardClick();
+      }
+    });
+
+    const btnRemoteReset = document.getElementById('btnRemoteReset');
+    if (btnRemoteReset) btnRemoteReset.addEventListener('click', () => this.resetTable());
+
     this.setupVoiceTrainerEvents();
+  }
+
+  toggleOnlineRemoteMode(forceState) {
+    this.isOnlineRemoteMode = typeof forceState === 'boolean' ? forceState : !this.isOnlineRemoteMode;
+    const btn = document.getElementById('btnToggleOnlineRemote');
+    const onlinePanel = document.getElementById('onlineRemotePanel');
+    const manualBar = document.getElementById('manualActionBar');
+    const manualGrid = document.getElementById('manualDeckGridWrap');
+    const txtIcon = document.getElementById('txtOnlineIcon');
+    const txtTitle = document.getElementById('txtOnlineTitle');
+
+    if (this.isOnlineRemoteMode) {
+      if (btn) {
+        btn.style.background = '#34C759';
+        btn.style.color = '#FFFFFF';
+        if (txtIcon) txtIcon.textContent = '📶';
+        if (txtTitle) txtTitle.textContent = 'Online BẬT';
+      }
+      if (onlinePanel) onlinePanel.style.display = 'block';
+      if (manualBar) manualBar.style.display = 'none';
+      if (manualGrid) manualGrid.style.display = 'none';
+      this.initRemoteSocket();
+    } else {
+      if (btn) {
+        btn.style.background = '';
+        btn.style.color = '';
+        if (txtIcon) txtIcon.textContent = '📡';
+        if (txtTitle) txtTitle.textContent = 'Online';
+      }
+      if (onlinePanel) onlinePanel.style.display = 'none';
+      if (manualBar) manualBar.style.display = '';
+      if (manualGrid) manualGrid.style.display = '';
+    }
+    this.renderPlayers();
+    this.updateUI();
+  }
+
+  initRemoteSocket() {
+    if (this.remoteSocket) return;
+    try {
+      if (typeof WebSocket === 'undefined') return;
+      const serverUrl = (typeof localStorage !== 'undefined' && localStorage.getItem('remote_server_url')) || 'http://localhost:4000';
+      const wsUrl = serverUrl.replace(/^http/, 'ws') + '/socket.io/?EIO=4&transport=websocket';
+      const ws = new WebSocket(wsUrl);
+      this.remoteSocket = ws;
+
+      const dot = document.getElementById('onlineDot');
+      const statusTxt = document.getElementById('onlineStatusText');
+
+      ws.onopen = () => {
+        this.isOnlineConnected = true;
+        if (dot) { dot.style.background = '#34C759'; dot.style.boxShadow = '0 0 6px #34C759'; }
+        if (statusTxt) { statusTxt.textContent = 'Live Online: Đang nhận số'; statusTxt.style.color = '#34C759'; }
+      };
+
+      ws.onmessage = (event) => {
+        const data = event.data;
+        if (typeof data !== 'string') return;
+        if (data.startsWith('0')) {
+          ws.send('40');
+        } else if (data === '2') {
+          ws.send('3');
+        } else if (data.startsWith('42')) {
+          try {
+            const parsed = JSON.parse(data.substring(2));
+            const eventName = parsed[0];
+            const payload = parsed[1];
+            if (eventName === 'remote_card_received') {
+              this.processRemoteCardInput(payload.cardValue, payload.action);
+            }
+          } catch (e) {
+            console.error('Error parsing remote socket packet:', e);
+          }
+        }
+      };
+
+      ws.onclose = () => {
+        this.isOnlineConnected = false;
+        this.remoteSocket = null;
+        if (dot) { dot.style.background = '#FF9500'; dot.style.boxShadow = '0 0 6px #FF9500'; }
+        if (statusTxt) { statusTxt.textContent = 'Live Online: Đang kết nối lại...'; statusTxt.style.color = '#FF9500'; }
+      };
+
+      ws.onerror = () => {
+        this.isOnlineConnected = false;
+        if (dot) { dot.style.background = '#FF3B30'; dot.style.boxShadow = '0 0 6px #FF3B30'; }
+        if (statusTxt) { statusTxt.textContent = 'Live Online: Mất kết nối Live'; statusTxt.style.color = '#FF3B30'; }
+      };
+    } catch (e) {
+      console.warn('Could not initialize remote socket:', e);
+    }
+  }
+
+  processRemoteCardInput(cardValue, action) {
+    if (action === 'DELETE') {
+      this.undo();
+      return;
+    }
+    if (action === 'CLEAR') {
+      this.resetTable();
+      return;
+    }
+    if (action === 'ADD' || !action) {
+      if (cardValue === '0' || cardValue === '__hidden__' || cardValue === 0) {
+        this.onHiddenCardClick();
+        return;
+      }
+      const num = parseInt(cardValue, 10);
+      if (isNaN(num)) return;
+      let sym = '';
+      let raw = 0;
+      if (num === 1) {
+        sym = 'A';
+        raw = 14;
+      } else if (num >= 2 && num <= 10) {
+        sym = String(num);
+        raw = num;
+      } else if (num === 11) {
+        sym = 'J';
+        raw = 11;
+      } else if (num === 12) {
+        sym = 'Q';
+        raw = 12;
+      } else if (num === 13) {
+        sym = 'K';
+        raw = 13;
+      } else {
+        return;
+      }
+      const rObj = RANKS.find(r => r.sym === sym);
+      if (rObj) {
+        this.onRankClick(rObj);
+      } else {
+        this.onRankClick({ raw: raw, sym: sym, lieng: num === 1 ? 1 : (num >= 10 ? 0 : num) });
+      }
+    }
   }
 
   renamePlayer(idx) {
