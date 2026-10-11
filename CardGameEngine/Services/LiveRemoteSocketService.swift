@@ -7,7 +7,11 @@ import UIKit
 public class LiveRemoteSocketService: NSObject, ObservableObject {
     public static let shared = LiveRemoteSocketService()
 
-    @Published public var isConnected: Bool = false
+    @Published public var isConnected: Bool = false {
+        didSet {
+            onConnectionStatusChanged?(isConnected)
+        }
+    }
     @Published public var connectionStatus: String = "Chưa kết nối"
     @Published public var lastReceivedCard: String? = nil
 
@@ -17,6 +21,8 @@ public class LiveRemoteSocketService: NSObject, ObservableObject {
 
     /// Callback khi nhận số từ Web Live: cardValue ("1"..."13", "0", "__hidden__"), action ("ADD", "DELETE", "CLEAR")
     public var onRemoteCardReceived: ((_ cardValue: String?, _ action: String) -> Void)?
+    /// Callback khi trạng thái kết nối thay đổi
+    public var onConnectionStatusChanged: ((Bool) -> Void)?
 
     private override init() {
         super.init()

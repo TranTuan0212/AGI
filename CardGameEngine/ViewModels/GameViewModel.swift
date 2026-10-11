@@ -106,6 +106,7 @@ public class GameViewModel: ObservableObject {
             }
         }
     }
+    @Published public var isOnlineRemoteConnected: Bool = false
 
     // Floating Close Button (Nút Đóng nổi thứ 2 trong Bảng Điểm)
     @Published public var isFloatingCloseButtonEnabled: Bool {
@@ -626,6 +627,11 @@ public class GameViewModel: ObservableObject {
                 self.processRemoteCardInput(cardVal)
             }
         }
+        LiveRemoteSocketService.shared.onConnectionStatusChanged = { [weak self] connected in
+            DispatchQueue.main.async {
+                self?.isOnlineRemoteConnected = connected
+            }
+        }
         let targetRoom = auth.currentUserId ?? auth.currentUsername
         LiveRemoteSocketService.shared.connect(
             serverURL: auth.serverURL,
@@ -636,6 +642,7 @@ public class GameViewModel: ObservableObject {
 
     public func stopOnlineRemoteSession() {
         LiveRemoteSocketService.shared.disconnect()
+        isOnlineRemoteConnected = false
     }
 
     public func processRemoteCardInput(_ rawValue: String) {

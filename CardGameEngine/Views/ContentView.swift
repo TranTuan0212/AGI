@@ -459,6 +459,11 @@ struct VoiceOnlyControlView: View {
 // MARK: - Online Remote Control View (Hiển thị khi bật Nhập Online)
 struct OnlineRemoteControlView: View {
     @ObservedObject var viewModel: GameViewModel
+    @ObservedObject var socketService = LiveRemoteSocketService.shared
+    
+    private var isConnected: Bool {
+        viewModel.isOnlineRemoteConnected || socketService.isConnected
+    }
     
     var body: some View {
         VStack(spacing: 8) {
@@ -466,11 +471,11 @@ struct OnlineRemoteControlView: View {
             HStack(spacing: 8) {
                 HStack(spacing: 6) {
                     Circle()
-                        .fill(viewModel.isOnlineRemoteConnected ? Color.green : Color.orange)
+                        .fill(isConnected ? Color.green : Color.orange)
                         .frame(width: 10, height: 10)
-                    Text(viewModel.isOnlineRemoteConnected ? "Live Online: [\(AppAuthManager.shared.currentUsername ?? "User")] Đang nhận số" : "Live Online: [\(AppAuthManager.shared.currentUsername ?? "User")] Đang kết nối...")
+                    Text(isConnected ? "Live Online: [\(AppAuthManager.shared.currentUsername ?? "User")] Đang nhận số" : "Live Online: [\(AppAuthManager.shared.currentUsername ?? "User")] Đang kết nối...")
                         .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(viewModel.isOnlineRemoteConnected ? .green : .orange)
+                        .foregroundColor(isConnected ? .green : .orange)
                 }
                 
                 Spacer()
