@@ -35,7 +35,7 @@ public struct VietnameseCardVoiceParser {
         "bốn": .four, "bon": .four, "tư": .four, "tu": .four, "bóng": .four, "bón": .four, "4": .four,
         
         // 5
-        "năm": .five, "ngũ": .five, "ngu": .five, "5": .five,
+        "năm": .five, "nam": .five, "lăm": .five, "lam": .five, "ngũ": .five, "ngu": .five, "5": .five,
         
         // 6
         "sáu": .six, "sau": .six, "lục": .six, "luc": .six, "6": .six,
@@ -98,6 +98,7 @@ public struct VietnameseCardVoiceParser {
         "nhà", "nha", "tụ", "tu",
         "với", "voi",
         "nhập", "nhap", "thêm", "them", "lấy", "lay",
+        "không", "khong",
         "nữa", "nua", "nhé", "nhe", "rồi", "roi",
         "__pause__"
     ]
@@ -298,14 +299,12 @@ public struct VietnameseCardVoiceParser {
             .replacingOccurrences(of: "bo qua", with: "__hidden__")
             .replacingOccurrences(of: "bài ẩn", with: "__hidden__")
             .replacingOccurrences(of: "bai an", with: "__hidden__")
-            .replacingOccurrences(of: "không thấy", with: "__hidden__")
-            .replacingOccurrences(of: "khong thay", with: "__hidden__")
-            .replacingOccurrences(of: "không bài", with: "__hidden__")
-            .replacingOccurrences(of: "khong bai", with: "__hidden__")
-            .replacingOccurrences(of: "lá không", with: "__hidden__")
-            .replacingOccurrences(of: "la khong", with: "__hidden__")
-            .replacingOccurrences(of: "con không", with: "__hidden__")
-            .replacingOccurrences(of: "con khong", with: "__hidden__")
+            .replacingOccurrences(of: "ốp bài", with: "__hidden__")
+            .replacingOccurrences(of: "op bai", with: "__hidden__")
+            .replacingOccurrences(of: "lá ốp", with: "__hidden__")
+            .replacingOccurrences(of: "la op", with: "__hidden__")
+            .replacingOccurrences(of: "cây ốp", with: "__hidden__")
+            .replacingOccurrences(of: "cay op", with: "__hidden__")
             .replacingOccurrences(of: "lá 0", with: "__hidden__")
             .replacingOccurrences(of: "la 0", with: "__hidden__")
             .replacingOccurrences(of: "con 0", with: "__hidden__")
@@ -344,10 +343,11 @@ public struct VietnameseCardVoiceParser {
         
         func isHiddenToken(_ t: String) -> Bool {
             return t == "__hidden__" || t == "bỏ" || t == "bo" ||
-                   t == "úp" || t == "up" ||
-                   t == "ấp" || t == "ap" ||
+                   t == "ốp" || t == "op" || t == "ộp" ||
+                   t == "úp" || t == "up" || t == "ụp" ||
+                   t == "ấp" || t == "ap" || t == "ập" ||
                    t == "mù" || t == "mu" ||
-                   t == "0" || t == "không" || t == "khong"
+                   t == "0"
         }
         
         while i < tokens.count {

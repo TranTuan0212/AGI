@@ -833,15 +833,31 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   const resBon = VietnameseCardVoiceParser.parse('bon cơ');
   assert(resBon.length === 1 && resBon[0].rank === 4 && resBon[0].suit === 'hearts', 'Voice Parser: "bon cơ" vẫn chuẩn là lá 4 cơ (không bị nhầm lẫn với "bo")');
 
-  // Test các từ khóa và biến thể bài ẩn mới: úp, ấp, mù, 0, không, không thấy
+  // Test từ "không", "không thấy" -> Đã bị loại bỏ khỏi bài ẩn (đóng vai trò từ đệm, tránh nhầm lẫn với số 10)
   const resKhongThay = VietnameseCardVoiceParser.parse('không thấy');
-  assert(resKhongThay.length === 1 && resKhongThay[0].isHidden === true, 'Voice Parser: "không thấy" -> Lá bài ẩn (?)');
+  assert(resKhongThay.length === 0, 'Voice Parser: "không thấy" đã bị loại bỏ khỏi bài ẩn (là từ đệm)');
 
   const resKhong = VietnameseCardVoiceParser.parse('không');
-  assert(resKhong.length === 1 && resKhong[0].isHidden === true, 'Voice Parser: "không" -> Lá bài ẩn (?)');
+  assert(resKhong.length === 0, 'Voice Parser: "không" đã bị loại bỏ khỏi bài ẩn (là từ đệm)');
 
   const resKhongRaw = VietnameseCardVoiceParser.parse('khong');
-  assert(resKhongRaw.length === 1 && resKhongRaw[0].isHidden === true, 'Voice Parser: "khong" -> Lá bài ẩn (?)');
+  assert(resKhongRaw.length === 0, 'Voice Parser: "khong" đã bị loại bỏ khỏi bài ẩn (là từ đệm)');
+
+  // Test các từ khóa và biến thể bài ẩn mới theo âm ngậm môi -p: ốp, úp, ấp, mù, 0, bỏ
+  const resOp = VietnameseCardVoiceParser.parse('ốp');
+  assert(resOp.length === 1 && resOp[0].isHidden === true, 'Voice Parser: "ốp" -> Lá bài ẩn (?) (âm p ngắt dứt khoát 0ms)');
+
+  const resOpRaw = VietnameseCardVoiceParser.parse('op');
+  assert(resOpRaw.length === 1 && resOpRaw[0].isHidden === true, 'Voice Parser: "op" -> Lá bài ẩn (?)');
+
+  const resOpDau = VietnameseCardVoiceParser.parse('ộp');
+  assert(resOpDau.length === 1 && resOpDau[0].isHidden === true, 'Voice Parser: "ộp" -> Lá bài ẩn (?)');
+
+  const resOpBai = VietnameseCardVoiceParser.parse('ốp bài');
+  assert(resOpBai.length === 1 && resOpBai[0].isHidden === true, 'Voice Parser: "ốp bài" -> Lá bài ẩn (?)');
+
+  const resLaOp = VietnameseCardVoiceParser.parse('lá ốp');
+  assert(resLaOp.length === 1 && resLaOp[0].isHidden === true, 'Voice Parser: "lá ốp" -> Lá bài ẩn (?)');
 
   const resUp = VietnameseCardVoiceParser.parse('úp');
   assert(resUp.length === 1 && resUp[0].isHidden === true, 'Voice Parser: "úp" -> Lá bài ẩn (?) (âm p dứt khoát 0ms)');
@@ -849,8 +865,17 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   const resUpRaw = VietnameseCardVoiceParser.parse('up');
   assert(resUpRaw.length === 1 && resUpRaw[0].isHidden === true, 'Voice Parser: "up" -> Lá bài ẩn (?)');
 
+  const resUpNang = VietnameseCardVoiceParser.parse('ụp');
+  assert(resUpNang.length === 1 && resUpNang[0].isHidden === true, 'Voice Parser: "ụp" -> Lá bài ẩn (?)');
+
   const resAp = VietnameseCardVoiceParser.parse('ấp');
   assert(resAp.length === 1 && resAp[0].isHidden === true, 'Voice Parser: "ấp" -> Lá bài ẩn (?)');
+
+  const resApRaw = VietnameseCardVoiceParser.parse('ap');
+  assert(resApRaw.length === 1 && resApRaw[0].isHidden === true, 'Voice Parser: "ap" -> Lá bài ẩn (?)');
+
+  const resApNang = VietnameseCardVoiceParser.parse('ập');
+  assert(resApNang.length === 1 && resApNang[0].isHidden === true, 'Voice Parser: "ập" -> Lá bài ẩn (?)');
 
   const resMu = VietnameseCardVoiceParser.parse('mù');
   assert(resMu.length === 1 && resMu[0].isHidden === true, 'Voice Parser: "mù" -> Lá bài ẩn (?)');
@@ -872,6 +897,19 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
 
   const resApBai = VietnameseCardVoiceParser.parse('ấp bài');
   assert(resApBai.length === 1 && resApBai[0].isHidden === true, 'Voice Parser: "ấp bài" -> Lá bài ẩn (?)');
+
+  // Test nhận diện chuỗi chữ số tự nhiên một, hai, ba, bốn, năm, sáu, bảy, tám, chín, mười
+  const resChuSo = VietnameseCardVoiceParser.parse('một hai ba bốn năm sáu bảy tám chín mười');
+  assert(resChuSo.length === 10, 'Voice Parser: Nhận diện đầy đủ 10 số dạng chữ "một hai ba bốn năm sáu bảy tám chín mười"');
+  assert(resChuSo[0].rank === 14 && resChuSo[1].rank === 2 && resChuSo[2].rank === 3 && resChuSo[3].rank === 4 && resChuSo[4].rank === 5, 'Voice Parser: Đúng rank từ một (A) đến năm (5)');
+  assert(resChuSo[5].rank === 6 && resChuSo[6].rank === 7 && resChuSo[7].rank === 8 && resChuSo[8].rank === 9 && resChuSo[9].rank === 10, 'Voice Parser: Đúng rank từ sáu (6) đến mười (10)');
+
+  // Test biến thể chữ không dấu "nam" (5) và "lăm" (5) trong số ghép
+  const resNamKhongDau = VietnameseCardVoiceParser.parse('nam');
+  assert(resNamKhongDau.length === 1 && resNamKhongDau[0].rank === 5, 'Voice Parser: "nam" (không dấu) -> lá 5 chuẩn xác');
+
+  const resMuoiLam = VietnameseCardVoiceParser.parse('mười lăm');
+  assert(resMuoiLam.length === 2 && resMuoiLam[0].rank === 10 && resMuoiLam[1].rank === 5, 'Voice Parser: "mười lăm" -> tách đúng lá 10 và lá 5');
 
   // Đảm bảo số 10 KHÔNG bị biến thành lá ẩn 0
   const resMuoi = VietnameseCardVoiceParser.parse('10');
@@ -1465,12 +1503,12 @@ console.log('\n--- Kiểm thử Nhận diện Giọng nói Tiếng Việt (Vietn
   app.processVoiceInput('mười quy', 1, 7150);
   assert(app.players[1].cards.length === 1 && app.players[1].cards[0].rank === 12, 'Snapshot 21.8: Đọc tiếp "quy" -> Gán ngay lá 12 (Q) vào Tụ 2!');
 
-  // 21.9: Kịch bản Apple sửa hồi tố "nam nắm năm" -> "5 5 5" -> Người dùng đọc tiếp "ba" ("5 5 5 3"):
+  // 21.9: Kịch bản Apple sửa hồi tố "nằm nắm năm" -> "5 5 5" -> Người dùng đọc tiếp "ba" ("5 5 5 3"):
   app.startNewRound();
   app.initPlayers();
-  // Bước 1: Nói "nam nắm năm" -> Nhận diện đúng 1 lá 5 vào Tụ 1
-  app.processVoiceInput('nam nắm năm', 1, 8000);
-  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 5, 'Snapshot 21.9: Đọc "nam nắm năm" -> Tụ 1 nhận đúng 1 lá 5');
+  // Bước 1: Nói "nằm nắm năm" -> Nhận diện đúng 1 lá 5 vào Tụ 1
+  app.processVoiceInput('nằm nắm năm', 1, 8000);
+  assert(app.players[0].cards.length === 1 && app.players[0].cards[0].rank === 5, 'Snapshot 21.9: Đọc "nằm nắm năm" -> Tụ 1 nhận đúng 1 lá 5');
 
   // Bước 2: Apple tự ý sửa hồi tố thành "5 5 5" mà không có từ mới nào nói thêm -> VÔ HIỆU HÓA sửa đổi của Apple!
   app.processVoiceInput('5 5 5', 1, 8800);

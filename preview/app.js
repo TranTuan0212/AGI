@@ -1516,7 +1516,7 @@ class VietnameseCardVoiceParser {
     // 4
     'bốn': 4, 'bon': 4, 'tư': 4, 'tu': 4, 'bóng': 4, 'bón': 4, '4': 4,
     // 5
-    'năm': 5, 'ngũ': 5, 'ngu': 5, '5': 5,
+    'năm': 5, 'nam': 5, 'lăm': 5, 'lam': 5, 'ngũ': 5, 'ngu': 5, '5': 5,
     // 6
     'sáu': 6, 'sau': 6, 'lục': 6, 'luc': 6, '6': 6,
     // 7
@@ -1560,6 +1560,7 @@ class VietnameseCardVoiceParser {
     'nhà', 'nha', 'tụ', 'tu',
     'với', 'voi',
     'nhập', 'nhap', 'thêm', 'them', 'lấy', 'lay',
+    'không', 'khong',
     'nữa', 'nua', 'nhé', 'nhe', 'rồi', 'roi',
     '__pause__'
   ]);
@@ -1697,14 +1698,12 @@ class VietnameseCardVoiceParser {
       .replace(/bo qua/g, '__hidden__')
       .replace(/bài ẩn/g, '__hidden__')
       .replace(/bai an/g, '__hidden__')
-      .replace(/không thấy/g, '__hidden__')
-      .replace(/khong thay/g, '__hidden__')
-      .replace(/không bài/g, '__hidden__')
-      .replace(/khong bai/g, '__hidden__')
-      .replace(/lá không/g, '__hidden__')
-      .replace(/la khong/g, '__hidden__')
-      .replace(/con không/g, '__hidden__')
-      .replace(/con khong/g, '__hidden__')
+      .replace(/ốp bài/g, '__hidden__')
+      .replace(/op bai/g, '__hidden__')
+      .replace(/lá ốp/g, '__hidden__')
+      .replace(/la op/g, '__hidden__')
+      .replace(/cây ốp/g, '__hidden__')
+      .replace(/cay op/g, '__hidden__')
       .replace(/lá 0/g, '__hidden__')
       .replace(/la 0/g, '__hidden__')
       .replace(/con 0/g, '__hidden__')
@@ -1741,10 +1740,11 @@ class VietnameseCardVoiceParser {
     let hadPauseSinceLastCard = false;
 
     const isHiddenToken = t => t === '__hidden__' || t === 'bỏ' || t === 'bo' ||
-                               t === 'úp' || t === 'up' ||
-                               t === 'ấp' || t === 'ap' ||
+                               t === 'ốp' || t === 'op' || t === 'ộp' ||
+                               t === 'úp' || t === 'up' || t === 'ụp' ||
+                               t === 'ấp' || t === 'ap' || t === 'ập' ||
                                t === 'mù' || t === 'mu' ||
-                               t === '0' || t === 'không' || t === 'khong';
+                               t === '0';
 
     while (i < tokens.length) {
       const token = tokens[i];
