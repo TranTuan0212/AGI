@@ -1,8 +1,16 @@
 workflows:
   ios-app-build:
     name: Build iOS IPA (Unsigned / TrollStore / AltStore / Sideloadly)
-    max_build_duration: 60
+    max_build_duration: 25
     instance_type: mac_mini_m2
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: 'main'
+          include: true
+          source: true
+      cancel_previous_builds: true
     environment:
       xcode: latest
       cocoapods: default
@@ -50,8 +58,16 @@ workflows:
 
   ios-app-signed:
     name: Build iOS Signed IPA (App Store / TestFlight / Ad-Hoc)
-    max_build_duration: 60
+    max_build_duration: 25
     instance_type: mac_mini_m2
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: 'main'
+          include: true
+          source: true
+      cancel_previous_builds: true
     environment:
       ios_signing:
         distribution_type: ad_hoc
