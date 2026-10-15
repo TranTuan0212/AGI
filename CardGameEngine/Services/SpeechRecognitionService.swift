@@ -66,7 +66,7 @@ public class SpeechRecognitionService: ObservableObject {
     public static func getContextualStrings() -> [String] {
         var list = [
             "Át", "Xì", "Át cơ", "Át rô", "Át tép", "Át chuồn", "Át bích", "át", "xì", "át cơ", "át rô", "át tép", "át chuồn", "át bích",
-            "K", "Già", "Ka", "Ca", "Cây", "Da", "Dà", "Dài", "Vài", "Và", "Dạ", "k", "già", "ka", "ca", "cây", "da", "dà", "dài", "vài", "và", "dạ",
+            "K", "Già", "Ka", "Ca", "Cây", "Da", "Dà", "Dạ", "k", "già", "ka", "ca", "cây", "da", "dà", "dạ",
             "Q", "Đầm", "Quy", "Qui", "Kiu", "Huy", "q", "đầm", "quy", "qui", "kiu", "huy",
             "J", "Bồi", "Bồ", "Bồn", "Bùi", "Bui", "Ri", "Gi", "Di", "Dê", "Dây", "Day", "Chây", "Giây", "Duy", "Con bồi", "Lá bồi",
             "j", "bồi", "bồ", "bồn", "bùi", "bui", "ri", "gi", "di", "dê", "dây", "day", "chây", "giây", "duy",

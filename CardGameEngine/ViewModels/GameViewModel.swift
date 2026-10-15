@@ -70,6 +70,7 @@ public class GameViewModel: ObservableObject {
     private var currentVoiceSegmentID: Int = 0
     private var lastVoiceCardPlacedTime: CFAbsoluteTime = 0
     private var lastProcessedTokenIndex: Int = -1
+    private var lastProcessedVoiceText: String = ""
     
     // Rank-Only Mode (A->K) for 3 Cây & 2 Lá
     @Published public var isRankOnlyMode: Bool {
@@ -246,6 +247,7 @@ public class GameViewModel: ObservableObject {
         pendingTenCard = nil
         processedVoiceCardsCount = 0
         currentVoiceSegmentID = 0
+        lastProcessedVoiceText = ""
         
         if shouldAutoRecord {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
@@ -283,6 +285,7 @@ public class GameViewModel: ObservableObject {
         currentVoiceSegmentID = 0
         lastVoiceCardPlacedTime = 0
         lastProcessedTokenIndex = -1
+        lastProcessedVoiceText = ""
         
         if shouldAutoRecord {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
@@ -311,6 +314,7 @@ public class GameViewModel: ObservableObject {
         currentVoiceSegmentID = 0
         lastVoiceCardPlacedTime = 0
         lastProcessedTokenIndex = -1
+        lastProcessedVoiceText = ""
         if sherpaService.isModelLoaded {
             self.voiceBannerText = "🎙️ Đang nghe [AI Offline]... Hãy đọc bài"
             self.sherpaService.startRecording(
@@ -809,7 +813,12 @@ public class GameViewModel: ObservableObject {
             currentVoiceSegmentID = segmentID
             currentSegmentConfirmedCards.removeAll()
             lastProcessedTokenIndex = -1
+            lastProcessedVoiceText = ""
         }
+        
+        let cleanText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard cleanText != lastProcessedVoiceText else { return }
+        lastProcessedVoiceText = cleanText
         
         let displaySpoken = VietnameseCardVoiceParser.separateDigits(text)
         if !displaySpoken.isEmpty {
