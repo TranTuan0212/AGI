@@ -298,7 +298,7 @@ public class SpeechRecognitionService: ObservableObject {
                         var logItem = "[\(timeStr)] 🎙️ Gói #\(pIdx): \"\(text)\""
                         if !previousText.isEmpty && previousText != text {
                             if !text.hasPrefix(previousText) {
-                                logItem += "\n  🔄 [APPLE SỬA ĐỔI]: Trước: \"\(previousText)\" ➔ Sau: \"\(text)\""
+                                logItem += "\n  🛡️ [ĐÃ CHỐT - BỎ QUA APPLE SỬA]: Trước: \"\(previousText)\" ➔ Sau: \"\(text)\""
                             } else {
                                 let added = String(text.dropFirst(previousText.count)).trimmingCharacters(in: .whitespaces)
                                 if !added.isEmpty {
