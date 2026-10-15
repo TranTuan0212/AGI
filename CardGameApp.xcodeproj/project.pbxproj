@@ -39,6 +39,8 @@
 		AUTH0002F5A6012345678902 /* AppLoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AUTH0002E5F6012345678902 /* AppLoginView.swift */; };
 		FLT00001F5A6012345678901 /* FloatingCloseButtonConfigView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FLT00001E5F6012345678901 /* FloatingCloseButtonConfigView.swift */; };
 		LIVE0001F5A6012345678901 /* LiveRemoteSocketService.swift in Sources */ = {isa = PBXBuildFile; fileRef = LIVE0001E5F6012345678901 /* LiveRemoteSocketService.swift */; };
+		SHERPA01F5A6012345678901 /* SherpaSpeechRecognitionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = SHERPA01E5F6012345678901 /* SherpaSpeechRecognitionService.swift */; };
+		SHERPA02F5A6012345678902 /* SherpaModel in Resources */ = {isa = PBXBuildFile; fileRef = SHERPA02E5F6012345678902 /* SherpaModel */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -78,6 +80,8 @@
 		AUTH0002E5F6012345678902 /* AppLoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLoginView.swift; sourceTree = "<group>"; };
 		FLT00001E5F6012345678901 /* FloatingCloseButtonConfigView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingCloseButtonConfigView.swift; sourceTree = "<group>"; };
 		LIVE0001E5F6012345678901 /* LiveRemoteSocketService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveRemoteSocketService.swift; sourceTree = "<group>"; };
+		SHERPA01E5F6012345678901 /* SherpaSpeechRecognitionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SherpaSpeechRecognitionService.swift; sourceTree = "<group>"; };
+		SHERPA02E5F6012345678902 /* SherpaModel */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Resources/SherpaModel"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -169,6 +173,7 @@
 				LIC00002E5F6012345678902 /* DeviceIdentityService.swift */,
 				LIC00003E5F6012345678903 /* LicenseService.swift */,
 				LIVE0001E5F6012345678901 /* LiveRemoteSocketService.swift */,
+				SHERPA01E5F6012345678901 /* SherpaSpeechRecognitionService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -185,6 +190,7 @@
 				F867080DDDCAA8CC74A91BE2 /* Views */,
 				F5711A4F8FE991CF76A72175 /* Assets.xcassets */,
 				BAD676C6E129A504558040AC /* Info.plist */,
+				SHERPA02E5F6012345678902 /* SherpaModel */,
 			);
 			path = CardGameEngine;
 			sourceTree = "<group>";
@@ -247,6 +253,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				536C1F7229F32371F19E0950 /* Assets.xcassets in Resources */,
+				SHERPA02F5A6012345678902 /* SherpaModel in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -288,6 +295,7 @@
 				AUTH0002F5A6012345678902 /* AppLoginView.swift in Sources */,
 				FLT00001F5A6012345678901 /* FloatingCloseButtonConfigView.swift in Sources */,
 				LIVE0001F5A6012345678901 /* LiveRemoteSocketService.swift in Sources */,
+				SHERPA01F5A6012345678901 /* SherpaSpeechRecognitionService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

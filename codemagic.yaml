@@ -22,9 +22,13 @@ workflows:
       - name: Initialize Xcode Project
         script: |
           echo "Initializing project in $(pwd)..."
+          if ! command -v xcodegen &> /dev/null; then
+            echo "Installing xcodegen via Homebrew..."
+            brew install xcodegen || true
+          fi
           if command -v xcodegen &> /dev/null; then
-            echo "Running xcodegen to ensure up-to-date project..."
-            xcodegen generate || true
+            echo "Running xcodegen generate..."
+            xcodegen generate
           fi
           echo "Resolving Swift Package Manager dependencies..."
           xcodebuild -resolvePackageDependencies -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" || true
@@ -82,8 +86,12 @@ workflows:
     scripts:
       - name: Set up code signing settings on Xcode project
         script: |
+          if ! command -v xcodegen &> /dev/null; then
+            echo "Installing xcodegen via Homebrew..."
+            brew install xcodegen || true
+          fi
           if command -v xcodegen &> /dev/null; then
-            xcodegen generate || true
+            xcodegen generate
           fi
           xcodebuild -resolvePackageDependencies -project "$XCODE_PROJECT" -scheme "$XCODE_SCHEME" || true
           xcode-project use-profiles
