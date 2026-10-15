@@ -3,6 +3,10 @@ options:
   bundleIdPrefix: com.trantuan
   deploymentTarget:
     iOS: "16.0"
+packages:
+  sherpa-onnx:
+    url: https://github.com/k2-fsa/sherpa-onnx
+    exact: 1.13.8
 targets:
   CardGameApp:
     type: application
@@ -10,6 +14,9 @@ targets:
     deploymentTarget: "16.0"
     sources:
       - path: CardGameEngine
+    dependencies:
+      - package: sherpa-onnx
+        product: sherpa-onnx
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.trantuan.cardgame

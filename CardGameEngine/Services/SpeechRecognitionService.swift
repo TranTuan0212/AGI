@@ -47,7 +47,7 @@ public class SpeechRecognitionService: ObservableObject {
     
     // Thread synchronization lock for CoreAudio realtime tap vs Speech completion
     private let lock = NSLock()
-    private var isAcceptingAudio: Bool = false
+    public private(set) var isAcceptingAudio: Bool = false
     private var activeRequest: SFSpeechAudioBufferRecognitionRequest? = nil
     
     // Tap installation state to prevent calling removeTap when no tap exists

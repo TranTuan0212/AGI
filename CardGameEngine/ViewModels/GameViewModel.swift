@@ -60,6 +60,7 @@ public class GameViewModel: ObservableObject {
     
     // Voice Recognition - Realtime Confirmed Cards Snapshot
     @Published public var voiceService = SpeechRecognitionService()
+    @Published public var sherpaService = SherpaSpeechRecognitionService.shared
     @Published public var voiceBannerText: String? = nil
     public private(set) var confirmedVoiceCards: [Card] = []
     public private(set) var currentSegmentConfirmedCards: [Card] = []
@@ -182,6 +183,23 @@ public class GameViewModel: ObservableObject {
                 self?.objectWillChange.send()
             }
             .store(in: &cancellables)
+            
+        sherpaService.objectWillChange
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] _ in
+                guard let self = self else { return }
+                if self.sherpaService.isRecording {
+                    self.voiceService.isRecording = true
+                    self.voiceService.audioLevel = self.sherpaService.audioLevel
+                    self.voiceService.clarityStatus = self.sherpaService.clarityStatus
+                    self.voiceService.clarityColor = self.sherpaService.clarityColor
+                    self.voiceService.recognizedText = self.sherpaService.recognizedText
+                } else if !self.voiceService.isAcceptingAudio {
+                    self.voiceService.isRecording = false
+                }
+                self.objectWillChange.send()
+            }
+            .store(in: &cancellables)
     }
     
     private func setupInitialPlayers() {
@@ -203,8 +221,9 @@ public class GameViewModel: ObservableObject {
     
     public func resetTable() {
         LicenseService.shared.checkLicenseOffline()
-        let shouldAutoRecord = LicenseService.shared.isVoiceUnlocked && (isVoiceMode || voiceService.isRecording)
-        if voiceService.isRecording {
+        let shouldAutoRecord = LicenseService.shared.isVoiceUnlocked && (isVoiceMode || voiceService.isRecording || sherpaService.isRecording)
+        if voiceService.isRecording || sherpaService.isRecording {
+            sherpaService.stopRecording()
             voiceService.stopRecording(callEndAudio: false)
             voiceBannerText = nil
         }
@@ -237,8 +256,9 @@ public class GameViewModel: ObservableObject {
     
     public func startNewRound() {
         LicenseService.shared.checkLicenseOffline()
-        let shouldAutoRecord = LicenseService.shared.isVoiceUnlocked && (isVoiceMode || voiceService.isRecording)
-        if voiceService.isRecording {
+        let shouldAutoRecord = LicenseService.shared.isVoiceUnlocked && (isVoiceMode || voiceService.isRecording || sherpaService.isRecording)
+        if voiceService.isRecording || sherpaService.isRecording {
+            sherpaService.stopRecording()
             voiceService.stopRecording(callEndAudio: false)
             voiceBannerText = nil
         }
@@ -275,6 +295,7 @@ public class GameViewModel: ObservableObject {
         LicenseService.shared.checkLicenseOffline()
         guard LicenseService.shared.isVoiceUnlocked else {
             self.isVoiceMode = false
+            self.sherpaService.stopRecording()
             self.voiceService.stopRecording(callEndAudio: false)
             self.voiceBannerText = nil
             self.showVoiceLicenseModal = true
@@ -290,6 +311,30 @@ public class GameViewModel: ObservableObject {
         currentVoiceSegmentID = 0
         lastVoiceCardPlacedTime = 0
         lastProcessedTokenIndex = -1
+        if sherpaService.isModelLoaded {
+            self.voiceBannerText = "🎙️ Đang nghe [AI Offline]... Hãy đọc bài"
+            self.sherpaService.startRecording(
+                onResult: { [weak self] spokenText, segmentID in
+                    DispatchQueue.main.async {
+                        guard let self = self else { return }
+                        self.processSpokenVoice(spokenText, segmentID: segmentID)
+                    }
+                },
+                onError: { [weak self] errorMsg in
+                    DispatchQueue.main.async {
+                        guard let self = self else { return }
+                        self.voiceBannerText = errorMsg
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+                            if self?.voiceService.isRecording == false && self?.sherpaService.isRecording == false {
+                                self?.voiceBannerText = nil
+                            }
+                        }
+                    }
+                }
+            )
+            return
+        }
+
         voiceService.requestAuthorization { [weak self] authorized in
             guard let self = self, authorized else { return }
             self.voiceBannerText = "🎙️ Đang nghe [\(self.voiceService.currentInputDeviceName)]... Hãy đọc bài"
@@ -305,7 +350,7 @@ public class GameViewModel: ObservableObject {
                         guard let self = self else { return }
                         self.voiceBannerText = errorMsg
                         DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
-                            if self?.voiceService.isRecording == false {
+                            if self?.voiceService.isRecording == false && self?.sherpaService.isRecording == false {
                                 self?.voiceBannerText = nil
                             }
                         }
@@ -675,11 +720,12 @@ public class GameViewModel: ObservableObject {
 
     // MARK: - Voice Recognition Handling
     public func toggleVoiceRecognition() {
-        if voiceService.isRecording {
+        if voiceService.isRecording || sherpaService.isRecording {
+            sherpaService.stopRecording()
             voiceService.stopRecording(callEndAudio: false)
             voiceBannerText = "⏹️ Đã dừng ghi âm"
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-                if self?.voiceService.isRecording == false {
+                if self?.voiceService.isRecording == false && self?.sherpaService.isRecording == false {
                     self?.voiceBannerText = nil
                 }
             }
@@ -688,6 +734,30 @@ public class GameViewModel: ObservableObject {
             LicenseService.shared.checkLicenseOffline()
             if !LicenseService.shared.isVoiceUnlocked {
                 self.showVoiceLicenseModal = true
+                return
+            }
+
+            if sherpaService.isModelLoaded {
+                self.voiceBannerText = "🎙️ Đang nghe [AI Offline]... Hãy đọc bài"
+                self.sherpaService.startRecording(
+                    onResult: { [weak self] spokenText, segmentID in
+                        DispatchQueue.main.async {
+                            guard let self = self else { return }
+                            self.processSpokenVoice(spokenText, segmentID: segmentID)
+                        }
+                    },
+                    onError: { [weak self] errorMsg in
+                        DispatchQueue.main.async {
+                            guard let self = self else { return }
+                            self.voiceBannerText = errorMsg
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) { [weak self] in
+                                if self?.voiceService.isRecording == false && self?.sherpaService.isRecording == false {
+                                    self?.voiceBannerText = nil
+                                }
+                            }
+                        }
+                    }
+                )
                 return
             }
 
@@ -708,7 +778,7 @@ public class GameViewModel: ObservableObject {
                                 guard let self = self else { return }
                                 self.voiceBannerText = errorMsg
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) { [weak self] in
-                                    if self?.voiceService.isRecording == false {
+                                    if self?.voiceService.isRecording == false && self?.sherpaService.isRecording == false {
                                         self?.voiceBannerText = nil
                                     }
                                 }
@@ -747,11 +817,12 @@ public class GameViewModel: ObservableObject {
         }
         
         if isReadyToCalculate {
-            if voiceService.isRecording {
+            if voiceService.isRecording || sherpaService.isRecording {
+                sherpaService.stopRecording()
                 voiceService.stopRecording(callEndAudio: false)
                 self.voiceBannerText = "✅ Đã chia đủ bài - Xong ván!"
                 DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
-                    if self?.voiceService.isRecording == false {
+                    if self?.voiceService.isRecording == false && self?.sherpaService.isRecording == false {
                         self?.voiceBannerText = nil
                     }
                 }
