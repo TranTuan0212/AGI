@@ -141,6 +141,12 @@ public class LiveRemoteSocketService: NSObject, ObservableObject {
             }
 
             if eventName == "remote_card_received", array.count > 1, let payload = array[1] as? [String: Any] {
+                // Chống lặp tiếng vọng (Echo loopback): Bỏ qua nếu gói tin do chính App gửi lên
+                let source = payload["source"] as? String
+                if source == "APP" {
+                    return
+                }
+
                 let cardValue = payload["cardValue"] as? String
                 let action = (payload["action"] as? String) ?? "ADD"
 
@@ -175,7 +181,8 @@ public class LiveRemoteSocketService: NSObject, ObservableObject {
         let targetRoom = roomId ?? self.activeRoomId ?? AppAuthManager.shared.currentUserId ?? AppAuthManager.shared.currentUsername ?? "viewer"
         var dict: [String: Any] = [
             "action": action,
-            "roomId": targetRoom
+            "roomId": targetRoom,
+            "source": "APP"
         ]
         if let cv = cardValue {
             dict["cardValue"] = cv
