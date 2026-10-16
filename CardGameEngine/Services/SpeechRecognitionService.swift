@@ -224,7 +224,9 @@ public class SpeechRecognitionService: ObservableObject {
         self.currentOnResult = onResult
         
         do {
-            try audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth, .allowBluetoothA2DP])
+            try audioSession.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .allowBluetooth])
+            try? audioSession.setPreferredSampleRate(16000.0)
+            try? audioSession.setPreferredIOBufferDuration(0.005)
             
             // Prefer Bluetooth microphone if connected
             if let availableInputs = audioSession.availableInputs {
@@ -249,9 +251,6 @@ public class SpeechRecognitionService: ObservableObject {
             self.recognitionRequest = recognitionRequest
             recognitionRequest.shouldReportPartialResults = true
             recognitionRequest.taskHint = .dictation
-            if #available(iOS 13, *), speechRecognizer.supportsOnDeviceRecognition {
-                recognitionRequest.requiresOnDeviceRecognition = true
-            }
             if #available(iOS 16, *) {
                 recognitionRequest.addsPunctuation = false
             }
@@ -476,9 +475,6 @@ public class SpeechRecognitionService: ObservableObject {
             let newRequest = SFSpeechAudioBufferRecognitionRequest()
             newRequest.shouldReportPartialResults = true
             newRequest.taskHint = .dictation
-            if #available(iOS 13, *), speechRecognizer.supportsOnDeviceRecognition {
-                newRequest.requiresOnDeviceRecognition = true
-            }
             if #available(iOS 16, *) {
                 newRequest.addsPunctuation = false
             }
