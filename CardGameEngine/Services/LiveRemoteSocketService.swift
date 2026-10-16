@@ -166,4 +166,23 @@ public class LiveRemoteSocketService: NSObject, ObservableObject {
             self?.sendRaw("3")
         }
     }
+
+    /// Gửi một lá bài vừa đọc bằng giọng nói hoặc thao tác lên Server để đồng bộ sang Web
+    public func sendRemoteCard(cardValue: String?, action: String = "ADD", roomId: String? = nil) {
+        guard isConnected else { return }
+        let targetRoom = roomId ?? AppAuthManager.shared.currentUsername ?? "viewer"
+        var dict: [String: Any] = [
+            "action": action,
+            "roomId": targetRoom
+        ]
+        if let cv = cardValue {
+            dict["cardValue"] = cv
+        }
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: dict),
+              let jsonStr = String(data: jsonData, encoding: .utf8) else {
+            return
+        }
+        let packet = "42[\"live_remote_card\",\(jsonStr)]"
+        sendRaw(packet)
+    }
 }

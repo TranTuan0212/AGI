@@ -254,6 +254,9 @@ public class GameViewModel: ObservableObject {
                 self?.autoStartVoiceForNewRound()
             }
         }
+        if isOnlineRemoteMode && LiveRemoteSocketService.shared.isConnected {
+            LiveRemoteSocketService.shared.sendRemoteCard(cardValue: nil, action: "CLEAR")
+        }
     }
     
     public func startNewRound() {
@@ -291,6 +294,9 @@ public class GameViewModel: ObservableObject {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
                 self?.autoStartVoiceForNewRound()
             }
+        }
+        if isOnlineRemoteMode && LiveRemoteSocketService.shared.isConnected {
+            LiveRemoteSocketService.shared.sendRemoteCard(cardValue: nil, action: "CLEAR")
         }
     }
     
@@ -821,7 +827,7 @@ public class GameViewModel: ObservableObject {
         lastProcessedVoiceText = cleanText
         
         let displaySpoken = VietnameseCardVoiceParser.separateDigits(text)
-        if !displaySpoken.isEmpty {
+        if currentSegmentConfirmedCards.isEmpty && !displaySpoken.isEmpty {
             voiceBannerText = "🎙️ \"\(displaySpoken)\""
         }
         
@@ -924,6 +930,27 @@ public class GameViewModel: ObservableObject {
             currentSegmentConfirmedCards.append(lastAction.card)
             lastProcessedTokenIndex = max(lastProcessedTokenIndex, item.tokenIndex)
             voiceService.appendActionLog("  ➔ ✅ [CHIA BÀI] Gán lá \(lastAction.card.rank.displaySymbol) vào \(lastAction.target)")
+            
+            // Hiển thị trực tiếp luồng bài đã chốt trên banner để không bị giật lùi/nhảy chữ
+            let cardsFlow = currentSegmentConfirmedCards.map { $0.rank.displaySymbol }.joined(separator: " ➔ ")
+            self.voiceBannerText = "🎙️ Đã nhận: \(cardsFlow)"
+            
+            // Đồng bộ tức thì sang Web Live nếu đang kết nối Online Remote
+            if isOnlineRemoteMode && LiveRemoteSocketService.shared.isConnected {
+                let cardValStr: String
+                if item.isHidden {
+                    cardValStr = "__hidden__"
+                } else {
+                    switch lastAction.card.rank {
+                    case .ace: cardValStr = "1"
+                    case .jack: cardValStr = "11"
+                    case .queen: cardValStr = "12"
+                    case .king: cardValStr = "13"
+                    default: cardValStr = "\(lastAction.card.rank.rawValue)"
+                    }
+                }
+                LiveRemoteSocketService.shared.sendRemoteCard(cardValue: cardValStr, action: "ADD")
+            }
         }
     }
     
@@ -976,6 +1003,9 @@ public class GameViewModel: ObservableObject {
     public func undoLastAction() {
         guard let last = actionHistory.popLast() else { return }
         removeCard(last.card)
+        if isOnlineRemoteMode && LiveRemoteSocketService.shared.isConnected {
+            LiveRemoteSocketService.shared.sendRemoteCard(cardValue: nil, action: "DELETE")
+        }
     }
     
     // Random Deal for Testing
