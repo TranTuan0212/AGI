@@ -18,6 +18,7 @@ public class LiveRemoteSocketService: NSObject, ObservableObject {
     private var webSocketTask: URLSessionWebSocketTask?
     private var pingTimer: Timer?
     private var isIntentionalDisconnect: Bool = false
+    private var activeRoomId: String? = nil
 
     /// Callback khi nhận số từ Web Live: cardValue ("1"..."13", "0", "__hidden__"), action ("ADD", "DELETE", "CLEAR")
     public var onRemoteCardReceived: ((_ cardValue: String?, _ action: String) -> Void)?
@@ -32,6 +33,7 @@ public class LiveRemoteSocketService: NSObject, ObservableObject {
     public func connect(serverURL: String, token: String?, roomId: String?) {
         disconnect()
         isIntentionalDisconnect = false
+        self.activeRoomId = roomId ?? AppAuthManager.shared.currentUserId ?? AppAuthManager.shared.currentUsername
 
         var wsBase = AppAuthManager.normalizeURL(serverURL)
         if wsBase.hasPrefix("https://") {
@@ -170,7 +172,7 @@ public class LiveRemoteSocketService: NSObject, ObservableObject {
     /// Gửi một lá bài vừa đọc bằng giọng nói hoặc thao tác lên Server để đồng bộ sang Web
     public func sendRemoteCard(cardValue: String?, action: String = "ADD", roomId: String? = nil) {
         guard isConnected else { return }
-        let targetRoom = roomId ?? AppAuthManager.shared.currentUsername ?? "viewer"
+        let targetRoom = roomId ?? self.activeRoomId ?? AppAuthManager.shared.currentUserId ?? AppAuthManager.shared.currentUsername ?? "viewer"
         var dict: [String: Any] = [
             "action": action,
             "roomId": targetRoom
