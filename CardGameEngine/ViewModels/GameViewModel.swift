@@ -110,6 +110,18 @@ public class GameViewModel: ObservableObject {
     }
     @Published public var isOnlineRemoteConnected: Bool = false
 
+    // Live Web Sync Switch (Công tắc đồng bộ bài giọng nói và reset/hoàn tác 2 chiều với Web Live)
+    @Published public var isLiveSyncEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(isLiveSyncEnabled, forKey: "isLiveSyncEnabled")
+            if isLiveSyncEnabled {
+                startLiveSyncSession()
+            } else if !isOnlineRemoteMode {
+                stopLiveSyncSession()
+            }
+        }
+    }
+
     // Floating Close Button (Nút Đóng nổi thứ 2 trong Bảng Điểm)
     @Published public var isFloatingCloseButtonEnabled: Bool {
         didSet {
@@ -173,8 +185,16 @@ public class GameViewModel: ObservableObject {
         self.floatingCloseButtonRatioY = savedRatioY > 0 ? CGFloat(savedRatioY) : 0.85
         let savedSize = UserDefaults.standard.double(forKey: "floatingCloseButtonSize")
         self.floatingCloseButtonSize = savedSize > 0 ? CGFloat(savedSize) : 60
+        if UserDefaults.standard.object(forKey: "isLiveSyncEnabled") != nil {
+            self.isLiveSyncEnabled = UserDefaults.standard.bool(forKey: "isLiveSyncEnabled")
+        } else {
+            self.isLiveSyncEnabled = true // Mặc định BẬT để sẵn sàng đồng bộ sang Web
+        }
         setupInitialPlayers()
         setupVoiceServiceObservation()
+        if self.isLiveSyncEnabled {
+            startLiveSyncSession()
+        }
     }
     
     private func setupVoiceServiceObservation() {
@@ -220,7 +240,7 @@ public class GameViewModel: ObservableObject {
         resetTable()
     }
     
-    public func resetTable() {
+    public func resetTable(isFromRemote: Bool = false) {
         LicenseService.shared.checkLicenseOffline()
         let shouldAutoRecord = LicenseService.shared.isVoiceUnlocked && (isVoiceMode || voiceService.isRecording || sherpaService.isRecording)
         if voiceService.isRecording || sherpaService.isRecording {
@@ -254,7 +274,7 @@ public class GameViewModel: ObservableObject {
                 self?.autoStartVoiceForNewRound()
             }
         }
-        if isOnlineRemoteMode && LiveRemoteSocketService.shared.isConnected {
+        if !isFromRemote && (isLiveSyncEnabled || isOnlineRemoteMode) && LiveRemoteSocketService.shared.isConnected {
             LiveRemoteSocketService.shared.sendRemoteCard(cardValue: nil, action: "CLEAR")
         }
     }
@@ -295,7 +315,7 @@ public class GameViewModel: ObservableObject {
                 self?.autoStartVoiceForNewRound()
             }
         }
-        if isOnlineRemoteMode && LiveRemoteSocketService.shared.isConnected {
+        if (isLiveSyncEnabled || isOnlineRemoteMode) && LiveRemoteSocketService.shared.isConnected {
             LiveRemoteSocketService.shared.sendRemoteCard(cardValue: nil, action: "CLEAR")
         }
     }
@@ -665,19 +685,42 @@ public class GameViewModel: ObservableObject {
         }
     }
     
-    // MARK: - Online Remote Live Keypad Session
+    // MARK: - Online Remote Live Keypad Session & Live Web Sync
     public func toggleOnlineRemoteMode() {
         isOnlineRemoteMode.toggle()
     }
 
+    public func startLiveSyncSession() {
+        startRemoteSocketConnection()
+    }
+
+    public func stopLiveSyncSession() {
+        if !isOnlineRemoteMode {
+            LiveRemoteSocketService.shared.disconnect()
+            isOnlineRemoteConnected = false
+        }
+    }
+
     public func startOnlineRemoteSession() {
+        startRemoteSocketConnection()
+    }
+
+    public func stopOnlineRemoteSession() {
+        if !isLiveSyncEnabled {
+            LiveRemoteSocketService.shared.disconnect()
+            isOnlineRemoteConnected = false
+        }
+    }
+
+    private func startRemoteSocketConnection() {
         let auth = AppAuthManager.shared
+        guard auth.isAuthenticated else { return }
         LiveRemoteSocketService.shared.onRemoteCardReceived = { [weak self] cardValue, action in
-            guard let self = self, self.isOnlineRemoteMode else { return }
+            guard let self = self, self.isOnlineRemoteMode || self.isLiveSyncEnabled else { return }
             if action == "DELETE" {
-                self.undoLastAction()
+                self.undoLastAction(isFromRemote: true)
             } else if action == "CLEAR" {
-                self.resetTable()
+                self.resetTable(isFromRemote: true)
             } else if let cardVal = cardValue {
                 self.processRemoteCardInput(cardVal)
             }
@@ -693,11 +736,6 @@ public class GameViewModel: ObservableObject {
             token: auth.authToken,
             roomId: targetRoom
         )
-    }
-
-    public func stopOnlineRemoteSession() {
-        LiveRemoteSocketService.shared.disconnect()
-        isOnlineRemoteConnected = false
     }
 
     public func processRemoteCardInput(_ rawValue: String) {
@@ -935,8 +973,8 @@ public class GameViewModel: ObservableObject {
             let cardsFlow = currentSegmentConfirmedCards.map { $0.rank.displaySymbol }.joined(separator: " ➔ ")
             self.voiceBannerText = "🎙️ Đã nhận: \(cardsFlow)"
             
-            // Đồng bộ tức thì sang Web Live nếu đang kết nối Online Remote
-            if isOnlineRemoteMode && LiveRemoteSocketService.shared.isConnected {
+            // Đồng bộ tức thì sang Web Live nếu đang kết nối Online Remote hoặc bật Live Sync
+            if (isLiveSyncEnabled || isOnlineRemoteMode) && LiveRemoteSocketService.shared.isConnected {
                 let cardValStr: String
                 if item.isHidden {
                     cardValStr = "__hidden__"
@@ -1000,10 +1038,10 @@ public class GameViewModel: ObservableObject {
     }
     
     // Undo last card
-    public func undoLastAction() {
+    public func undoLastAction(isFromRemote: Bool = false) {
         guard let last = actionHistory.popLast() else { return }
         removeCard(last.card)
-        if isOnlineRemoteMode && LiveRemoteSocketService.shared.isConnected {
+        if !isFromRemote && (isLiveSyncEnabled || isOnlineRemoteMode) && LiveRemoteSocketService.shared.isConnected {
             LiveRemoteSocketService.shared.sendRemoteCard(cardValue: nil, action: "DELETE")
         }
     }

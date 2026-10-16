@@ -127,7 +127,7 @@ public class LiveRemoteSocketService: NSObject, ObservableObject {
                 self.connectionStatus = "🟢 Đã kết nối Live Realtime"
             }
             // Gửi lệnh join_room
-            let targetRoom = roomId ?? AppAuthManager.shared.currentUsername ?? "viewer"
+            let targetRoom = roomId ?? self.activeRoomId ?? AppAuthManager.shared.currentUserId ?? AppAuthManager.shared.currentUsername ?? "viewer"
             let joinPacket = "42[\"join_room\",{\"roomId\":\"\(targetRoom)\"}]"
             sendRaw(joinPacket)
         }

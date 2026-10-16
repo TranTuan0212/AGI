@@ -384,6 +384,35 @@ struct VoiceOnlyControlView: View {
                 }
             }
             
+            // Công tắc Bật/Tắt Đồng bộ Web Live
+            Button(action: {
+                viewModel.isLiveSyncEnabled.toggle()
+            }) {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(viewModel.isLiveSyncEnabled ? (viewModel.isOnlineRemoteConnected ? Color.green : Color.orange) : Color.gray)
+                        .frame(width: 8, height: 8)
+                    Image(systemName: "antenna.radiowaves.left.and.right")
+                        .font(.system(size: 11, weight: .bold))
+                    Text(viewModel.isLiveSyncEnabled ? (viewModel.isOnlineRemoteConnected ? "Đồng bộ Web Live: BẬT 🟢" : "Đồng bộ Web Live: Đang nối 🟡") : "Đồng bộ Web Live: TẮT ⚪")
+                        .font(.system(size: 11, weight: .bold))
+                }
+                .foregroundColor(viewModel.isLiveSyncEnabled ? (viewModel.isOnlineRemoteConnected ? .green : .orange) : .secondary)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(
+                    viewModel.isLiveSyncEnabled ?
+                    (viewModel.isOnlineRemoteConnected ? Color.green.opacity(0.12) : Color.orange.opacity(0.12)) :
+                    Color(.secondarySystemBackground)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(viewModel.isLiveSyncEnabled ? (viewModel.isOnlineRemoteConnected ? Color.green.opacity(0.4) : Color.orange.opacity(0.4)) : Color.clear, lineWidth: 1)
+                )
+                .cornerRadius(12)
+            }
+            .buttonStyle(PlainButtonStyle())
+            
             // Action Buttons Row (Hoàn tác - KHÔNG THẤY / VÁN MỚI - Làm mới)
             HStack(spacing: 8) {
                 // Hoàn tác
