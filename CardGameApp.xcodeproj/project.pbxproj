@@ -41,6 +41,8 @@
 		LIVE0001F5A6012345678901 /* LiveRemoteSocketService.swift in Sources */ = {isa = PBXBuildFile; fileRef = LIVE0001E5F6012345678901 /* LiveRemoteSocketService.swift */; };
 		SHERPA01F5A6012345678901 /* SherpaSpeechRecognitionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = SHERPA01E5F6012345678901 /* SherpaSpeechRecognitionService.swift */; };
 		SHERPA02F5A6012345678902 /* SherpaModel in Resources */ = {isa = PBXBuildFile; fileRef = SHERPA02E5F6012345678902 /* SherpaModel */; };
+		SRV20001F5A6012345678901 /* Server2ThreeCardEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = SRV20001E5F6012345678901 /* Server2ThreeCardEvaluator.swift */; };
+		SRV20002F5A6012345678902 /* Server2KeypadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = SRV20002E5F6012345678902 /* Server2KeypadView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -82,6 +84,8 @@
 		LIVE0001E5F6012345678901 /* LiveRemoteSocketService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveRemoteSocketService.swift; sourceTree = "<group>"; };
 		SHERPA01E5F6012345678901 /* SherpaSpeechRecognitionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SherpaSpeechRecognitionService.swift; sourceTree = "<group>"; };
 		SHERPA02E5F6012345678902 /* SherpaModel */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "Resources/SherpaModel"; sourceTree = "<group>"; };
+		SRV20001E5F6012345678901 /* Server2ThreeCardEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Server2ThreeCardEvaluator.swift; sourceTree = "<group>"; };
+		SRV20002E5F6012345678902 /* Server2KeypadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Server2KeypadView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -122,6 +126,7 @@
 				4B2CE8F37A85B6DE12345678 /* SamLocEvaluator.swift */,
 				734784A620633B401138A623 /* PokerEvaluator.swift */,
 				C055F9385FB32FF99432CD04 /* XiDachEvaluator.swift */,
+				SRV20001E5F6012345678901 /* Server2ThreeCardEvaluator.swift */,
 			);
 			path = Evaluators;
 			sourceTree = "<group>";
@@ -157,6 +162,7 @@
 				LIC00004E5F6012345678904 /* VoiceLicenseModalView.swift */,
 				AUTH0002E5F6012345678902 /* AppLoginView.swift */,
 				FLT00001E5F6012345678901 /* FloatingCloseButtonConfigView.swift */,
+				SRV20002E5F6012345678902 /* Server2KeypadView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -296,6 +302,8 @@
 				FLT00001F5A6012345678901 /* FloatingCloseButtonConfigView.swift in Sources */,
 				LIVE0001F5A6012345678901 /* LiveRemoteSocketService.swift in Sources */,
 				SHERPA01F5A6012345678901 /* SherpaSpeechRecognitionService.swift in Sources */,
+				SRV20001F5A6012345678901 /* Server2ThreeCardEvaluator.swift in Sources */,
+				SRV20002F5A6012345678902 /* Server2KeypadView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -367,8 +375,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.trantuan.cardgame;
-				PRODUCT_NAME = CardGameApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.trantuan.cardgame.server2;
+				PRODUCT_NAME = NhapServer2;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "CardGameEngine/CardGameApp-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
@@ -392,8 +400,8 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.trantuan.cardgame;
-				PRODUCT_NAME = CardGameApp;
+				PRODUCT_BUNDLE_IDENTIFIER = com.trantuan.cardgame.server2;
+				PRODUCT_NAME = NhapServer2;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_OBJC_BRIDGING_HEADER = "CardGameEngine/CardGameApp-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;

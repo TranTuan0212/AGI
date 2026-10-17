@@ -27,6 +27,7 @@ workflows:
     scripts:
       - name: Initialize Xcode Project
         script: |
+          export PATH="/opt/homebrew/bin:$PATH"
           echo "Initializing project in $(pwd)..."
           if ! command -v xcodegen &> /dev/null; then
             echo "Installing xcodegen via Homebrew..."
