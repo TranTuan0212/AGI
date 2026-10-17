@@ -106,22 +106,51 @@ public struct Card: Identifiable, Hashable, Codable, Comparable {
     public let customId: String?
     public let isRankOnly: Bool
     public let isHidden: Bool
+    public let isRo: Bool
     
     public var id: String {
-        return customId ?? "\(rank.displaySymbol)\(suit.rawValue)"
+        return customId ?? "\(rank.displaySymbol)\(suit.rawValue)_\(isRo ? "ro" : "norm")"
     }
     
-    public init(rank: Rank = .two, suit: Suit = .spades, customId: String? = nil, isRankOnly: Bool = false, isHidden: Bool = false) {
+    public init(rank: Rank = .two, suit: Suit = .spades, customId: String? = nil, isRankOnly: Bool = false, isHidden: Bool = false, isRo: Bool? = nil) {
         self.rank = rank
         self.suit = suit
         self.customId = customId
         self.isRankOnly = isRankOnly
         self.isHidden = isHidden
+        self.isRo = isRo ?? (suit == .diamonds)
     }
     
     public var displayName: String {
         if isHidden { return "?" }
+        if isRo {
+            return "\(rank.displaySymbol)♦"
+        }
         return isRankOnly ? rank.displaySymbol : "\(rank.displaySymbol)\(suit.rawValue)"
+    }
+    
+    // Server 2 Rank Power: Ace = 14, King = 13, Queen = 12, Jack = 11, 10..2
+    public var rankPower: Int {
+        if isHidden { return 0 }
+        switch rank {
+        case .ace: return 14
+        case .king: return 13
+        case .queen: return 12
+        case .jack: return 11
+        default: return rank.rawValue
+        }
+    }
+    
+    // Server 2 Value for 3 cards: Ace = 1, 2..9 = 2..9, 10..13 = 10
+    public var server2Value: Int {
+        if isHidden { return 0 }
+        switch rank {
+        case .ace: return 1
+        case .two, .three, .four, .five, .six, .seven, .eight, .nine:
+            return rank.rawValue
+        case .ten, .jack, .queen, .king:
+            return 10
+        }
     }
     
     public static func < (lhs: Card, rhs: Card) -> Bool {

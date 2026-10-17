@@ -54,6 +54,12 @@ public class GameViewModel: ObservableObject {
     // Match History
     @Published public var history: [MatchHistoryRecord] = []
     
+    // Server 2 3-Card Evaluation & State
+    @Published public var server2HandResults: [Server2HandResult] = []
+    @Published public var server2LeaderboardChain: String = ""
+    @Published public var server2WinnerTitle: String = ""
+    @Published public var server2CompleteCount: Int = 0
+    
     // Action History for Undo
     private var actionHistory: [(card: Card, target: String)] = []
     public var canUndo: Bool { !actionHistory.isEmpty }
@@ -227,6 +233,7 @@ public class GameViewModel: ObservableObject {
         players = (0..<numberOfPlayers).map { i in
             Player(name: "Tụ \(i + 1)")
         }
+        updateServer2Evaluation()
     }
     
     private func updatePlayerCount() {
@@ -237,7 +244,7 @@ public class GameViewModel: ObservableObject {
         } else if players.count > numberOfPlayers {
             players = Array(players.prefix(numberOfPlayers))
         }
-        resetTable()
+        resetServer2Table()
     }
     
     public func resetTable(isFromRemote: Bool = false) {
@@ -1478,6 +1485,163 @@ public class GameViewModel: ObservableObject {
             showdownSummary = "🏆 \(winner.name) Thắng Binh 6 lá với \(winner.resultTitle)!"
         } else {
             showdownSummary = "⚠️ Không thể xác định người thắng (Có quân bài ẩn)"
+        }
+    }
+    
+    // MARK: - Server 2 Input & Scoring Methods
+    public func addServer2Card(rank: Rank, isRo: Bool) {
+        let cardId = "s2_\(rank.rawValue)_\(isRo ? "ro" : "norm")_\(UUID().uuidString)"
+        let card = Card(rank: rank, suit: isRo ? .diamonds : .spades, customId: cardId, isRankOnly: true, isHidden: false, isRo: isRo)
+        insertCardToServer2(card)
+    }
+
+    public func addServer2UnknownCard() {
+        let cardId = "s2_unk_\(UUID().uuidString)"
+        let card = Card(rank: .two, suit: .spades, customId: cardId, isRankOnly: true, isHidden: true, isRo: false)
+        insertCardToServer2(card)
+    }
+
+    private func insertCardToServer2(_ card: Card) {
+        if inputMode == .roundRobin {
+            // Chia tuần tự: tìm tụ tiếp theo còn thiếu bài (< 3 lá)
+            var targetIdx: Int? = nil
+            for i in 0..<players.count {
+                let idx = (roundRobinPointer + i) % players.count
+                if players[idx].cards.count < 3 {
+                    targetIdx = idx
+                    break
+                }
+            }
+            if let idx = targetIdx {
+                players[idx].cards.append(card)
+                actionHistory.append((card: card, target: players[idx].id))
+                roundRobinPointer = (idx + 1) % players.count
+                selectedPlayerIndex = roundRobinPointer
+            }
+        } else {
+            // Chọn thủ công từng tụ
+            if selectedPlayerIndex < players.count {
+                if players[selectedPlayerIndex].cards.count < 3 {
+                    players[selectedPlayerIndex].cards.append(card)
+                    actionHistory.append((card: card, target: players[selectedPlayerIndex].id))
+                    
+                    // Khi tụ này đủ 3 lá, tự động chuyển con trỏ sang tụ tiếp theo chưa đủ bài
+                    if players[selectedPlayerIndex].cards.count == 3 {
+                        for i in 1..<players.count {
+                            let nextIdx = (selectedPlayerIndex + i) % players.count
+                            if players[nextIdx].cards.count < 3 {
+                                selectedPlayerIndex = nextIdx
+                                break
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        updateServer2Evaluation()
+    }
+
+    public func undoServer2Action() {
+        guard let lastAction = actionHistory.popLast() else { return }
+        if let playerIdx = players.firstIndex(where: { $0.id == lastAction.target }) {
+            if !players[playerIdx].cards.isEmpty {
+                players[playerIdx].cards.removeLast()
+                roundRobinPointer = playerIdx
+                selectedPlayerIndex = playerIdx
+            }
+        }
+        updateServer2Evaluation()
+    }
+
+    public var canUndoServer2: Bool {
+        return !actionHistory.isEmpty
+    }
+
+    public func moveToNextPlayer() {
+        guard !players.isEmpty else { return }
+        selectedPlayerIndex = (selectedPlayerIndex + 1) % players.count
+        roundRobinPointer = selectedPlayerIndex
+    }
+
+    public func resetServer2Table() {
+        for i in 0..<players.count {
+            players[i].clearCards()
+        }
+        actionHistory.removeAll()
+        roundRobinPointer = 0
+        selectedPlayerIndex = 0
+        updateServer2Evaluation()
+    }
+
+    public func updateServer2Evaluation() {
+        var results: [Server2HandResult] = []
+        var completeCount = 0
+        
+        for i in 0..<players.count {
+            let res = Server2ThreeCardEvaluator.evaluate(cards: players[i].cards)
+            results.append(res)
+            players[i].resultTitle = res.label
+            players[i].score = res.score
+            if res.isComplete {
+                completeCount += 1
+            }
+        }
+        self.server2HandResults = results
+        self.server2CompleteCount = completeCount
+        
+        // Tính toán Bảng Đối Chiếu Thứ Hạng Realtime (Cross-Check Leaderboard)
+        var playerScores: [(index: Int, score: Int, isComplete: Bool)] = []
+        for (i, res) in results.enumerated() {
+            if !res.hasUnknown && res.isComplete {
+                playerScores.append((index: i, score: res.score, isComplete: true))
+            }
+        }
+        
+        playerScores.sort { $0.score > $1.score }
+        
+        // Gán thứ hạng (Hạng 1, 2, 3...)
+        var currentRank = 1
+        for i in 0..<playerScores.count {
+            if i > 0 && playerScores[i].score < playerScores[i - 1].score {
+                currentRank = i + 1
+            }
+            players[playerScores[i].index].rankOrder = currentRank
+        }
+        
+        // Tụ chưa đủ 3 lá hoặc bài ẩn (?) thì không có hạng chính thức
+        for i in 0..<players.count {
+            if !playerScores.contains(where: { $0.index == i }) {
+                players[i].rankOrder = nil
+            }
+        }
+        
+        // Tạo chuỗi đối chiếu thứ hạng: Tụ 1 > Tụ 3 = Tụ 2
+        if !playerScores.isEmpty {
+            var chainParts: [String] = []
+            for i in 0..<playerScores.count {
+                let pIdx = playerScores[i].index
+                let pName = players[pIdx].name
+                if i > 0 {
+                    let isTie = playerScores[i].score == playerScores[i - 1].score
+                    chainParts.append(isTie ? "=" : ">")
+                }
+                chainParts.append(pName)
+            }
+            self.server2LeaderboardChain = chainParts.joined(separator: " ")
+            
+            let winners = players.filter { $0.rankOrder == 1 }
+            if winners.count > 1 {
+                let names = winners.map { $0.name }.joined(separator: ", ")
+                self.server2WinnerTitle = "👑 Đồng Hạng 1: \(names) (\(winners[0].resultTitle))"
+            } else if let winner = winners.first {
+                self.server2WinnerTitle = "👑 \(winner.name) Thắng: \(winner.resultTitle)"
+            } else {
+                self.server2WinnerTitle = ""
+            }
+        } else {
+            self.server2LeaderboardChain = ""
+            self.server2WinnerTitle = ""
         }
     }
 }
