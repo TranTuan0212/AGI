@@ -72,9 +72,8 @@ public class PokerEvaluator {
         let ranks = sortedCards.map { $0.rank.rawValue }
         let suits = sortedCards.map { $0.suit }
         
-        // Check flush (không tính Thùng khi chơi chế độ không so chất / Rank-only)
-        let isRankOnlyHand = sortedCards.contains { $0.isRankOnly }
-        let isFlush = !isRankOnlyHand && suits.allSatisfy { $0 == suits[0] }
+        // Check flush (hỗ trợ cả chất tiêu chuẩn và các lá đánh dấu chất Rô ♦)
+        let isFlush = sortedCards.allSatisfy { $0.isRo } || (!sortedCards.contains { $0.isRankOnly } && suits.allSatisfy { $0 == suits[0] })
         
         // Check straight (including Wheel: A-2-3-4-5)
         var isStraight = false

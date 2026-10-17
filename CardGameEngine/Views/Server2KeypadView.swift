@@ -3,9 +3,11 @@ import SwiftUI
 public struct Server2KeypadView: View {
     @ObservedObject var viewModel: GameViewModel
     
-    // 7 phím hàng 1, 6 phím hàng 2 cho cả Rô và Thường (Tổng 13 phím không cần vuốt)
-    private let row1Ranks: [Rank] = [.ace, .two, .three, .four, .five, .six, .seven]
-    private let row2Ranks: [Rank] = [.eight, .nine, .ten, .jack, .queen, .king]
+    // Đầy đủ 13 lá từ A đến K (Phương Án 1: 13 phím / 1 hàng ngang)
+    private let allRanks: [Rank] = [
+        .ace, .two, .three, .four, .five, .six, .seven,
+        .eight, .nine, .ten, .jack, .queen, .king
+    ]
     
     public init(viewModel: GameViewModel) {
         self.viewModel = viewModel
@@ -13,55 +15,34 @@ public struct Server2KeypadView: View {
     
     public var body: some View {
         VStack(spacing: 5) {
-            // 1. KHU VỰC CHẤT RÔ (♦) - 2 HÀNG CỐ ĐỊNH KHÔNG CẦN VUỐT
-            VStack(spacing: 4) {
-                // Hàng Rô A♦ - 7♦ (7 cột)
-                HStack(spacing: 4) {
-                    ForEach(row1Ranks) { rank in
-                        Button(action: {
-                            viewModel.addServer2Card(rank: rank, isRo: true)
-                        }) {
-                            HStack(spacing: 1) {
-                                Text(rank.displaySymbol)
-                                    .font(.system(size: 14, weight: .black, design: .rounded))
-                                Text("♦")
-                                    .font(.system(size: 10, weight: .black))
-                            }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 33)
-                            .background(
-                                LinearGradient(
-                                    colors: [Color.roseAccent, Color(red: 0.82, green: 0.12, blue: 0.22)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .cornerRadius(7)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 7)
-                                    .stroke(Color.white.opacity(0.35), lineWidth: 1)
-                            )
-                        }
-                        .buttonStyle(ScaleTouchButtonStyle())
-                    }
+            // 1. HÀNG CHẤT RÔ (♦) - ĐỦ 13 PHÍM A♦ ➔ K♦ TRÊN 1 HÀNG NGANG
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    Text("♦ CHẤT RÔ ƯU TIÊN:")
+                        .font(.system(size: 10, weight: .black))
+                        .foregroundColor(.roseAccent)
+                    Spacer()
+                    Text("A♦ ➔ K♦")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundColor(.roseAccent.opacity(0.8))
                 }
+                .padding(.horizontal, 4)
                 
-                // Hàng Rô 8♦ - K♦ (6 cột)
-                HStack(spacing: 4) {
-                    ForEach(row2Ranks) { rank in
+                HStack(spacing: 2) {
+                    ForEach(allRanks) { rank in
                         Button(action: {
                             viewModel.addServer2Card(rank: rank, isRo: true)
                         }) {
-                            HStack(spacing: 1) {
+                            VStack(spacing: 0) {
                                 Text(rank.displaySymbol)
-                                    .font(.system(size: 14, weight: .black, design: .rounded))
+                                    .font(.system(size: 12, weight: .black, design: .rounded))
+                                    .lineLimit(1)
                                 Text("♦")
-                                    .font(.system(size: 10, weight: .black))
+                                    .font(.system(size: 8, weight: .black))
                             }
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 33)
+                            .frame(height: 34)
                             .background(
                                 LinearGradient(
                                     colors: [Color.roseAccent, Color(red: 0.82, green: 0.12, blue: 0.22)],
@@ -69,9 +50,9 @@ public struct Server2KeypadView: View {
                                     endPoint: .bottomTrailing
                                 )
                             )
-                            .cornerRadius(7)
+                            .cornerRadius(6)
                             .overlay(
-                                RoundedRectangle(cornerRadius: 7)
+                                RoundedRectangle(cornerRadius: 6)
                                     .stroke(Color.white.opacity(0.35), lineWidth: 1)
                             )
                         }
@@ -81,51 +62,39 @@ public struct Server2KeypadView: View {
             }
             .padding(4)
             .background(Color.roseAccent.opacity(0.10))
-            .cornerRadius(9)
+            .cornerRadius(8)
             .overlay(
-                RoundedRectangle(cornerRadius: 9)
+                RoundedRectangle(cornerRadius: 8)
                     .stroke(Color.roseAccent.opacity(0.28), lineWidth: 1)
             )
             
-            // 2. KHU VỰC SỐ THƯỜNG - 2 HÀNG CỐ ĐỊNH KHÔNG CẦN VUỐT
-            VStack(spacing: 4) {
-                // Hàng thường A - 7 (7 cột)
-                HStack(spacing: 4) {
-                    ForEach(row1Ranks) { rank in
-                        Button(action: {
-                            viewModel.addServer2Card(rank: rank, isRo: false)
-                        }) {
-                            Text(rank.displaySymbol)
-                                .font(.system(size: 14, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 33)
-                                .background(Color(red: 0.16, green: 0.20, blue: 0.28))
-                                .cornerRadius(7)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 7)
-                                        .stroke(Color.white.opacity(0.14), lineWidth: 1)
-                                )
-                        }
-                        .buttonStyle(ScaleTouchButtonStyle())
-                    }
+            // 2. HÀNG SỐ THƯỜNG - ĐỦ 13 PHÍM A ➔ K TRÊN 1 HÀNG NGANG
+            VStack(alignment: .leading, spacing: 2) {
+                HStack {
+                    Text("SỐ THƯỜNG:")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.gray)
+                    Spacer()
+                    Text("A ➔ K")
+                        .font(.system(size: 9, weight: .bold, design: .monospaced))
+                        .foregroundColor(.gray)
                 }
+                .padding(.horizontal, 4)
                 
-                // Hàng thường 8 - K (6 cột)
-                HStack(spacing: 4) {
-                    ForEach(row2Ranks) { rank in
+                HStack(spacing: 2) {
+                    ForEach(allRanks) { rank in
                         Button(action: {
                             viewModel.addServer2Card(rank: rank, isRo: false)
                         }) {
                             Text(rank.displaySymbol)
-                                .font(.system(size: 14, weight: .bold, design: .rounded))
+                                .font(.system(size: 13, weight: .bold, design: .rounded))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 33)
+                                .frame(height: 34)
                                 .background(Color(red: 0.16, green: 0.20, blue: 0.28))
-                                .cornerRadius(7)
+                                .cornerRadius(6)
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: 7)
+                                    RoundedRectangle(cornerRadius: 6)
                                         .stroke(Color.white.opacity(0.14), lineWidth: 1)
                                 )
                         }
@@ -133,6 +102,9 @@ public struct Server2KeypadView: View {
                     }
                 }
             }
+            .padding(4)
+            .background(Color.white.opacity(0.03))
+            .cornerRadius(8)
             
             // 3. HÀNG TIỆN ÍCH DƯỚI CÙNG
             HStack(spacing: 5) {
@@ -177,13 +149,18 @@ public struct Server2KeypadView: View {
                 .disabled(!viewModel.canUndoServer2)
                 .buttonStyle(ScaleTouchButtonStyle())
                 
-                // Tụ kế tiếp (khi ở chế độ chọn thủ công)
+                // Tụ kế tiếp
                 Button(action: {
                     viewModel.moveToNextPlayer()
                 }) {
                     HStack(spacing: 3) {
-                        Text("Tụ \(viewModel.selectedPlayerIndex + 1)")
-                            .font(.system(size: 11, weight: .bold))
+                        if viewModel.isSelectingCommunity {
+                            Text("Bài Chung")
+                                .font(.system(size: 11, weight: .bold))
+                        } else {
+                            Text("Tụ \(viewModel.selectedPlayerIndex + 1)")
+                                .font(.system(size: 11, weight: .bold))
+                        }
                         Image(systemName: "chevron.right")
                             .font(.system(size: 10, weight: .bold))
                     }
@@ -199,7 +176,7 @@ public struct Server2KeypadView: View {
                 }
                 .buttonStyle(ScaleTouchButtonStyle())
                 
-                // Ván Mới / Xóa hết
+                // Ván Mới
                 Button(action: {
                     viewModel.resetServer2Table()
                 }) {
@@ -218,7 +195,7 @@ public struct Server2KeypadView: View {
                 .buttonStyle(ScaleTouchButtonStyle())
             }
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 6)
         .padding(.vertical, 6)
         .background(Color(red: 0.08, green: 0.10, blue: 0.14))
     }
