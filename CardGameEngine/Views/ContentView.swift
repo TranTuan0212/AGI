@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct ContentView: View {
     @StateObject private var viewModel = GameViewModel()
+    @ObservedObject private var authManager = AppAuthManager.shared
     
     public init() {}
     
@@ -12,6 +13,49 @@ public struct ContentView: View {
                 .ignoresSafeArea()
             
             VStack(spacing: 0) {
+                // 0. User Status Bar (Tài khoản & Đăng xuất)
+                HStack {
+                    if let user = authManager.currentUsername {
+                        HStack(spacing: 4) {
+                            Image(systemName: "person.circle.fill")
+                                .foregroundColor(.cyan)
+                                .font(.system(size: 11, weight: .bold))
+                            Text(user)
+                                .font(.system(size: 11, weight: .bold, design: .rounded))
+                                .foregroundColor(.cyan)
+                            Text("• Máy Nhập (Quota: 2 máy)")
+                                .font(.system(size: 9, weight: .medium))
+                                .foregroundColor(.gray)
+                        }
+                    } else {
+                        Text("Chế độ Nhập Server 2")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.gray)
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        authManager.logout()
+                    }) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "power")
+                                .font(.system(size: 10, weight: .bold))
+                            Text("Đăng xuất")
+                                .font(.system(size: 10, weight: .bold))
+                        }
+                        .foregroundColor(.red.opacity(0.9))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(Color.red.opacity(0.12))
+                        .cornerRadius(6)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.top, 4)
+                .padding(.bottom, 2)
+                .background(Color(red: 0.07, green: 0.09, blue: 0.14))
+                
                 // 1. TOP HEADER: Tiêu đề & Điều khiển số Tụ / Chế độ nhập
                 VStack(spacing: 8) {
                     HStack(spacing: 10) {
