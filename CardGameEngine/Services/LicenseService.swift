@@ -23,7 +23,7 @@ public class LicenseService: ObservableObject {
     private let lastClockTimestampKey = "voice_license_last_clock_timestamp"
     private let licenseSecretKey = "VOICE_LICENSE_MASTER_HMAC_KEY_SECURE_2026"
 
-    public static let defaultServerUrl = "http://157.66.100.10:4000"
+    public static let defaultServerUrl = "https://streamslo.date"
 
     @Published public var isVoiceUnlocked: Bool = false
     @Published public var licenseStatus: LicenseStatus = .unactivated

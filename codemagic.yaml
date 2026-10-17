@@ -1,13 +1,19 @@
 workflows:
   ios-app-build:
-    name: Build iOS IPA (Unsigned / TrollStore / AltStore / Sideloadly)
+    name: Build iOS IPA - Bản Nhập Server 2 (Unsigned / TrollStore / AltStore)
     max_build_duration: 25
     instance_type: mac_mini_m2
     triggering:
       events:
         - push
       branch_patterns:
+        - pattern: 'server2'
+          include: true
+          source: true
         - pattern: 'main'
+          include: true
+          source: true
+        - pattern: '*'
           include: true
           source: true
       cancel_previous_builds: true
@@ -17,7 +23,7 @@ workflows:
       vars:
         XCODE_PROJECT: "CardGameApp.xcodeproj"
         XCODE_SCHEME: "CardGameApp"
-        BUNDLE_ID: "com.trantuan.cardgame"
+        BUNDLE_ID: "com.trantuan.cardgame.server2"
     scripts:
       - name: Initialize Xcode Project
         script: |
@@ -53,11 +59,13 @@ workflows:
           mkdir -p "$PWD/build/Payload"
           cp -r "$PWD/build/CardGameApp.xcarchive/Products/Applications/"*.app "$PWD/build/Payload/"
           cd "$PWD/build"
-          zip -qr "GiaLapSoBai.ipa" Payload
-          cp "GiaLapSoBai.ipa" "CardGameApp.ipa"
-          mv "GiaLapSoBai.ipa" output/
+          zip -qr "NhapServer2.ipa" Payload
+          cp "NhapServer2.ipa" "CardGameApp.ipa"
+          cp "NhapServer2.ipa" "GiaLapSoBai.ipa"
+          mv "NhapServer2.ipa" output/
           mv "CardGameApp.ipa" output/
-          echo "SUCCESS: IPA created at build/output/GiaLapSoBai.ipa"
+          mv "GiaLapSoBai.ipa" output/
+          echo "SUCCESS: IPA created at build/output/NhapServer2.ipa"
     artifacts:
       - build/output/*.ipa
 
