@@ -1376,17 +1376,48 @@ public class GameViewModel: ObservableObject {
                 players[i].score = -1
                 players[i].resultTitle = "???"
                 players[i].resultDetail = "Chưa rõ quân bài (Không thấy) • Loại khỏi BXH"
-            } else {
+            } else if players[i].cards.count == 9 {
                 let arr = Binh9Evaluator.autoArrange(cards: players[i].cards)
                 arrangements[i] = arr
                 players[i].cards = arr.chi1 + arr.chi2 + arr.chi3
                 players[i].isLung = arr.isLung
                 players[i].score = 0
                 validIndices.append(i)
+            } else {
+                players[i].rankOrder = nil
+                players[i].score = -1
+                players[i].isLung = false
+                players[i].resultTitle = players[i].cards.isEmpty ? "" : "\(players[i].cards.count)/9 lá"
+                players[i].resultDetail = "Chưa đủ 9 lá bài"
             }
         }
         
-        // So chéo giữa các nhà hợp lệ
+        // Nếu chưa có tụ nào đủ 9 lá
+        guard !validIndices.isEmpty else {
+            showdownSummary = ""
+            return
+        }
+        
+        // Nếu mới chỉ có 1 tụ đủ 9 lá (các tụ khác đang chia bài)
+        if validIndices.count == 1 {
+            let i = validIndices[0]
+            guard let arr = arrangements[i] else { return }
+            if let win = arr.instantWin {
+                players[i].resultTitle = win
+                players[i].resultDetail = "Thắng trắng toàn bàn!"
+            } else if arr.isLung {
+                players[i].resultTitle = "⚠️ BỊ LỦNG"
+                players[i].resultDetail = "Chi trước yếu hơn chi sau (Xử thua)!"
+            } else {
+                players[i].resultTitle = "Đã đủ 9 lá"
+                players[i].resultDetail = "Chi 1: \(arr.score1.descriptionVN) | Chi 2: \(arr.score2.descriptionVN) | Chi 3: \(arr.score3.descriptionVN)"
+            }
+            players[i].rankOrder = 1
+            showdownSummary = "⏳ Chờ các tụ khác nhập đủ 9 lá để so điểm..."
+            return
+        }
+        
+        // So chéo giữa các nhà hợp lệ (khi có >= 2 nhà đủ 9 lá)
         for a in 0..<validIndices.count {
             let i = validIndices[a]
             guard let arrI = arrangements[i] else { continue }
@@ -1461,12 +1492,21 @@ public class GameViewModel: ObservableObject {
                 players[i].score = -1
                 players[i].resultTitle = "???"
                 players[i].resultDetail = "Chưa rõ quân bài (Không thấy) • Loại khỏi BXH"
-            } else {
+            } else if p.cards.count == 6 {
                 let s = Binh6Evaluator.evaluatePoker6(p.cards)
                 scores.append((index: i, score: s))
                 players[i].resultTitle = s.descriptionVN
                 players[i].resultDetail = "Bộ 5 lá tốt nhất từ 6 lá: \(s.cards.map { $0.displayName }.joined(separator: " "))"
+            } else {
+                players[i].rankOrder = nil
+                players[i].score = -1
+                players[i].resultTitle = p.cards.isEmpty ? "" : "\(p.cards.count)/6 lá"
+                players[i].resultDetail = "Chưa đủ 6 lá bài"
             }
+        }
+        guard !scores.isEmpty else {
+            showdownSummary = ""
+            return
         }
         scores.sort { $0.score > $1.score }
         var currentRank = 1
@@ -1707,45 +1747,43 @@ public class GameViewModel: ObservableObject {
                 self.server2LeaderboardChain = ""
                 self.server2WinnerTitle = ""
             }
-        } else if gameType == .texasHoldem {
-            // Poker Texas Hold'em
-            calculateTexasHoldem()
-            self.server2WinnerTitle = showdownSummary
-            
-            // Build leaderboard chain for Poker
-            var ranked = players.filter { $0.rankOrder != nil }
-            ranked.sort { ($0.rankOrder ?? 99) < ($1.rankOrder ?? 99) }
-            if !ranked.isEmpty {
-                var chainParts: [String] = []
-                for i in 0..<ranked.count {
-                    if i > 0 {
-                        let isTie = ranked[i].rankOrder == ranked[i - 1].rankOrder
-                        chainParts.append(isTie ? "=" : ">")
-                    }
-                    chainParts.append(ranked[i].name)
-                }
-                self.server2LeaderboardChain = chainParts.joined(separator: " ")
-            } else {
-                self.server2LeaderboardChain = ""
-            }
-        } else if gameType == .xiDach2 {
-            calculateXiDach()
-            self.server2WinnerTitle = showdownSummary
-        } else if gameType == .phom9 {
-            calculatePhom()
-            self.server2WinnerTitle = showdownSummary
-        } else if gameType == .samLoc10 {
-            calculateSamLoc()
-            self.server2WinnerTitle = showdownSummary
-        } else if gameType == .binh9 {
-            calculateBinh9()
-            self.server2WinnerTitle = showdownSummary
-        } else if gameType == .binh6Poker {
-            calculateBinh6Poker()
-            self.server2WinnerTitle = showdownSummary
         } else {
-            calculateLieng()
+            switch gameType {
+            case .texasHoldem:
+                calculateTexasHoldem()
+            case .xiDach2:
+                calculateXiDach()
+            case .phom9:
+                calculatePhom()
+            case .samLoc10:
+                calculateSamLoc()
+            case .binh9:
+                calculateBinh9()
+            case .binh6Poker:
+                calculateBinh6Poker()
+            default:
+                calculateLieng()
+            }
             self.server2WinnerTitle = showdownSummary
+            updateServer2LeaderboardChainFromRankOrder()
+        }
+    }
+    
+    private func updateServer2LeaderboardChainFromRankOrder() {
+        var ranked = players.filter { $0.rankOrder != nil }
+        ranked.sort { ($0.rankOrder ?? 99) < ($1.rankOrder ?? 99) }
+        if !ranked.isEmpty {
+            var chainParts: [String] = []
+            for i in 0..<ranked.count {
+                if i > 0 {
+                    let isTie = ranked[i].rankOrder == ranked[i - 1].rankOrder
+                    chainParts.append(isTie ? "=" : ">")
+                }
+                chainParts.append(ranked[i].name)
+            }
+            self.server2LeaderboardChain = chainParts.joined(separator: " ")
+        } else {
+            self.server2LeaderboardChain = ""
         }
     }
 }
