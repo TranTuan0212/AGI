@@ -460,15 +460,72 @@ struct Server2CardItemView: View {
                 Text("?")
                     .font(.system(size: 18, weight: .black, design: .rounded))
                     .foregroundColor(Color.yellow)
-            } else if card.isRo {
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.roseAccent, Color(red: 0.80, green: 0.10, blue: 0.22)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+            } else if card.isRankOnly {
+                if card.isRo {
+                    // Liêng 3 lá Rô ưu tiên
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.roseAccent, Color(red: 0.80, green: 0.10, blue: 0.22)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
                         )
-                    )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(Color.white.opacity(0.35), lineWidth: 1)
+                        )
+                    
+                    HStack(spacing: 1) {
+                        Text(card.rank.displaySymbol)
+                            .font(.system(size: 16, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
+                        Text("♦")
+                            .font(.system(size: 11, weight: .black))
+                            .foregroundColor(.white)
+                    }
+                } else {
+                    // Số thường / Nhập chay A->K
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color(red: 0.18, green: 0.22, blue: 0.30))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                        )
+                    
+                    Text(card.rank.displaySymbol)
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                }
+            } else {
+                // Đủ 4 chất: Cơ ♥, Rô ♦, Chuồn ♣, Bích ♠
+                let (fillGradient, symbolColor): (LinearGradient, Color) = {
+                    switch card.suit {
+                    case .hearts:
+                        return (
+                            LinearGradient(colors: [Color(red: 0.90, green: 0.15, blue: 0.25), Color(red: 0.72, green: 0.08, blue: 0.18)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                            .white
+                        )
+                    case .diamonds:
+                        return (
+                            LinearGradient(colors: [Color(red: 0.95, green: 0.38, blue: 0.12), Color(red: 0.80, green: 0.22, blue: 0.05)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                            .white
+                        )
+                    case .clubs:
+                        return (
+                            LinearGradient(colors: [Color(red: 0.15, green: 0.55, blue: 0.38), Color(red: 0.08, green: 0.40, blue: 0.25)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                            .white
+                        )
+                    case .spades:
+                        return (
+                            LinearGradient(colors: [Color(red: 0.20, green: 0.26, blue: 0.42), Color(red: 0.12, green: 0.16, blue: 0.28)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                            .white
+                        )
+                    }
+                }()
+                
+                RoundedRectangle(cornerRadius: 6)
+                    .fill(fillGradient)
                     .overlay(
                         RoundedRectangle(cornerRadius: 6)
                             .stroke(Color.white.opacity(0.35), lineWidth: 1)
@@ -476,23 +533,12 @@ struct Server2CardItemView: View {
                 
                 HStack(spacing: 1) {
                     Text(card.rank.displaySymbol)
-                        .font(.system(size: 16, weight: .black, design: .rounded))
-                        .foregroundColor(.white)
-                    Text("♦")
+                        .font(.system(size: 15, weight: .black, design: .rounded))
+                        .foregroundColor(symbolColor)
+                    Text(card.suit.rawValue)
                         .font(.system(size: 11, weight: .black))
-                        .foregroundColor(.white)
+                        .foregroundColor(symbolColor)
                 }
-            } else {
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Color(red: 0.18, green: 0.22, blue: 0.30))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(Color.white.opacity(0.18), lineWidth: 1)
-                    )
-                
-                Text(card.rank.displaySymbol)
-                    .font(.system(size: 16, weight: .bold, design: .rounded))
-                    .foregroundColor(.white)
             }
         }
         .frame(height: 44)

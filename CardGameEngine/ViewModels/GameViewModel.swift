@@ -1495,6 +1495,18 @@ public class GameViewModel: ObservableObject {
         insertCardToServer2(card)
     }
 
+    public func addServer2Card(rank: Rank, suit: Suit) {
+        let cardId = "s2_\(rank.rawValue)_\(suit.rawValue)_\(UUID().uuidString)"
+        let card = Card(rank: rank, suit: suit, customId: cardId, isRankOnly: false, isHidden: false, isRo: suit == .diamonds)
+        insertCardToServer2(card)
+    }
+
+    public func addServer2CardRankOnly(rank: Rank) {
+        let cardId = "s2_\(rank.rawValue)_rank_\(UUID().uuidString)"
+        let card = Card(rank: rank, suit: .spades, customId: cardId, isRankOnly: true, isHidden: false, isRo: false)
+        insertCardToServer2(card)
+    }
+
     public func addServer2UnknownCard() {
         let cardId = "s2_unk_\(UUID().uuidString)"
         let card = Card(rank: .two, suit: .spades, customId: cardId, isRankOnly: true, isHidden: true, isRo: false)
