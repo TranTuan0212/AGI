@@ -216,7 +216,7 @@ public struct PlayerCardsView: View {
                                         }
                                     }
                                     .padding(.vertical, 1)
-                                } else if viewModel.gameType == .binh9 {
+                                } else if viewModel.gameType == .binh9 || viewModel.gameType == .binh9NoStraight {
                                     let chiCount = 3
                                     HStack(spacing: 8) {
                                         ForEach(0..<chiCount, id: \.self) { chiIdx in

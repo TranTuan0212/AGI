@@ -1102,6 +1102,8 @@ public class GameViewModel: ObservableObject {
             calculateLieng()
         case .binh9:
             calculateBinh9()
+        case .binh9NoStraight:
+            calculateBinh9NoStraight()
         case .binh6Poker:
             calculateBinh6Poker()
         case .xiDach2:
@@ -1166,6 +1168,161 @@ public class GameViewModel: ObservableObject {
             showdownSummary = "⚠️ Không thể xác định người thắng (Có quân bài ẩn)"
         }
     }
+
+    // MARK: - ( 9 lá không liên ) Evaluator: 2 Giai đoạn (6 lá trước, 9 lá sau)
+    private func calculateBinh9NoStraight() {
+        var phase6Arrangements = [Int: Binh9NoStraightArrangement]()
+        var phase9Arrangements = [Int: Binh9NoStraightArrangement]()
+        var phase6Indices = [Int]()
+        var phase9Indices = [Int]()
+        
+        for i in 0..<players.count {
+            players[i].score = 0
+            if players[i].cards.contains(where: { $0.isHidden }) {
+                players[i].rankOrder = nil
+                players[i].score = -1
+                players[i].resultTitle = "???"
+                players[i].resultDetail = "Chưa rõ quân bài • Loại khỏi BXH"
+            } else if players[i].cards.count >= 9 {
+                // Giai đoạn 2: Đủ 9 lá
+                let cards9 = Array(players[i].cards.prefix(9))
+                let arr = Binh9NoStraightEvaluator.autoArrange9(cards: cards9)
+                phase9Arrangements[i] = arr
+                players[i].cards = arr.chi1 + arr.chi2 + arr.chi3
+                players[i].isLung = arr.isLung
+                phase9Indices.append(i)
+                
+                let s3Desc = arr.score3?.descriptionVN ?? ""
+                if let win = arr.instantWin {
+                    players[i].resultTitle = win
+                    players[i].resultDetail = "Chi 1: \(arr.score1.descriptionVN) | Chi 2: \(arr.score2.descriptionVN) | Chi 3: \(s3Desc)"
+                } else if arr.isLung {
+                    players[i].resultTitle = "⚠️ BỊ LỦNG (9 lá)"
+                    players[i].resultDetail = "Chi trước yếu hơn chi sau (Xử thua)!"
+                } else {
+                    players[i].resultTitle = "C1: \(arr.score1.descriptionVN) | C2: \(arr.score2.descriptionVN) | C3: \(s3Desc)"
+                    players[i].resultDetail = "Chi 1: \(arr.score1.descriptionVN) | Chi 2: \(arr.score2.descriptionVN) | Chi 3: \(s3Desc)"
+                }
+            } else if players[i].cards.count >= 6 {
+                // Giai đoạn 1: Đủ 6 lá (nhưng chưa đủ 9 lá)
+                let cards6 = Array(players[i].cards.prefix(6))
+                let arr = Binh9NoStraightEvaluator.autoArrange6(cards: cards6)
+                phase6Arrangements[i] = arr
+                let extra = players[i].cards.count > 6 ? Array(players[i].cards.suffix(from: 6)) : []
+                players[i].cards = arr.chi1 + arr.chi2 + extra
+                players[i].isLung = arr.isLung
+                phase6Indices.append(i)
+                
+                if arr.isLung {
+                    players[i].resultTitle = "⚠️ BỊ LỦNG (6 lá)"
+                    players[i].resultDetail = "Chi 1 yếu hơn Chi 2 (Xử thua)!"
+                } else {
+                    players[i].resultTitle = "6 lá: C1[\(arr.score1.descriptionVN)] • C2[\(arr.score2.descriptionVN)]"
+                    players[i].resultDetail = "GĐ1: Chi 1 [\(arr.score1.descriptionVN)] | Chi 2 [\(arr.score2.descriptionVN)]"
+                }
+            } else {
+                players[i].rankOrder = nil
+                players[i].score = -1
+                players[i].isLung = false
+                players[i].resultTitle = players[i].cards.isEmpty ? "" : "\(players[i].cards.count)/6 lá"
+                players[i].resultDetail = "Chưa đủ 6 lá (Giai đoạn 1)"
+            }
+        }
+        
+        // So sánh xếp hạng
+        if !phase9Indices.isEmpty {
+            // Có tụ đã đủ 9 lá
+            if phase9Indices.count == 1 {
+                let i = phase9Indices[0]
+                players[i].rankOrder = 1
+                showdownSummary = "⏳ Tụ \(players[i].name) đã đủ 9 lá. Chờ các tụ khác..."
+            } else {
+                for a in 0..<phase9Indices.count {
+                    let i = phase9Indices[a]
+                    guard let arrI = phase9Arrangements[i] else { continue }
+                    for b in (a + 1)..<phase9Indices.count {
+                        let j = phase9Indices[b]
+                        guard let arrJ = phase9Arrangements[j] else { continue }
+                        let res = Binh9NoStraightEvaluator.compareMatch9(a: arrI, b: arrJ)
+                        if res.scoreA > 0 {
+                            players[i].score += 1
+                        } else if res.scoreA < 0 {
+                            players[j].score += 1
+                        }
+                    }
+                }
+                
+                var sorted9 = phase9Indices
+                sorted9.sort { players[$0].score > players[$1].score }
+                var currentRank = 1
+                for k in 0..<sorted9.count {
+                    let idx = sorted9[k]
+                    if k > 0 {
+                        let prevIdx = sorted9[k - 1]
+                        if players[idx].score < players[prevIdx].score {
+                            currentRank = k + 1
+                        }
+                    }
+                    players[idx].rankOrder = currentRank
+                }
+                
+                let rank1Players = players.filter { $0.rankOrder == 1 }
+                if rank1Players.count > 1 {
+                    let names = rank1Players.map { $0.name }.joined(separator: ", ")
+                    showdownSummary = "👑 Đồng Hạng 1 (9 lá): \(names)"
+                } else if let winner = rank1Players.first {
+                    showdownSummary = "🏆 \(winner.name) Thắng 9 lá (Ăn ít nhất 2/3 chi)!"
+                }
+            }
+        } else if !phase6Indices.isEmpty {
+            // Chưa có tụ nào đủ 9 lá, nhưng đã có tụ đủ 6 lá -> So sánh Phase 1 (6 lá)!
+            if phase6Indices.count == 1 {
+                let i = phase6Indices[0]
+                players[i].rankOrder = 1
+                showdownSummary = "⏳ Tụ \(players[i].name) đã đủ 6 lá (Giai đoạn 1)"
+            } else {
+                for a in 0..<phase6Indices.count {
+                    let i = phase6Indices[a]
+                    guard let arrI = phase6Arrangements[i] else { continue }
+                    for b in (a + 1)..<phase6Indices.count {
+                        let j = phase6Indices[b]
+                        guard let arrJ = phase6Arrangements[j] else { continue }
+                        let res = Binh9NoStraightEvaluator.compareMatch6(a: arrI, b: arrJ)
+                        if res.scoreA > 0 {
+                            players[i].score += 1
+                        } else if res.scoreA < 0 {
+                            players[j].score += 1
+                        }
+                    }
+                }
+                
+                var sorted6 = phase6Indices
+                sorted6.sort { players[$0].score > players[$1].score }
+                var currentRank = 1
+                for k in 0..<sorted6.count {
+                    let idx = sorted6[k]
+                    if k > 0 {
+                        let prevIdx = sorted6[k - 1]
+                        if players[idx].score < players[prevIdx].score {
+                            currentRank = k + 1
+                        }
+                    }
+                    players[idx].rankOrder = currentRank
+                }
+                
+                let rank1Players = players.filter { $0.rankOrder == 1 }
+                if rank1Players.count > 1 {
+                    let names = rank1Players.map { $0.name }.joined(separator: ", ")
+                    showdownSummary = "👑 Đồng Hạng 1 (6 lá): \(names)"
+                } else if let winner = rank1Players.first {
+                    showdownSummary = "⚡ \(winner.name) Dẫn đầu 6 lá (Giai đoạn 1)!"
+                }
+            }
+        } else {
+            showdownSummary = ""
+        }
+    }
+
     
     private func calculateSamLoc() {
         var validPlayers = [(index: Int, name: String, cards: [Card])]()
@@ -1759,6 +1916,8 @@ public class GameViewModel: ObservableObject {
                 calculateSamLoc()
             case .binh9:
                 calculateBinh9()
+            case .binh9NoStraight:
+                calculateBinh9NoStraight()
             case .binh6Poker:
                 calculateBinh6Poker()
             default:

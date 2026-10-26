@@ -18,6 +18,9 @@ public struct Server2KeypadView: View {
             if viewModel.gameType == .lieng3 {
                 // MARK: - LIÊNG 3 LÁ: BÀN PHÍM CHẤT RÔ ƯU TIÊN + SỐ THƯỜNG
                 lieng3KeypadView
+            } else if viewModel.gameType == .binh9NoStraight {
+                // MARK: - ( 9 lá không liên ): BÀN PHÍM TO BẢN KHÔNG CẦN CHẤT
+                binh9NoStraightKeypadView
             } else {
                 // MARK: - CÁC GAME KHÁC: ĐỦ 4 CHẤT HOẶC NHẬP CHAY (CÓ NÚT SETTING BẬT TẮT)
                 otherGamesKeypadView
@@ -127,6 +130,63 @@ public struct Server2KeypadView: View {
         }
     }
     
+    
+    // MARK: - Giao diện bàn phím ( 9 lá không liên ): Phím to bản, 1 hàng A ➔ K, không cần 4 chất
+    private var binh9NoStraightKeypadView: some View {
+        VStack(spacing: 4) {
+            HStack {
+                HStack(spacing: 4) {
+                    Text("( 9 lá không liên )")
+                        .font(.system(size: 11, weight: .black))
+                        .foregroundColor(.yellow)
+                    Text("• NHẬP SỐ CHAY")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.gray)
+                }
+                Spacer()
+                Text("A ➔ K (Phím to)")
+                    .font(.system(size: 9, weight: .bold, design: .monospaced))
+                    .foregroundColor(.yellow.opacity(0.8))
+            }
+            .padding(.horizontal, 4)
+            .padding(.vertical, 1)
+            
+            HStack(spacing: 2.5) {
+                ForEach(allRanks) { rank in
+                    Button(action: {
+                        viewModel.addServer2CardRankOnly(rank: rank)
+                    }) {
+                        Text(rank.displaySymbol)
+                            .font(.system(size: 15, weight: .black, design: .rounded))
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color(red: 0.18, green: 0.22, blue: 0.32), Color(red: 0.10, green: 0.13, blue: 0.20)],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .cornerRadius(7)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 7)
+                                    .stroke(Color.yellow.opacity(0.4), lineWidth: 1.2)
+                            )
+                    }
+                    .buttonStyle(ScaleTouchButtonStyle())
+                }
+            }
+            .padding(4)
+            .background(Color.yellow.opacity(0.06))
+            .cornerRadius(8)
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.yellow.opacity(0.25), lineWidth: 1)
+            )
+        }
+    }
+
     // MARK: - Giao diện bàn phím Các Game Khác (Có Toggle Setting 4 Chất vs Nhập Chay)
     private var otherGamesKeypadView: some View {
         VStack(spacing: 4) {

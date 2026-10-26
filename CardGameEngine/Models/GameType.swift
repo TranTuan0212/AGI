@@ -27,6 +27,7 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
     
     // Binh variants
     case binh9 = "Binh 9 lá (3 chi x 3 lá)"
+    case binh9NoStraight = "( 9 lá không liên )"
     case binh6Poker = "Binh 6 lá"
     
     // Xi Dach
@@ -44,6 +45,7 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
         case .phom9: return "Phỏm 9 lá"
         case .lieng3: return "Liêng (3 Cây)"
         case .binh9: return "Binh 9 lá"
+        case .binh9NoStraight: return "( 9 lá không liên )"
         case .binh6Poker: return "Binh 6 lá"
         case .xiDach2: return "Xì Dách (2 Lá)"
         case .texasHoldem: return "Texas Hold'em"
@@ -58,7 +60,7 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
             return .samLoc
         case .phom9:
             return .phom
-        case .binh9, .binh6Poker:
+        case .binh9, .binh6Poker, .binh9NoStraight:
             return .binh
         case .lieng3:
             return .lieng
@@ -76,7 +78,7 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
         case .samLoc10: return 10
         case .phom9: return 9
         case .lieng3: return 3
-        case .binh9: return 9
+        case .binh9, .binh9NoStraight: return 9
         case .binh6Poker: return 6
         case .xiDach2: return 2
         case .texasHoldem: return 2
@@ -98,7 +100,7 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
         case .chan19: return 5
         case .samLoc10: return 5
         case .phom9: return 4
-        case .binh9: return 5
+        case .binh9, .binh9NoStraight: return 5
         case .binh6Poker: return 8
         case .lieng3: return 10
         case .xiDach2: return 10
@@ -118,6 +120,8 @@ public enum GameType: String, CaseIterable, Identifiable, Codable {
             return "3 lá/người, phân cấp: Sáp (10.000 + độ mạnh) > Liêng (5.000 + độ mạnh) > Ba Tây (1.000) > Điểm mod 10. Bằng điểm nhau thì đồng hạng."
         case .binh9:
             return "9 lá/người, xếp 3 chi (3-3-3), luật Chi 1 ≥ Chi 2 ≥ Chi 3 (Sáp > Liêng > Ba Tây > Điểm Đôi > Điểm Thường)."
+        case .binh9NoStraight:
+            return "9 lá/người (6 lá trước, 3 lá sau). Không tính Liêng. Sáp Át to nhất > Ba Tiên có đôi > Ba Tiên không đôi > Điểm có đôi > Điểm thường."
         case .binh6Poker:
             return "6 lá/người, so bài trực tiếp theo thang Poker 5 lá mạnh nhất từ 6 lá: Thùng phá sảnh > Tứ quý > Cù lũ > Thùng > Sảnh > Sám..."
         case .xiDach2:

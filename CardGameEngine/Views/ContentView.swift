@@ -304,7 +304,8 @@ public struct ContentView: View {
                                 playerIndex: pIdx,
                                 targetCardsCount: targetCount,
                                 isSelected: !viewModel.isSelectingCommunity && viewModel.selectedPlayerIndex == pIdx,
-                                handResult: viewModel.server2HandResults.indices.contains(pIdx) ? viewModel.server2HandResults[pIdx] : nil
+                                handResult: viewModel.server2HandResults.indices.contains(pIdx) ? viewModel.server2HandResults[pIdx] : nil,
+                                gameType: viewModel.gameType
                             ) {
                                 viewModel.isSelectingCommunity = false
                                 viewModel.selectedPlayerIndex = pIdx
@@ -333,6 +334,7 @@ struct Server2PlayerRowView: View {
     let targetCardsCount: Int
     let isSelected: Bool
     let handResult: Server2HandResult?
+    let gameType: GameType
     let onTap: () -> Void
     
     var body: some View {
@@ -406,6 +408,12 @@ struct Server2PlayerRowView: View {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 5) {
                             ForEach(0..<targetCardsCount, id: \.self) { slotIdx in
+                                if (gameType == .binh9 || gameType == .binh9NoStraight) && (slotIdx == 3 || slotIdx == 6) {
+                                    Rectangle()
+                                        .fill(Color.yellow.opacity(0.45))
+                                        .frame(width: 1.5, height: 38)
+                                        .padding(.horizontal, 2)
+                                }
                                 if slotIdx < player.cards.count {
                                     Server2CardItemView(card: player.cards[slotIdx])
                                         .frame(width: 36)
