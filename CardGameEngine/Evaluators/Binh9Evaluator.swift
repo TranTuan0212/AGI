@@ -175,9 +175,9 @@ public class Binh9Evaluator {
             case .threeFaces:
                 return Int64(300000 + s.primaryRank * 100 + (s.kickers.first ?? 0))
             case .pairPoints:
-                return Int64(100000 + s.points * 10000 + s.primaryRank * 100 + (s.kickers.first ?? 0))
+                return Int64(s.points * 20000 + 10000 + s.primaryRank * 100 + (s.kickers.first ?? 0))
             case .points:
-                return Int64(s.points * 10000 + (s.kickers.first ?? 0) * 100 + (s.kickers.count > 1 ? s.kickers[1] : 0))
+                return Int64(s.points * 20000 + (s.kickers.first ?? 0) * 100 + (s.kickers.count > 1 ? s.kickers[1] : 0))
             }
         }
         
@@ -208,8 +208,8 @@ public class Binh9Evaluator {
                     instant = "Thắng trắng: Ba Liêng"
                 }
                 
-                var weight: Int64 = chiScalar(s1) * 10000 + chiScalar(s2) * 100 + chiScalar(s3)
-                if instant != nil { weight += 50000000000 }
+                var weight: Int64 = chiScalar(s1) * 1000000000000 + chiScalar(s2) * 1000000 + chiScalar(s3)
+                if instant != nil { weight += 1000000000000000000 }
                 
                 if weight > bestWeight {
                     bestWeight = weight
@@ -282,10 +282,10 @@ public class Binh9Evaluator {
         
         let scoreA: Int
         let resultText: String
-        if aWins >= 2 {
+        if aWins > bWins {
             scoreA = 1
             resultText = "THẮNG (\(aWins)/3 chi)"
-        } else if bWins >= 2 {
+        } else if bWins > aWins {
             scoreA = -1
             resultText = "THUA (\(bWins)/3 chi)"
         } else {
@@ -495,13 +495,13 @@ public class Binh9NoStraightEvaluator {
         case .threeOfAKind:
             return Int64(500000 + s.primaryRank * 100)
         case .threeFacesPair:
-            return Int64(400000 + s.primaryRank * 100 + (s.kickers.first ?? 0))
+            return Int64(350000 + s.primaryRank * 100 + (s.kickers.first ?? 0))
         case .threeFacesNoPair:
-            return Int64(300000 + (s.kickers.first ?? 0) * 10 + (s.kickers.count > 1 ? s.kickers[1] : 0))
+            return Int64(250000 + (s.kickers.first ?? 0) * 10 + (s.kickers.count > 1 ? s.kickers[1] : 0))
         case .pairPoints:
-            return Int64(100000 + s.points * 10000 + s.primaryRank * 100 + (s.kickers.first ?? 0))
+            return Int64(s.points * 20000 + 10000 + s.primaryRank * 100 + (s.kickers.first ?? 0))
         case .points:
-            return Int64(s.points * 10000 + (s.kickers.first ?? 0) * 100 + (s.kickers.count > 1 ? s.kickers[1] : 0))
+            return Int64(s.points * 20000 + (s.kickers.first ?? 0) * 100 + (s.kickers.count > 1 ? s.kickers[1] : 0))
         }
     }
     
@@ -526,7 +526,7 @@ public class Binh9NoStraightEvaluator {
             
             guard s1 >= s2 else { continue } // Chi 1 phải >= Chi 2
             
-            let weight = chiScalar(s1) * 10000 + chiScalar(s2)
+            let weight = chiScalar(s1) * 1000000 + chiScalar(s2)
             if weight > bestWeight {
                 bestWeight = weight
                 bestArrangement = Binh9NoStraightArrangement(
@@ -594,8 +594,8 @@ public class Binh9NoStraightEvaluator {
                     instant = "Thắng trắng: Ba Sáp"
                 }
                 
-                var weight: Int64 = chiScalar(s1) * 100000000 + chiScalar(s2) * 10000 + chiScalar(s3)
-                if instant != nil { weight += 50000000000 }
+                var weight: Int64 = chiScalar(s1) * 1000000000000 + chiScalar(s2) * 1000000 + chiScalar(s3)
+                if instant != nil { weight += 1000000000000000000 }
                 
                 if weight > bestWeight {
                     bestWeight = weight
@@ -686,7 +686,7 @@ public class Binh9NoStraightEvaluator {
         if winsA > winsB {
             return (1, "Ăn \(winsA)/3 chi (Thắng)")
         } else if winsB > winsA {
-            return (-1, "Thua (\(winsA)/3 chi)")
+            return (-1, "Thua (\(winsB)/3 chi)")
         }
         return (0, "Hòa chi")
     }

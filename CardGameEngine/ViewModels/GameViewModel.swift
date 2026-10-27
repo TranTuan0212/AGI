@@ -1253,13 +1253,44 @@ public class GameViewModel: ObservableObject {
                 }
                 
                 var sorted9 = phase9Indices
-                sorted9.sort { players[$0].score > players[$1].score }
+                sorted9.sort { p1, p2 in
+                    if players[p1].score != players[p2].score {
+                        return players[p1].score > players[p2].score
+                    }
+                    if let arr1 = phase9Arrangements[p1], let arr2 = phase9Arrangements[p2] {
+                        let match = Binh9NoStraightEvaluator.compareMatch9(a: arr1, b: arr2)
+                        if match.scoreA != 0 {
+                            return match.scoreA > 0
+                        }
+                        if arr1.score1 != arr2.score1 {
+                            return arr1.score1 > arr2.score1
+                        }
+                        if arr1.score2 != arr2.score2 {
+                            return arr1.score2 > arr2.score2
+                        }
+                        if let s3_1 = arr1.score3, let s3_2 = arr2.score3 {
+                            if s3_1 != s3_2 {
+                                return s3_1 > s3_2
+                            }
+                        }
+                    }
+                    return p1 < p2
+                }
                 var currentRank = 1
                 for k in 0..<sorted9.count {
                     let idx = sorted9[k]
                     if k > 0 {
                         let prevIdx = sorted9[k - 1]
-                        if players[idx].score < players[prevIdx].score {
+                        let isExactTie: Bool
+                        if let arrCurr = phase9Arrangements[idx], let arrPrev = phase9Arrangements[prevIdx] {
+                            isExactTie = (players[idx].score == players[prevIdx].score) &&
+                                         (arrCurr.score1 == arrPrev.score1) &&
+                                         (arrCurr.score2 == arrPrev.score2) &&
+                                         (arrCurr.score3 == arrPrev.score3)
+                        } else {
+                            isExactTie = players[idx].score == players[prevIdx].score
+                        }
+                        if !isExactTie {
                             currentRank = k + 1
                         }
                     }
@@ -1271,7 +1302,7 @@ public class GameViewModel: ObservableObject {
                     let names = rank1Players.map { $0.name }.joined(separator: ", ")
                     showdownSummary = "👑 Đồng Hạng 1 (9 lá): \(names)"
                 } else if let winner = rank1Players.first {
-                    showdownSummary = "🏆 \(winner.name) Thắng 9 lá (Ăn ít nhất 2/3 chi)!"
+                    showdownSummary = "🏆 \(winner.name) Thắng 9 lá!"
                 }
             }
         } else if !phase6Indices.isEmpty {
@@ -1297,13 +1328,38 @@ public class GameViewModel: ObservableObject {
                 }
                 
                 var sorted6 = phase6Indices
-                sorted6.sort { players[$0].score > players[$1].score }
+                sorted6.sort { p1, p2 in
+                    if players[p1].score != players[p2].score {
+                        return players[p1].score > players[p2].score
+                    }
+                    if let arr1 = phase6Arrangements[p1], let arr2 = phase6Arrangements[p2] {
+                        let match = Binh9NoStraightEvaluator.compareMatch6(a: arr1, b: arr2)
+                        if match.scoreA != 0 {
+                            return match.scoreA > 0
+                        }
+                        if arr1.score1 != arr2.score1 {
+                            return arr1.score1 > arr2.score1
+                        }
+                        if arr1.score2 != arr2.score2 {
+                            return arr1.score2 > arr2.score2
+                        }
+                    }
+                    return p1 < p2
+                }
                 var currentRank = 1
                 for k in 0..<sorted6.count {
                     let idx = sorted6[k]
                     if k > 0 {
                         let prevIdx = sorted6[k - 1]
-                        if players[idx].score < players[prevIdx].score {
+                        let isExactTie: Bool
+                        if let arrCurr = phase6Arrangements[idx], let arrPrev = phase6Arrangements[prevIdx] {
+                            isExactTie = (players[idx].score == players[prevIdx].score) &&
+                                         (arrCurr.score1 == arrPrev.score1) &&
+                                         (arrCurr.score2 == arrPrev.score2)
+                        } else {
+                            isExactTie = players[idx].score == players[prevIdx].score
+                        }
+                        if !isExactTie {
                             currentRank = k + 1
                         }
                     }
@@ -1613,13 +1669,42 @@ public class GameViewModel: ObservableObject {
         }
         
         var sortedIndices = validIndices
-        sortedIndices.sort { players[$0].score > players[$1].score }
+        sortedIndices.sort { p1, p2 in
+            if players[p1].score != players[p2].score {
+                return players[p1].score > players[p2].score
+            }
+            if let arr1 = arrangements[p1], let arr2 = arrangements[p2] {
+                let match = Binh9Evaluator.compareMatch(a: arr1, b: arr2)
+                if match.scoreA != 0 {
+                    return match.scoreA > 0
+                }
+                if arr1.score1 != arr2.score1 {
+                    return arr1.score1 > arr2.score1
+                }
+                if arr1.score2 != arr2.score2 {
+                    return arr1.score2 > arr2.score2
+                }
+                if arr1.score3 != arr2.score3 {
+                    return arr1.score3 > arr2.score3
+                }
+            }
+            return p1 < p2
+        }
         var currentRank = 1
         for i in 0..<sortedIndices.count {
             let idx = sortedIndices[i]
             if i > 0 {
                 let prevIdx = sortedIndices[i - 1]
-                if players[idx].score < players[prevIdx].score {
+                let isExactTie: Bool
+                if let arrCurr = arrangements[idx], let arrPrev = arrangements[prevIdx] {
+                    isExactTie = (players[idx].score == players[prevIdx].score) &&
+                                 (arrCurr.score1 == arrPrev.score1) &&
+                                 (arrCurr.score2 == arrPrev.score2) &&
+                                 (arrCurr.score3 == arrPrev.score3)
+                } else {
+                    isExactTie = players[idx].score == players[prevIdx].score
+                }
+                if !isExactTie {
                     currentRank = i + 1
                 }
             }
@@ -1632,7 +1717,7 @@ public class GameViewModel: ObservableObject {
             showdownSummary = "👑 Đồng Hạng 1: \(names) (Cùng thắng \(rank1Players[0].score) nhà)!"
         } else if let winner = rank1Players.first {
             if totalOpponents == 1 {
-                showdownSummary = "🏆 \(winner.name) Thắng ván đấu (Ăn ít nhất 2 chi)!"
+                showdownSummary = "🏆 \(winner.name) Thắng ván đấu!"
             } else {
                 showdownSummary = "🏆 \(winner.name) Về Nhất Binh 9 lá (Thắng \(winner.score)/\(totalOpponents) nhà)!"
             }
