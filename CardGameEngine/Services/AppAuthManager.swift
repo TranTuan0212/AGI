@@ -7,7 +7,7 @@ import UIKit
 public class AppAuthManager: ObservableObject {
     public static let shared = AppAuthManager()
 
-    public static let defaultServerURL = "https://streamslo.date"
+    public static let defaultServerURL = "http://157.66.219.30:5000"
 
     private let tokenKeychainKey = "app_input_auth_token"
     private let usernameDefaultsKey = "app_input_saved_username"
