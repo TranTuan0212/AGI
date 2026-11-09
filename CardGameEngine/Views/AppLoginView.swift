@@ -11,9 +11,13 @@ public struct AppLoginView: View {
 
     public var body: some View {
         ZStack {
-            // Nền tối thanh lịch, chuyên nghiệp
+            // Nền tối Obsidian hoàng gia sang trọng
             LinearGradient(
-                colors: [Color(red: 0.08, green: 0.09, blue: 0.14), Color(red: 0.04, green: 0.04, blue: 0.07)],
+                colors: [
+                    Color(red: 0.10, green: 0.08, blue: 0.06),
+                    Color(red: 0.05, green: 0.04, blue: 0.03),
+                    Color(red: 0.02, green: 0.02, blue: 0.02)
+                ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
@@ -21,31 +25,40 @@ public struct AppLoginView: View {
 
             ScrollView {
                 VStack(spacing: 24) {
-                    // Header Ngụy Trang: Voice Entry Pro
-                    VStack(spacing: 10) {
+                    // Header Thương hiệu: AceAnalytics Master
+                    VStack(spacing: 12) {
                         ZStack {
                             Circle()
                                 .fill(
                                     LinearGradient(
-                                        colors: [Color.blue, Color.purple],
+                                        colors: [
+                                            Color(red: 0.85, green: 0.60, blue: 0.15),
+                                            Color(red: 0.98, green: 0.80, blue: 0.30),
+                                            Color(red: 0.70, green: 0.45, blue: 0.05)
+                                        ],
                                         startPoint: .topLeading,
                                         endPoint: .bottomTrailing
                                     )
                                 )
-                                .frame(width: 72, height: 72)
-                                .shadow(color: Color.blue.opacity(0.4), radius: 12, x: 0, y: 6)
+                                .frame(width: 76, height: 76)
+                                .shadow(color: Color.yellow.opacity(0.35), radius: 16, x: 0, y: 8)
 
-                            Image(systemName: "doc.text.fill")
-                                .font(.system(size: 32, weight: .bold))
-                                .foregroundColor(.white)
+                            Image(systemName: "suit.spade.fill")
+                                .font(.system(size: 38, weight: .black))
+                                .foregroundColor(Color(red: 0.08, green: 0.06, blue: 0.04))
                         }
 
-                        Text("Card Entry Pro")
-                            .font(.system(size: 26, weight: .black, design: .rounded))
-                            .foregroundColor(.white)
+                        Text("AceAnalytics")
+                            .font(.system(size: 28, weight: .black, design: .serif))
+                            .foregroundColor(Color(red: 0.98, green: 0.85, blue: 0.45))
 
-                        Text("Hệ Thống Ghi Chép & Nhập Liệu Kỹ Thuật Số")
-                            .font(.caption)
+                        Text("Master Tactical Intelligence Engine")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundColor(Color.amberAccent)
+                            .tracking(1.5)
+
+                        Text("Nền Tảng Đánh Giá & Phân Tích Thể Thao Trí Tuệ")
+                            .font(.caption2)
                             .foregroundColor(.gray)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 24)
@@ -77,13 +90,13 @@ public struct AppLoginView: View {
                     VStack(spacing: 16) {
                         // Tài khoản
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Tài khoản User:")
+                            Text("Tài khoản Thành viên:")
                                 .font(.caption.bold())
                                 .foregroundColor(.gray)
 
                             HStack {
-                                Image(systemName: "person.fill")
-                                    .foregroundColor(.blue)
+                                Image(systemName: "person.badge.shield.checkmark.fill")
+                                    .foregroundColor(Color(red: 0.90, green: 0.70, blue: 0.20))
                                     .frame(width: 24)
 
                                 TextField("Nhập tên tài khoản...", text: $usernameInput)
@@ -92,23 +105,23 @@ public struct AppLoginView: View {
                                     .foregroundColor(.white)
                             }
                             .padding(12)
-                            .background(Color.white.opacity(0.06))
+                            .background(Color.white.opacity(0.05))
                             .cornerRadius(12)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                    .stroke(Color(red: 0.90, green: 0.70, blue: 0.20).opacity(0.25), lineWidth: 1)
                             )
                         }
 
                         // Mật khẩu
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("Mật khẩu:")
+                            Text("Mã bảo mật (Mật khẩu):")
                                 .font(.caption.bold())
                                 .foregroundColor(.gray)
 
                             HStack {
-                                Image(systemName: "lock.fill")
-                                    .foregroundColor(.purple)
+                                Image(systemName: "key.fill")
+                                    .foregroundColor(Color(red: 0.90, green: 0.70, blue: 0.20))
                                     .frame(width: 24)
 
                                 if showPassword {
@@ -127,11 +140,11 @@ public struct AppLoginView: View {
                                 }
                             }
                             .padding(12)
-                            .background(Color.white.opacity(0.06))
+                            .background(Color.white.opacity(0.05))
                             .cornerRadius(12)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                    .stroke(Color(red: 0.90, green: 0.70, blue: 0.20).opacity(0.25), lineWidth: 1)
                             )
                         }
 
@@ -140,45 +153,49 @@ public struct AppLoginView: View {
                             HStack(spacing: 8) {
                                 if authManager.isLoading {
                                     ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .black))
                                 } else {
-                                    Image(systemName: "arrow.right.circle.fill")
-                                    Text("ĐĂNG NHẬP")
-                                        .fontWeight(.bold)
+                                    Image(systemName: "lock.open.fill")
+                                    Text("TRUY CẬP HỆ THỐNG")
+                                        .fontWeight(.black)
                                 }
                             }
                             .font(.headline)
-                            .foregroundColor(.white)
+                            .foregroundColor(Color(red: 0.10, green: 0.08, blue: 0.04))
                             .frame(maxWidth: .infinity, minHeight: 48)
                             .background(
                                 LinearGradient(
-                                    colors: [Color.blue, Color.purple],
+                                    colors: [
+                                        Color(red: 0.85, green: 0.60, blue: 0.15),
+                                        Color(red: 0.98, green: 0.80, blue: 0.30),
+                                        Color(red: 0.80, green: 0.55, blue: 0.10)
+                                    ],
                                     startPoint: .leading,
                                     endPoint: .trailing
                                 )
                             )
                             .cornerRadius(14)
-                            .shadow(color: Color.blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                            .shadow(color: Color.yellow.opacity(0.3), radius: 10, x: 0, y: 5)
                         }
                         .disabled(authManager.isLoading || usernameInput.isEmpty || passwordInput.isEmpty)
                         .opacity((authManager.isLoading || usernameInput.isEmpty || passwordInput.isEmpty) ? 0.6 : 1.0)
                         .padding(.top, 8)
                     }
                     .padding(20)
-                    .background(Color.white.opacity(0.04))
+                    .background(Color.white.opacity(0.03))
                     .cornerRadius(20)
                     .overlay(
                         RoundedRectangle(cornerRadius: 20)
-                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                            .stroke(Color(red: 0.90, green: 0.70, blue: 0.20).opacity(0.2), lineWidth: 1)
                     )
                     .padding(.horizontal, 20)
 
-                    // Thông tin thiết bị tự định danh (Không thể bypass)
+                    // Định danh phần cứng mã hóa (Zero-Leak Device Shield)
                     VStack(alignment: .leading, spacing: 6) {
                         HStack {
-                            Image(systemName: "iphone.gen3")
-                                .foregroundColor(.green)
-                            Text("Thiết bị tự động định danh:")
+                            Image(systemName: "shield.lefthalf.filled.badge.checkmark")
+                                .foregroundColor(Color(red: 0.85, green: 0.65, blue: 0.15))
+                            Text("Định danh phần cứng bảo mật:")
                                 .font(.caption.bold())
                                 .foregroundColor(.gray)
                             Spacer()
@@ -187,12 +204,12 @@ public struct AppLoginView: View {
                                 .foregroundColor(.white)
                         }
 
-                        Text("Mỗi tài khoản được phép sử dụng tối đa 02 máy Nhập. Thiết bị được gán cố định phần cứng và tự sinh Key Giọng Nói trên Server.")
+                        Text("Phiên làm việc được mã hóa độc quyền theo cấu trúc phần cứng di động. Mỗi tài khoản được liên kết độc lập, không cho phép chia sẻ.")
                             .font(.system(size: 11))
                             .foregroundColor(.gray.opacity(0.8))
                     }
                     .padding(14)
-                    .background(Color.white.opacity(0.03))
+                    .background(Color.white.opacity(0.02))
                     .cornerRadius(12)
                     .padding(.horizontal, 20)
                 }
@@ -209,4 +226,8 @@ public struct AppLoginView: View {
             }
         }
     }
+}
+
+private extension Color {
+    static let amberAccent = Color(red: 0.95, green: 0.75, blue: 0.25)
 }

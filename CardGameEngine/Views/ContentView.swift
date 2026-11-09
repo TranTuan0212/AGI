@@ -23,12 +23,12 @@ public struct ContentView: View {
                             Text(user)
                                 .font(.system(size: 11, weight: .bold, design: .rounded))
                                 .foregroundColor(.cyan)
-                            Text("• Quota: 2 máy Nhập")
+                            Text("• AceAnalytics Secured")
                                 .font(.system(size: 9, weight: .medium))
                                 .foregroundColor(.gray)
                         }
                     } else {
-                        Text("Chế độ Nhập Server 2")
+                        Text("AceAnalytics Master Engine")
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.gray)
                     }
