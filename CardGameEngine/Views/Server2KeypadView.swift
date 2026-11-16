@@ -72,7 +72,8 @@ public struct Server2KeypadView: View {
 
     // MARK: - Giao diện bàn phím Liêng 3 Lá
     private var lieng3KeypadView: some View {
-        let normalColumns = Array(repeating: GridItem(.flexible(), spacing: 5), count: 4)
+        let firstRow = Array(allRanks.prefix(7)) // A, 2, 3, 4, 5, 6, 7
+        let secondRow = Array(allRanks.suffix(6)) // 8, 9, 10, J, Q, K
 
         return VStack(spacing: 5) {
             // 1. HÀNG CHẤT RÔ (♦) - ĐỦ 13 PHÍM A♦ ➔ K♦ DÀI HẾT NGANG & TO LÊN
@@ -103,7 +104,7 @@ public struct Server2KeypadView: View {
                             }
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
-                            .frame(height: 46)
+                            .frame(height: 52)
                             .background(
                                 LinearGradient(
                                     colors: [Color.roseAccent, Color(red: 0.82, green: 0.12, blue: 0.22)],
@@ -129,21 +130,22 @@ public struct Server2KeypadView: View {
                     .stroke(Color.roseAccent.opacity(0.30), lineWidth: 1)
             )
 
-            // 2. HÀNG SỐ THƯỜNG - CHIA 4 CỘT/HÀNG (4, 4, 4, 1), NÚT TO RÕ
-            VStack(alignment: .leading, spacing: 3) {
+            // 2. HÀNG SỐ THƯỜNG - 2 HÀNG TO BẢN: (A..7) & (8..K + Không thấy)
+            VStack(alignment: .leading, spacing: 4) {
                 HStack {
                     Text("SỐ THƯỜNG:")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(.gray)
                     Spacer()
-                    Text("A ➔ K")
+                    Text("A ➔ K & Không thấy")
                         .font(.system(size: 10, weight: .bold, design: .monospaced))
                         .foregroundColor(.gray)
                 }
                 .padding(.horizontal, 4)
 
-                LazyVGrid(columns: normalColumns, spacing: 5) {
-                    ForEach(allRanks) { rank in
+                // Hàng 1: A, 2, 3, 4, 5, 6, 7
+                HStack(spacing: 4) {
+                    ForEach(firstRow) { rank in
                         Button(action: {
                             viewModel.addServer2Card(rank: rank, isRo: false)
                         }) {
@@ -151,7 +153,7 @@ public struct Server2KeypadView: View {
                                 .font(.system(size: 20, weight: .black, design: .rounded))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 48)
+                                .frame(height: 54)
                                 .background(Color(red: 0.16, green: 0.20, blue: 0.28))
                                 .cornerRadius(8)
                                 .overlay(
@@ -161,6 +163,55 @@ public struct Server2KeypadView: View {
                         }
                         .buttonStyle(ScaleTouchButtonStyle())
                     }
+                }
+
+                // Hàng 2: 8, 9, 10, J, Q, K + 0 (Không thấy)
+                HStack(spacing: 4) {
+                    ForEach(secondRow) { rank in
+                        Button(action: {
+                            viewModel.addServer2Card(rank: rank, isRo: false)
+                        }) {
+                            Text(rank.displaySymbol)
+                                .font(.system(size: 20, weight: .black, design: .rounded))
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 54)
+                                .background(Color(red: 0.16, green: 0.20, blue: 0.28))
+                                .cornerRadius(8)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.white.opacity(0.18), lineWidth: 1)
+                                )
+                        }
+                        .buttonStyle(ScaleTouchButtonStyle())
+                    }
+
+                    Button(action: {
+                        viewModel.addServer2UnknownCard()
+                    }) {
+                        VStack(spacing: 0) {
+                            Text("0")
+                                .font(.system(size: 18, weight: .black, design: .rounded))
+                            Text("Ẩn/?")
+                                .font(.system(size: 9.5, weight: .bold))
+                        }
+                        .foregroundColor(Color(red: 1.0, green: 0.84, blue: 0.25))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(
+                            LinearGradient(
+                                colors: [Color(red: 0.35, green: 0.25, blue: 0.05), Color(red: 0.20, green: 0.14, blue: 0.03)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .cornerRadius(8)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.yellow.opacity(0.75), lineWidth: 1.2)
+                        )
+                    }
+                    .buttonStyle(ScaleTouchButtonStyle())
                 }
             }
             .padding(5)
@@ -701,7 +752,7 @@ public struct Server2KeypadView: View {
 
             // Phím 0 (Không thấy / ?) - Ẩn ở game ( 9 lá không liên ) vì đã có ở hàng 2 to bản
 
-            if viewModel.gameType != .binh9NoStraight {
+            if viewModel.gameType != .binh9NoStraight && viewModel.gameType != .lieng3 {
 
                 Button(action: {
 
