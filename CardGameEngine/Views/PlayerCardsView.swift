@@ -94,7 +94,7 @@ public struct PlayerCardsView: View {
             let commNeedsCards = viewModel.gameType.communityCardsCount > 0 && viewModel.communityCards.count < viewModel.gameType.communityCardsCount
             let isCommActive = commNeedsCards && !viewModel.hasCalculatedResults && (viewModel.isSelectingCommunity || allPlayersFull)
 
-            VStack(spacing: 5) {
+            VStack(spacing: 3) {
                 ForEach(0..<viewModel.players.count, id: \.self) { idx in
                     let player = viewModel.players[idx]
                     let target = viewModel.targetCards(for: idx)
@@ -103,7 +103,7 @@ public struct PlayerCardsView: View {
                     let isManualSelected = viewModel.inputMode == .manual && viewModel.selectedPlayerIndex == idx && !viewModel.isSelectingCommunity && !viewModel.hasCalculatedResults && !isCommActive
                     let isHighlight = isCurrentRoundRobin || isManualSelected || isWinner
                     
-                    VStack(alignment: .leading, spacing: 3) {
+                    VStack(alignment: .leading, spacing: 2) {
                         HStack {
                             Circle()
                                 .fill(isWinner ? Color.yellow : (isHighlight ? Color.green : Color.gray.opacity(0.4)))
@@ -275,8 +275,8 @@ public struct PlayerCardsView: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2.5)
                     .background(
                         isWinner ? Color.yellow.opacity(0.12) :
                         (isHighlight ? Color.accentColor.opacity(0.08) : Color(.secondarySystemBackground))
@@ -375,43 +375,43 @@ struct MiniCardView: View {
             if card.isHidden {
                 VStack(spacing: 0) {
                     Text("?")
-                        .font(.system(size: 16, weight: .black))
+                        .font(.system(size: 13, weight: .black))
                         .foregroundColor(.purple)
                     Text("Ẩn")
-                        .font(.system(size: 8, weight: .bold))
+                        .font(.system(size: 7, weight: .bold))
                         .foregroundColor(.purple.opacity(0.85))
                 }
-                .frame(width: 32, height: 40)
+                .frame(width: 28, height: 28)
                 .background(Color.white)
-                .cornerRadius(5)
+                .cornerRadius(4)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 5)
+                    RoundedRectangle(cornerRadius: 4)
                         .stroke(style: StrokeStyle(lineWidth: 1.2, dash: [3]))
                         .foregroundColor(Color.purple.opacity(0.6))
                 )
                 .shadow(color: Color.black.opacity(0.08), radius: 1, x: 0, y: 1)
             } else if card.isRankOnly {
                 Text(card.rank.displaySymbol)
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 14, weight: .bold))
                     .foregroundColor(card.rank == .ace ? .red : (card.rank == .jack || card.rank == .queen || card.rank == .king ? .blue : .black))
-                    .frame(width: 32, height: 40)
+                    .frame(width: 28, height: 28)
                     .background(Color.white)
-                    .cornerRadius(5)
+                    .cornerRadius(4)
                     .overlay(
-                        RoundedRectangle(cornerRadius: 5)
+                        RoundedRectangle(cornerRadius: 4)
                             .stroke(Color.gray.opacity(0.35), lineWidth: 1)
                     )
                     .shadow(color: Color.black.opacity(0.08), radius: 1, x: 0, y: 1)
             } else {
                 VStack(spacing: 0) {
                     Text(card.rank.displaySymbol)
-                        .font(.system(size: 12, weight: .bold))
+                        .font(.system(size: 11, weight: .bold))
                         .foregroundColor(card.suit.isRed ? .red : .black)
                     Text(card.suit.rawValue)
-                        .font(.system(size: 10))
+                        .font(.system(size: 8.5))
                         .foregroundColor(card.suit.isRed ? .red : .black)
                 }
-                .frame(width: 26, height: 36)
+                .frame(width: 25, height: 28)
                 .background(Color.white)
                 .cornerRadius(4)
                 .overlay(
@@ -430,10 +430,10 @@ struct CardPlaceholderView: View {
         RoundedRectangle(cornerRadius: 4)
             .stroke(style: StrokeStyle(lineWidth: 1, dash: [2]))
             .foregroundColor(Color.gray.opacity(0.35))
-            .frame(width: 28, height: 38)
+            .frame(width: 25, height: 28)
             .overlay(
                 Image(systemName: "plus")
-                    .font(.system(size: 9))
+                    .font(.system(size: 8))
                     .foregroundColor(Color.gray.opacity(0.4))
             )
     }
