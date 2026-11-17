@@ -81,7 +81,7 @@ public struct ContentView: View {
                                     .foregroundColor(.roseAccent)
                                 
                                 Text(viewModel.gameType.shortName)
-                                    .font(.system(size: 13 * fontScale, weight: .black, design: .rounded))
+                                    .font(.system(size: 13, weight: .black, design: .rounded))
                                     .foregroundColor(.white)
                                     .lineLimit(1)
                                 
@@ -359,7 +359,7 @@ struct Server2PlayerRowView: View {
                 HStack(spacing: 6) {
                     HStack(spacing: 4) {
                         Text("Tụ \(playerIndex + 1)")
-                            .font(.system(size: 13, weight: .black, design: .rounded))
+                            .font(.system(size: 13 * fontScale, weight: .black, design: .rounded))
                             .foregroundColor(isSelected ? .cyan : .white)
                         
                         if isSelected {
